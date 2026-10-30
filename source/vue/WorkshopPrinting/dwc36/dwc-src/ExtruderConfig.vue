@@ -21,11 +21,14 @@
 					<v-chip v-else-if="changesOf(z).length" x-small outlined color="warning">{{ $t('plugins.WorkshopPrinting.extruderConfig.changed') }}</v-chip>
 					<span class="pc-tgt text-caption">{{ $t('plugins.WorkshopPrinting.extruderConfig.heater_h_sensor_s', { h: z.h, s: z.s }) }}</span>
 					<v-spacer />
+					<v-btn v-if="!z.remove" x-small outlined :aria-expanded="isOpen(z) ? 'true' : 'false'" @click="toggleZone(z)">
+						<v-icon x-small left>{{ isOpen(z) ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>{{ isOpen(z) ? $t('plugins.WorkshopPrinting.extruderConfig.close_zone') : $t('plugins.WorkshopPrinting.extruderConfig.edit_zone') }}
+					</v-btn>
 					<v-btn v-if="k > 0 && !z.remove" x-small text color="error" @click="removeZone(z)">{{ $t('plugins.WorkshopPrinting.extruderConfig.remove_zone') }}</v-btn>
 					<v-btn v-if="z.remove" x-small text @click="z.remove = false">{{ $t('plugins.WorkshopPrinting.extruderConfig.keep') }}</v-btn>
 				</div>
 				<!-- 2026-10-11: output type (DC board, AC SSR, mechanical relay) and connectors chosen from a list -->
-				<template v-if="!z.remove">
+				<template v-if="!z.remove && isOpen(z)">
 					<div class="pc-fsec" style="--fs:#F4511E">
 						<div class="pc-fhead"><span class="pc-fb"><v-icon x-small>mdi-fire</v-icon></span>{{ $t('plugins.WorkshopPrinting.extruderConfig.heater_section') }}</div>
 					<v-row dense class="mt-1">
@@ -199,7 +202,7 @@ export default {
 		tool: { type: Object, default: null }
 	},
 	data() {
-		return { text: null, textConfig: '', othersModes: {}, viewPins: false, msgPin: '', zones: [], loading: true, errReading: null, saving: false, reloadPending: false };
+		return { text: null, textConfig: '', othersModes: {}, viewPins: false, msgPin: '', zones: [], loading: true, errReading: null, openZones: {}, saving: false, reloadPending: false };
 	},
 	computed: {
 		model() {
@@ -657,6 +660,13 @@ export default {
 			const h = this.hFree, s = this.sFree;
 			if (h == null || s == null) return;
 			this.zones.push({ key: 'n' + Date.now(), h, s, newEntry: true, remove: false, name: i18n.t('plugins.WorkshopPrinting.extruderConfig.default_zone_name'), output: '', max: 250, kind: 'dc', ca: false, monitors: [], incomplete: false, ...readSensor('M308 Y"thermistor"') });
+		},
+		// a zone card is closed until the person opens it (a zone just added opens by itself); closed ones keep what was typed in them
+		isOpen(z) {
+			return !!z.newEntry || !!this.openZones[z.key];
+		},
+		toggleZone(z) {
+			this.openZones = Object.assign({}, this.openZones, { [z.key]: !this.isOpen(z) });
 		},
 		removeZone(z) {
 			if (z.newEntry) this.zones = this.zones.filter(x => x !== z);

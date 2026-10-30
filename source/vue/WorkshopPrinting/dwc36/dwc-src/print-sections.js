@@ -14,6 +14,7 @@ export const SECTIONS = [
 	{ id: 'state', icon: 'mdi-thermometer', label: 'common.status', group: 'printing.group_operate', fff: true },
 	{ id: 'pellet', icon: 'mdi-grain', label: 'printing.pellet_panel', group: 'printing.group_operate', fff: true },
 	{ id: 'materials', icon: 'mdi-flask-outline', label: 'printing.materials', group: 'printing.group_operate', min: 'operator', fff: true },
+	{ id: 'filament', icon: 'mdi-tray-arrow-down', label: 'printing.filament_load', group: 'printing.group_operate', min: 'operator', fff: true },
 	{ id: 'job', icon: 'mdi-cube-outline', label: 'fff.tab', group: 'printing.group_operate', fff: true },
 	{ id: 'tests', icon: 'mdi-clipboard-check-outline', label: 'printing.printer_tests', group: 'printing.group_configure', min: 'technician', fff: true },
 	{ id: 'head', icon: 'mdi-swap-horizontal', label: 'printing.head_change', group: 'printing.group_configure', min: 'technician', fff: false },
@@ -23,11 +24,12 @@ export const SECTIONS = [
 ];
 
 // ids of the sections that do not apply to this machine: the head change on a machine that uses one mode only, the pellet sections
-// (panel and setup) on a filament extruder
+// (panel and setup) on a filament extruder, the filament load on a pellet extruder
 export function hiddenIds(hideHead, kind) {
 	const ids = [];
 	if (hideHead) ids.push('head');
 	if (kind === 'filament') ids.push('pellet', 'zones');
+	else ids.push('filament');
 	return ids;
 }
 
@@ -72,7 +74,8 @@ export function sideItems(t, isFff, can, hide) {
 // ---- who may do what on this page (one operation of the service table per rule: role-view.js roleAtLeast) ----
 // The service has no operation for these G-code actions (they go straight to the board / the SD), so each one is tested by the rank
 // of an equivalent operation of dsf/permissions.py, as a courtesy of the page: the board and the SD are not guarded by it.
-//   operate   operator    like moving, work lights and jobs (light.set): heating a zone, fans, motor test, feeding now, preheat
+//   operate   operator    like moving, work lights and jobs (light.set): heating a zone, fans, motor test, feeding now, preheat, pausing /
+//                         cancelling the job, Z steps and factors, loading filament
 //   configure technician  like settings.set / pid.start / motors.disable: anything that writes modefff.g or printing.json, the PID,
 //                         the head / mode change (selectfff.g)
 //   cold      technician  allowing cold extrusion switches a protection off (an operator may lock it again)

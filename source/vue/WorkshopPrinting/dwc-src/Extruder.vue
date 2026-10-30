@@ -6,9 +6,9 @@
 		</v-alert>
 
 		<!-- Tipo de extrusor -->
-		<div class="text-title-small mb-1">{{ $t('plugins.WorkshopPrinting.extruder.kind_title') }}</div>
+		<div class="text-title-small mb-1">{{ $t('plugins.WorkshopPrinting.extruder.kind_title', { tool: toolName }) }}</div>
 		<div class="text-body-medium">{{ $t('plugins.WorkshopPrinting.extruder.kind_hint') }}</div>
-		<v-btn-toggle :model-value="kind.value" mandatory density="compact" variant="outlined" color="primary" class="mt-1 mb-4" :disabled="!canConfig" @update:model-value="setKind">
+		<v-btn-toggle :model-value="kind" mandatory density="compact" variant="outlined" color="primary" class="mt-1 mb-4" :disabled="!canConfig" @update:model-value="setKind">
 			<v-btn value="pellet" size="small">{{ $t('plugins.WorkshopPrinting.extruder.kind_pellet') }}</v-btn>
 			<v-btn value="filament" size="small">{{ $t('plugins.WorkshopPrinting.extruder.kind_filament') }}</v-btn>
 		</v-btn-toggle>
@@ -29,7 +29,7 @@
 		<!-- Caudal -->
 		<div class="text-title-small mt-5 mb-1">{{ $t('plugins.WorkshopPrinting.extruder.calibrate_the_flow_by_weight') }}</div>
 		<div class="text-body-medium">
-			{{ $t('plugins.WorkshopPrinting.extruder.' + (kind.value === 'filament' ? 'filament_flow_intro' : 'pellet_flow_intro'), { diam }) }} <b>M92 E</b> {{ $t('plugins.WorkshopPrinting.extruder.now_steps_mm', { n: currentSteps }) }}
+			{{ $t('plugins.WorkshopPrinting.extruder.' + (kind === 'filament' ? 'filament_flow_intro' : 'pellet_flow_intro'), { diam }) }} <b>M92 E</b> {{ $t('plugins.WorkshopPrinting.extruder.now_steps_mm', { n: currentSteps }) }}
 		</div>
 		<ol class="text-body-medium mt-2 steps">
 			<li>{{ $t('plugins.WorkshopPrinting.extruder.preheat_the_material_and_purge_until') }}</li>
@@ -86,7 +86,7 @@ import { NEED } from './print-sections.js'
 import { useRole } from './use-role.js' // what the role may do (vue/_shared)
 import { sendCode } from './send-code.js' // {code, log} wrapper over the machine store
 import { i18n } from './dwc-host.js'
-import { extruderKind as kind, loadExtruderKind, saveExtruderKind } from './extruder-kind.js' // pellets or filament (printing.json)
+import { kindOfTool, loadExtruderKinds, saveExtruderKind } from './extruder-kind.js' // pellets or filament of each tool (printing.json)
 
 const props = defineProps({
 	isFff: { type: Boolean, default: false },
@@ -99,6 +99,8 @@ const props = defineProps({
 
 const { atLeast } = useRole()
 const canConfig = computed(() => atLeast(NEED.configure))
+const kind = computed(() => kindOfTool(props.tool ? props.tool.number : 0))
+const toolName = computed(() => (props.tool ? props.tool.name || 'T' + props.tool.number : ''))
 
 const cfg = ref({})
 const materials = ref([])
@@ -139,7 +141,7 @@ const calculation = computed(() => {
 })
 
 onMounted(async () => {
-	loadExtruderKind();
+	loadExtruderKinds();
 	cfg.value = (await readJson(CFG_FILE, {})) || {};
 	materials.value = Array.isArray(cfg.value.materials) && cfg.value.materials.length ? cfg.value.materials : MATERIALS_DEF;
 	material.value = materials.value.find(m => m.name === cfg.value.last) || materials.value[0];
@@ -154,7 +156,7 @@ async function setKind(v) {
 	if (!v || !atLeast(NEED.configure)) return; // writes printing.json
 	msg.value = null;
 	try {
-		await saveExtruderKind(v);
+		await saveExtruderKind(props.tool ? props.tool.number : 0, v);
 	} catch (e) {
 		msgKind.value = 'error';
 		msg.value = i18n.t('plugins.WorkshopPrinting.extruder.could_not_save_kind') + (e.message || e);

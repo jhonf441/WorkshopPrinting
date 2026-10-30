@@ -50,8 +50,19 @@
 								<v-icon small left>mdi-lock</v-icon>{{ $t('plugins.WorkshopPrinting.printing.lock_cold_extrusion') }}
 							</v-btn>
 						</v-alert>
+						<div class="d-flex align-center flex-wrap mb-2" style="gap:16px">
+							<span class="text-body-2">{{ $t('plugins.WorkshopPrinting.printing.heated_bed_line', { state: bedText }) }}</span>
+							<span class="text-body-2">{{ $t('plugins.WorkshopPrinting.printing.heated_chamber_line', { state: chamberText }) }}</span>
+						</div>
+						<div v-if="!chamberIds.length" class="text-caption grey--text mb-3">{{ $t('plugins.WorkshopPrinting.printing.heated_chamber_none_help') }}</div>
+						<div v-if="tools.length > 1" class="d-flex align-center flex-wrap mb-2" style="gap:8px">
+							<span class="text-body-2">{{ $t('plugins.WorkshopPrinting.printing.tool_view') }}</span>
+							<v-btn-toggle :value="tool ? tool.number : null" mandatory dense outlined color="primary" @change="v => { viewTool = v }">
+								<v-btn v-for="t in tools" :key="t.number" :value="t.number" small>{{ t.name || 'T' + t.number }}</v-btn>
+							</v-btn-toggle>
+						</div>
 						<div v-if="tabItems.some(i => i.id === 'extruder')" class="d-flex align-center flex-wrap mb-3" style="gap:8px">
-							<span class="text-body-2">{{ $t('plugins.WorkshopPrinting.printing.extruder_type_now', { kind: $t('plugins.WorkshopPrinting.extruder.kind_' + extruderKindValue) }) }}</span>
+							<span class="text-body-2">{{ $t('plugins.WorkshopPrinting.printing.extruder_type_now', { tool: toolName, kind: $t('plugins.WorkshopPrinting.extruder.kind_' + toolKind) }) }}</span>
 							<v-btn small outlined @click="goSection('extruder')">{{ $t('plugins.WorkshopPrinting.printing.change_extruder_type') }}</v-btn>
 						</div>
 						<div v-if="!heaters.length" class="text-body-2 grey--text">
@@ -206,6 +217,11 @@
 						<materiales :is-fff="isFff" :heaters="heaters" :tools="tools" :current-tool="tool" />
 					</v-tab-item>
 
+					<!-- ===== Operate: load / unload filament (filament tools only: hiddenIds) ===== -->
+					<v-tab-item v-if="canOperate" value="filament">
+						<filament-load :is-fff="isFff" :tool="tool" :nozzle="nozzle" :min-extrusion="minExtrusion" :state="state" />
+					</v-tab-item>
+
 					<!-- ===== Configure: Extrusor ===== -->
 					<v-tab-item v-if="canConfig" value="extruder">
 						<extrusor :is-fff="isFff" :nozzle="nozzle" :extruder="extruder" :tool="tool" :min-extrusion="minExtrusion" :state="state" />
@@ -245,7 +261,9 @@ import PageHeader from './PageHeader.vue' // header of every page (vue/_shared)
 import { printModesMixin } from './print-modes-mixin.js' // which modes the machine uses: rows, entry, head change
 import StartupPrint from './PrintingStartup.vue' // the start-up assistant of the printing page (not the shared card, see HeadChange.vue)
 import ChartState from './ChartState.vue'
-import FffJob from './FffJob.vue' // 3D job tab: temperatures, print state and 3D view (moved from the Workbench)
+import FffJob from './FffJob.vue' // 3D job tab: temperatures, print state, job control and 3D view (moved from the Workbench)
+import FilamentLoad from './FilamentLoad.vue' // load / unload filament (filament tools only)
+import { heaterConfigRows } from './heater-config.js' // the rows of "How it is configured"
 import { explainSensor, isSensorFault, isError, readText, MODE_FILE } from './util.js'
 import { pluginOf, pluginActive } from './workshop-ids.js' // Id nuevo o viejo del plugin (vue/_shared)
 import { machineFree } from './machine-free.js' // trabajo de archivo, pausado o en vivo (vue/_shared)
@@ -263,18 +281,16 @@ const colors = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#9085e9'
 const RISK_COLD = 'extrusion_cold';
 const riskColdIni = () => api('risk.start', { id: 'extrusion_cold', text: i18n.t('plugins.WorkshopPrinting.printing.risk_cold_extrusion', 'es'), text_en: i18n.t('plugins.WorkshopPrinting.printing.risk_cold_extrusion', 'en'), seconds: 3600 });
 const riskColdEnd = () => api('risk.end', { id: 'extrusion_cold' });
-// RRF: M143 A<n> (action of the heater's monitor)
-const ACTION_MONITOR = () => ({ 0: i18n.t('plugins.WorkshopPrinting.printing.mon_heater_fault'), 1: i18n.t('plugins.WorkshopPrinting.printing.mon_turns_it_off'), 2: i18n.t('plugins.WorkshopPrinting.printing.mon_turns_it_off_briefly'), 3: i18n.t('plugins.WorkshopPrinting.printing.mon_shuts_machine_down') });
 
 import SideTabs from './SideTabs.vue'
 import { sectionColor } from './section-colors.js' // the color of the open section (top line of the card)
 import { roleMixin } from './role-mixin.js' // what the role sees and may do (vue/_shared)
 import { sideItems, sectionToShow, restoreSection, hiddenIds, NEED } from './print-sections.js'
-import { extruderKind, loadExtruderKind } from './extruder-kind.js' // pellets or filament: the pellet sections only show for pellets
+import { kindOfTool, loadExtruderKinds } from './extruder-kind.js' // pellets or filament of each tool: the pellet sections only show for a pellet tool
 
 export default {
 	mixins: [roleMixin, printModesMixin],
-	components: { PageHeader, SideTabs, HeadChange: HeadChange, Materiales: materials, Extrusor: extruder, Pid, Pellet, PelletSetup, PrintingStartup: StartupPrint, StartupPanel: StartupPanel, ChartState, FffJob, PcSection },
+	components: { PageHeader, SideTabs, HeadChange: HeadChange, Materiales: materials, Extrusor: extruder, Pid, Pellet, PelletSetup, PrintingStartup: StartupPrint, StartupPanel: StartupPanel, ChartState, FffJob, FilamentLoad, PcSection },
 	data() {
 		let section = restoreSection(null);
 		try {
@@ -311,15 +327,31 @@ export default {
 		}
 	},
 	computed: {
-		extruderKindValue() {
-			return extruderKind.value;
+		// what the machine declares: heaters of the bed (M140) and of the chamber (M141)
+		bedIds() {
+			return ((this.model.heat && this.model.heat.bedHeaters) || []).filter(n => n >= 0);
+		},
+		chamberIds() {
+			return ((this.model.heat && this.model.heat.chamberHeaters) || []).filter(n => n >= 0);
+		},
+		bedText() {
+			return this.bedIds.length ? i18n.t('plugins.WorkshopPrinting.printing.yes_heaters', { list: this.bedIds.map(n => 'H' + n).join(', ') }) : i18n.t('plugins.WorkshopPrinting.printing.no');
+		},
+		chamberText() {
+			return this.chamberIds.length ? i18n.t('plugins.WorkshopPrinting.printing.yes_heaters', { list: this.chamberIds.map(n => 'H' + n).join(', ') }) : i18n.t('plugins.WorkshopPrinting.printing.no');
+		},
+		toolKind() {
+			return this.tool ? kindOfTool(this.tool.number) : 'pellet';
+		},
+		toolName() {
+			return this.tool ? this.tool.name || 'T' + this.tool.number : '';
 		},
 		secColor() {
 			return sectionColor(this.section);
 		},
 		// the mode files and, once sys/config.g was read, whether it calls automodeselect.g (never edited from here)
 		tabItems() {
-			return sideItems(k => this.$t('plugins.WorkshopPrinting.' + k), this.isFff, op => this.canDo(op), hiddenIds(this.hideHead, extruderKind.value));
+			return sideItems(k => this.$t('plugins.WorkshopPrinting.' + k), this.isFff, op => this.canDo(op), hiddenIds(this.hideHead, this.toolKind));
 		},
 		// operator: heat, fans, preheat, lock cold extrusion; technician: what writes the configuration, changes the mode or the head,
 		// allows cold extrusion (NEED, print-sections.js). Without identity / users / an old service everything is shown (role-view.js)
@@ -354,8 +386,9 @@ export default {
 		tools() {
 			return (this.model.tools || []).filter(t => t);
 		},
+		// the tool the page works on: the one the person picked here, else the one the machine has now
 		tool() {
-			const cur = this.model.state && this.model.state.currentTool;
+			const cur = this.viewTool !== null ? this.viewTool : this.model.state && this.model.state.currentTool;
 			return this.tools.find(t => t.number === cur) || this.tools[0] || null;
 		},
 		// Each heater with its role: nozzle zone of a tool
@@ -433,38 +466,9 @@ export default {
 				current: h.sensorBad ? null : h.current, target: h.target, max: h.max
 			}));
 		},
+		// the rows of "How it is configured" (heater-config.js)
 		config() {
-			const hs = (this.model.heat && this.model.heat.heaters) || [];
-			const sensores = (this.model.sensors && this.model.sensors.analog) || [];
-			const n = (v, d) => (v == null || isNaN(v) ? '--' : Number(v).toFixed(d));
-			return this.heaters.map(c => {
-				const h = hs[c.id] || {};
-				const sn = sensores[c.sensor] || {};
-				const md = h.model || {};
-				const pid = md.pid || {};
-				const tool = c.tool != null ? this.tools.find(t => t.number === c.tool) : null;
-				let perteneceA = i18n.t('plugins.WorkshopPrinting.printing.no_tool');
-				if (c.paper === 'bed') perteneceA = i18n.t('plugins.WorkshopPrinting.printing.bed_m140');
-				else if (c.paper === 'camera') perteneceA = i18n.t('plugins.WorkshopPrinting.printing.chamber_m141');
-				else if (tool) perteneceA = (tool.name ? tool.name + ' (T' + tool.number + ')' : 'T' + tool.number) + (tool.heaters.length > 1 ? ', ' + i18n.t('plugins.WorkshopPrinting.printing.zone_n_of_total', { n: c.zone + 1, total: tool.heaters.length }) : '');
-				const mons = (h.monitors || []).filter(m => m && m.condition && m.condition !== 'disabled');
-				const capTxt = this.fmt(h.max) + ' °C' + (mons.length
-					? ' · ' + mons.map(m => (m.condition === 'tooLow' ? i18n.t('plugins.WorkshopPrinting.printing.if_below_c', { c: this.fmt(m.limit) }) : i18n.t('plugins.WorkshopPrinting.printing.if_above_c', { c: this.fmt(m.limit) })) + ': ' + (ACTION_MONITOR()[m.action] || i18n.t('plugins.WorkshopPrinting.printing.action_n', { n: m.action }))).join('; ')
-					: '');
-				const modelTxt = md.enabled === false ? i18n.t('plugins.WorkshopPrinting.printing.no_model_heater_disabled')
-					: i18n.t('plugins.WorkshopPrinting.printing.model_heats_cools', { heat: n(md.heatingRate, 2), cool: n(md.coolingRate, 3) }) + (md.fanCoolingRate ? ' ' + i18n.t('plugins.WorkshopPrinting.printing.model_with_fan', { rate: n(md.fanCoolingRate, 3) }) : '')
-						+ ' · ' + i18n.t('plugins.WorkshopPrinting.printing.model_dead_time_max_power', { dead: n(md.deadTime, 1), pwm: n((md.maxPwm || 0) * 100, 0) })
-						+ (md.standardVoltage ? ' · ' + i18n.t('plugins.WorkshopPrinting.printing.model_at_v', { v: n(md.standardVoltage, 1) }) : '') + (md.inverted ? ' · ' + i18n.t('plugins.WorkshopPrinting.printing.model_inverted') : '');
-				const pidTxt = pid.used === false ? i18n.t('plugins.WorkshopPrinting.printing.on_off_no_pid')
-					: 'PID ' + (pid.overridden ? i18n.t('plugins.WorkshopPrinting.printing.pid_by_hand') : i18n.t('plugins.WorkshopPrinting.printing.pid_from_model')) + (pid.p != null ? ': P ' + n(pid.p, 3) + ' · I ' + n(pid.i, 4) + ' · D ' + n(pid.d, 3) : '');
-				const lec = this.readings[c.id] || {};
-				return {
-					id: c.id, name: c.name, icon: c.icon, sensor: c.sensor, max: h.max, belongsA: perteneceA, stopTxt: capTxt, modelTxt: modelTxt, pidTxt,
-					pidShort: md.enabled === false ? i18n.t('plugins.WorkshopPrinting.common.no_model') : pid.used === false ? i18n.t('plugins.WorkshopPrinting.printing.no_pid') : 'PID',
-					output: lec.output || '',
-					sensorTxt: 'S' + c.sensor + (sn.name ? ' "' + sn.name + '"' : '') + ' · ' + this.kindSensor(sn.type) + ' · ' + i18n.t('plugins.WorkshopPrinting.printing.reads') + ' ' + (c.sensorBad ? '--' : this.fmt(sn.lastReading != null ? sn.lastReading : c.current) + ' °C')
-				};
-			});
+			return heaterConfigRows({ heaters: this.heaters, model: this.model, tools: this.tools, readings: this.readings, fmt: this.fmt, t: (k, p) => i18n.t('plugins.WorkshopPrinting.' + k, p) });
 		},
 		// REAL state of M302: with P1 RRF reports coldExtrudeTemperature = 0
 		// (Heat.cpp: coldExtrude ? 0 : extrusionMinTemp). null: model not loaded.
@@ -497,7 +501,7 @@ export default {
 		this.buf = []; // history without reactivity; the chart receives a frozen copy
 	},
 	mounted() {
-		loadExtruderKind();
+		loadExtruderKinds();
 		this.sample();
 		this.timerSample = setInterval(this.sample, SAMPLE_MS);
 		// if modefff.g sets M302 (without P1), reloading the mode blocks it again
@@ -518,11 +522,11 @@ export default {
 		// the open section when the mode or the role changes
 		fitSection() {
 			if (!this.mode) return;
-			const s = sectionToShow(this.section, this.isFff, op => this.canDo(op), hiddenIds(this.hideHead, extruderKind.value));
+			const s = sectionToShow(this.section, this.isFff, op => this.canDo(op), hiddenIds(this.hideHead, this.toolKind));
 			if (s !== this.section) this.section = s;
 		},
 		goSection(id) {
-			this.section = sectionToShow(id, this.isFff, op => this.canDo(op), hiddenIds(this.hideHead, extruderKind.value));
+			this.section = sectionToShow(id, this.isFff, op => this.canDo(op), hiddenIds(this.hideHead, this.toolKind));
 		},
 		// a shortcut of the pellet panel: another section and, in PID, the heater to tune
 		goTo(g) {
@@ -550,10 +554,6 @@ export default {
 			this.buf.push(Object.freeze({ t: Date.now(), v: Object.freeze(v) }));
 			if (this.buf.length > SAMPLES_MAX) this.buf.splice(0, this.buf.length - SAMPLES_MAX);
 			this.samples = Object.freeze(this.buf.slice());
-		},
-		kindSensor(t) {
-			const kinds = { thermistor: i18n.t('plugins.WorkshopPrinting.printing.st_thermistor'), pt1000: 'PT1000', rtdmax31865: 'PT100 (MAX31865)', thermocouplemax31856: i18n.t('plugins.WorkshopPrinting.printing.st_tc_31856'), thermocouplemax31855: i18n.t('plugins.WorkshopPrinting.printing.st_tc_31855'), linearanalog: i18n.t('plugins.WorkshopPrinting.printing.st_linear'), mcutemp: i18n.t('plugins.WorkshopPrinting.printing.st_mcu'), drivers: 'drivers' };
-			return t ? (kinds[String(t).toLowerCase()] || t) : i18n.t('plugins.WorkshopPrinting.printing.unknown_type');
 		},
 		// Asks the board for the output, the sensor, the model and the cap (read only).
 		async readConfig(c) {

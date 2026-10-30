@@ -1,9 +1,11 @@
 <template>
 	<!-- "3D job" tab (2026-10-21): the FFF parts that lived in the Workbench (temperatures and print state of the
-	     "Current job" card, the 3D view of the Simulate card) now live here. READ ONLY: nothing is sent to the machine. -->
+	     "Current job" card, the 3D view of the Simulate card) now live here. The status and the 3D view are READ ONLY; the only
+	     thing that sends codes is the job control card (JobControl.vue, 2026-10-30: pause / resume / cancel, Z steps, factors). -->
 	<pc-section icon="mdi-cube-outline" :title="$t('plugins.WorkshopPrinting.fff.tab')">
 		<v-alert v-if="!isFff" dense text type="info" class="mb-3">{{ t('fff.only_fff') }}</v-alert>
 		<fff-job-status :is-fff="isFff" class="mb-3" />
+		<job-control :is-fff="isFff" class="mb-3" />
 		<v-card outlined class="pa-3">
 			<div class="d-flex align-center flex-wrap" style="gap:8px">
 				<v-select
@@ -35,11 +37,12 @@ import PcSection from './PcSection.vue' // the card with the header of the secti
 
 import { api } from './workshop-api.js'
 import FffJobStatus from './FffJobStatus.vue'
+import JobControl from './JobControl.vue' // pause / resume / cancel, Z baby-stepping, speed and flow factors
 import Fff3dView from './Fff3dView.vue'
 import { fffListGcodes, fffJobFile, fffLayerShown, fffPrinting } from './fff-job.js'
 
 export default {
-	components: { FffJobStatus, Fff3dView, PcSection },
+	components: { FffJobStatus, JobControl, Fff3dView, PcSection },
 	props: {
 		isFff: { type: Boolean, default: false }
 	},

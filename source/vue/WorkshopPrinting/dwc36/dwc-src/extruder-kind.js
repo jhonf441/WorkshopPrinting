@@ -1,7 +1,8 @@
 'use strict'
 
-// The kind of extruder (pellets or filament) is a choice of the machine, kept in printing.json. The pellet sections of the page are only
-// shown for pellets; the flow calibration text follows it. The page and the extruder section share it through this store.
+// The kind of extruder (pellets or filament) is a choice of each TOOL, kept in printing.json (extruderTypes: {"<tool number>": "pellet" |
+// "filament"}): one machine can have a pellet tool and a filament tool. The pellet sections of the page are only shown for a pellet tool;
+// the flow calibration text follows it. The page and the extruder section share it through this store.
 
 import Vue from 'vue'
 import { CFG_FILE, readJson, updateCfg } from './util.js'
@@ -13,18 +14,26 @@ export function kindOf(v) {
 	return v === 'filament' ? 'filament' : 'pellet';
 }
 
-export const extruderKind = Vue.observable({ value: 'pellet', loaded: false })
+export const extruderKinds = Vue.observable({ map: {}, loaded: false })
 
-export async function loadExtruderKind() {
-	if (extruderKind.loaded) return;
-	extruderKind.loaded = true;
+// the kind of the tool with that number (a tool nobody chose for is pellets)
+export function kindOfTool(number) {
+	return kindOf(extruderKinds.map[String(number)]);
+}
+
+export async function loadExtruderKinds() {
+	if (extruderKinds.loaded) return;
+	extruderKinds.loaded = true;
 	const cfg = (await readJson(CFG_FILE, {})) || {};
-	extruderKind.value = kindOf(cfg.extruderType);
+	const raw = cfg.extruderTypes && typeof cfg.extruderTypes === 'object' ? cfg.extruderTypes : {};
+	const map = {};
+	Object.keys(raw).forEach(k => { map[k] = kindOf(raw[k]); });
+	extruderKinds.map = map;
 }
 
 // writes printing.json: the caller checks the role first and shows the error
-export async function saveExtruderKind(v) {
-	const next = kindOf(v);
-	await updateCfg({ extruderType: next });
-	extruderKind.value = next;
+export async function saveExtruderKind(number, v) {
+	const map = Object.assign({}, extruderKinds.map, { [String(number)]: kindOf(v) });
+	await updateCfg({ extruderTypes: map });
+	extruderKinds.map = map;
 }

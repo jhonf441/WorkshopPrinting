@@ -1,5 +1,21 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.15.14 -- 2026-10-30
+
+- Job control (pause, resume, cancel, baby steps, speed and flow factors) and load material for filament tools
+
+## 2.15.13 -- 2026-10-30
+
+- The side bar scrolls inside when it is taller than the window
+
+## 2.15.12 -- 2026-10-30
+
+- Zone cards closed until opened; bed and chamber heating line; tool selector
+
+## 2.15.11 -- 2026-10-30
+
+- The extruder type is a choice of each tool (pellet or filament), with a tool selector when there is more than one; the charts no longer register the zoom plugin for every chart of DWC
+
 ## 2.15.10 -- 2026-10-30
 
 - Screw motor assistant (acceleration, jerk, top speed, retraction); the feed select is readable in the dark theme

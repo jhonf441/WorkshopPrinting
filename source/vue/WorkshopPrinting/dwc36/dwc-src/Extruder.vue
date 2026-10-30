@@ -6,9 +6,9 @@
 		</v-alert>
 
 		<!-- Tipo de extrusor -->
-		<div class="text-subtitle-2 mb-1">{{ $t('plugins.WorkshopPrinting.extruder.kind_title') }}</div>
+		<div class="text-subtitle-2 mb-1">{{ $t('plugins.WorkshopPrinting.extruder.kind_title', { tool: toolName }) }}</div>
 		<div class="text-body-2">{{ $t('plugins.WorkshopPrinting.extruder.kind_hint') }}</div>
-		<v-btn-toggle :value="kind.value" mandatory dense color="primary" class="mt-1 mb-4" @change="setKind">
+		<v-btn-toggle :value="kind" mandatory dense color="primary" class="mt-1 mb-4" @change="setKind">
 			<v-btn value="pellet" small :disabled="!canConfig">{{ $t('plugins.WorkshopPrinting.extruder.kind_pellet') }}</v-btn>
 			<v-btn value="filament" small :disabled="!canConfig">{{ $t('plugins.WorkshopPrinting.extruder.kind_filament') }}</v-btn>
 		</v-btn-toggle>
@@ -29,7 +29,7 @@
 		<!-- Caudal -->
 		<div class="text-subtitle-2 mt-5 mb-1">{{ $t('plugins.WorkshopPrinting.extruder.calibrate_the_flow_by_weight') }}</div>
 		<div class="text-body-2">
-			{{ $t('plugins.WorkshopPrinting.extruder.' + (kind.value === 'filament' ? 'filament_flow_intro' : 'pellet_flow_intro'), { diam }) }} <b>M92 E</b> {{ $t('plugins.WorkshopPrinting.extruder.now_steps_mm', { n: currentSteps }) }}
+			{{ $t('plugins.WorkshopPrinting.extruder.' + (kind === 'filament' ? 'filament_flow_intro' : 'pellet_flow_intro'), { diam }) }} <b>M92 E</b> {{ $t('plugins.WorkshopPrinting.extruder.now_steps_mm', { n: currentSteps }) }}
 		</div>
 		<ol class="text-body-2 mt-2 steps">
 			<li>{{ $t('plugins.WorkshopPrinting.extruder.preheat_the_material_and_purge_until') }}</li>
@@ -88,7 +88,7 @@ import ErrorNotice from './ErrorNotice.vue' // vue/_shared
 import { roleMixin } from './role-mixin.js' // what the role may do (vue/_shared)
 import { isFriendly } from './print-errors.js'
 import { NEED } from './print-sections.js'
-import { extruderKind, loadExtruderKind, saveExtruderKind } from './extruder-kind.js' // pellets or filament (printing.json)
+import { kindOfTool, loadExtruderKinds, saveExtruderKind } from './extruder-kind.js' // pellets or filament of each tool (printing.json)
 
 export default {
 	mixins: [roleMixin],
@@ -110,7 +110,10 @@ export default {
 	},
 	computed: {
 		kind() {
-			return extruderKind;
+			return kindOfTool(this.tool ? this.tool.number : 0);
+		},
+		toolName() {
+			return this.tool ? this.tool.name || 'T' + this.tool.number : '';
 		},
 		canConfig() {
 			return this.atLeast(NEED.configure);
@@ -135,7 +138,7 @@ export default {
 		}
 	},
 	async mounted() {
-		loadExtruderKind();
+		loadExtruderKinds();
 		this.cfg = (await readJson(CFG_FILE, {})) || {};
 		this.materials = Array.isArray(this.cfg.materials) && this.cfg.materials.length ? this.cfg.materials : MATERIALS_DEF;
 		this.material = this.materials.find(m => m.name === this.cfg.last) || this.materials[0];
@@ -150,7 +153,7 @@ export default {
 			if (!v || !this.atLeast(NEED.configure)) return; // writes printing.json
 			this.msg = null;
 			try {
-				await saveExtruderKind(v);
+				await saveExtruderKind(this.tool ? this.tool.number : 0, v);
 			} catch (e) {
 				this.msgKind = 'error';
 				this.msg = i18n.t('plugins.WorkshopPrinting.extruder.could_not_save_kind') + (e.message || e);

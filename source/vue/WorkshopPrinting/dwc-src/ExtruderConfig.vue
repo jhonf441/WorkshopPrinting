@@ -21,11 +21,14 @@
 					<v-chip v-else-if="changesOf(z).length" size="x-small" variant="outlined" color="warning">{{ $t('plugins.WorkshopPrinting.extruderConfig.changed') }}</v-chip>
 					<span class="pc-tgt text-body-small">{{ $t('plugins.WorkshopPrinting.extruderConfig.heater_h_sensor_s', { h: z.h, s: z.s }) }}</span>
 					<v-spacer />
+					<v-btn v-if="!z.remove" size="x-small" variant="outlined" :aria-expanded="isOpen(z) ? 'true' : 'false'" @click="toggleZone(z)">
+						<v-icon size="x-small" start>{{ isOpen(z) ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>{{ isOpen(z) ? $t('plugins.WorkshopPrinting.extruderConfig.close_zone') : $t('plugins.WorkshopPrinting.extruderConfig.edit_zone') }}
+					</v-btn>
 					<v-btn v-if="k > 0 && !z.remove" size="x-small" variant="text" color="error" @click="removeZone(z)">{{ $t('plugins.WorkshopPrinting.extruderConfig.remove_zone') }}</v-btn>
 					<v-btn v-if="z.remove" size="x-small" variant="text" @click="z.remove = false">{{ $t('plugins.WorkshopPrinting.extruderConfig.keep') }}</v-btn>
 				</div>
 				<!-- 2026-10-11: output type (DC board, AC SSR, mechanical relay) and connectors chosen from a list -->
-				<template v-if="!z.remove">
+				<template v-if="!z.remove && isOpen(z)">
 					<div class="pc-fsec" style="--fs:#F4511E">
 						<div class="pc-fhead"><span class="pc-fb"><v-icon size="x-small">mdi-fire</v-icon></span>{{ $t('plugins.WorkshopPrinting.extruderConfig.heater_section') }}</div>
 					<v-row density="compact" class="mt-1">
@@ -205,6 +208,14 @@ const msgPin = ref('')
 const zones = ref([])
 const loading = ref(true)
 const errReading = ref(null)
+// a zone card is closed until the person opens it (a zone just added opens by itself); closed ones keep what was typed in them
+const openZones = ref({})
+function isOpen(z) {
+	return !!z.newEntry || !!openZones.value[z.key]
+}
+function toggleZone(z) {
+	openZones.value = Object.assign({}, openZones.value, { [z.key]: !isOpen(z) })
+}
 const saving = ref(false)
 const reloadPending = ref(false)
 
