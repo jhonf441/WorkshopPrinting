@@ -1,0 +1,75 @@
+/* WorkshopPrinting: only the CONTENT of its sections (zones, tiles, specs, picks, forms). The look of the page (bar, side menu, tabs, cards,
+   section heads, buttons, chips, alerts, help lines) is the design family (design/family.css, copied to _shared/family.css): nothing of it
+   is declared here. The color of the open section reaches the family as --wf-sec (Print.vue). Every class starts with pc-. */
+
+.pc-ico { color: var(--wf-icon); }
+
+/* ---- zones ---- */
+.pc-zones { display: flex; flex-direction: column; gap: 10px; }
+.pc-zone { display: grid; grid-template-columns: 24px 32px minmax(0, 1fr) minmax(0, 1.6fr) auto; gap: 14px; align-items: center; padding: 10px 12px; border: 1px solid var(--wf-line); border-radius: 8px; background: var(--wf-soft); }
+.pc-zone.drop-here { border-top: 3px solid var(--wf-warn); }
+.pc-zone.dragging { opacity: 0.45; }
+.pc-grip { cursor: grab; display: grid; place-items: center; opacity: 0.7; }
+.pc-idx { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 600; border: 2px solid var(--wf-sec-now); }
+.pc-zname { min-width: 0; }
+.pc-zsub { font-size: 12px; opacity: 0.7; }
+.pc-temp { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pc-nums { display: flex; align-items: baseline; gap: 8px; }
+.pc-dot { width: 8px; height: 8px; border-radius: 50%; align-self: center; flex: none; }
+.pc-now { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pc-tgt { opacity: 0.7; }
+.pc-bar { position: relative; height: 4px; border-radius: 999px; background: rgba(128, 128, 128, 0.25); overflow: hidden; }
+.pc-bar i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--wf-sec-now); }
+.pc-bar b { position: absolute; top: 0; bottom: 0; width: 2px; background: currentColor; opacity: 0.7; }
+.pc-lim { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 12px; opacity: 0.85; }
+.pc-state { display: inline-flex; align-items: center; gap: 6px; }
+.pc-act { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+@media (max-width: 760px) {
+	.pc-zone {
+		grid-template-columns: 24px 32px minmax(0, 1fr);
+	}
+	.pc-temp,
+	.pc-act {
+		grid-column: 1 / -1;
+	}
+}
+
+/* ---- tiles, specs and picks ---- */
+.pc-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.pc-tile { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--wf-line); border-radius: 8px; background: var(--wf-soft); min-width: 0; }
+.pc-tile-t { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pc-tile-m { font-size: 12px; opacity: 0.8; }
+.pc-specs { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.pc-specs > div { padding: 10px 12px; border: 1px solid var(--wf-line); border-radius: 8px; background: var(--wf-soft); }
+.pc-specs .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7; }
+.pc-specs .v { font-size: 16px; font-weight: 600; }
+.pc-pick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 420px; }
+.pc-pickb { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; border: 1px solid var(--wf-line-strong); border-radius: 8px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.pc-pickb.on { border: 2px solid var(--wf-sec-now); padding: 11px; font-weight: 600; }
+.pc-pickb:disabled { opacity: 0.5; cursor: default; }
+.pc-draw { width: 64px; height: 40px; border: 2px solid currentColor; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+.pc-draw i { display: block; background: currentColor; border-radius: 3px; }
+
+/* ---- small helpers ---- */
+.pc-nowrap { white-space: nowrap; }
+.pc-num { width: 64px; padding: 2px 5px; border: 1px solid var(--wf-line-strong); border-radius: 4px; color: inherit; background: transparent; }
+
+/* ---- forms grouped in sub-blocks (the zones of ExtruderConfig, the feeding, a new fan): a title and a thin line, no card ---- */
+.pc-zcard { margin-top: 12px; padding-top: 14px; border-top: 1px solid var(--wf-line); }
+.pc-zcard.removed { opacity: 0.55; }
+.pc-zhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pc-zhead h4 { font-size: 14px; font-weight: 600; margin: 0; }
+.pc-fsec { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--wf-line); }
+.pc-fhead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; font-weight: 600; }
+.pc-fhead .pc-fb { flex: none; display: inline-flex; align-items: center; justify-content: center; }
+.pc-fhead .pc-fb .v-icon { color: var(--wf-icon); }
+.pc-help { display: flex; gap: 6px; align-items: flex-start; }
+.pc-help .v-icon { flex: none; margin-top: 1px; color: var(--wf-icon); }
+
+/* ---- the fields of the zone forms keep a readable width: the row wraps instead of cutting the value (Beta 4658, Coef. C 6.5338987554e-08) ---- */
+/* Vuetify 3 (.v-row > .v-col, DWC 3.7) and Vuetify 2 (.row > .col-*, DWC 3.6) */
+.pc-fsec .v-row > .v-col, .pc-fsec .row > [class*="col"] { flex: 1 1 170px; max-width: 100%; min-width: 0; }
+.pc-fsec .v-row > .pc-w-110, .pc-fsec .row > .pc-w-110 { flex: 1 1 110px; max-width: 340px; }
+.pc-fsec .v-row > .pc-w-150, .pc-fsec .row > .pc-w-150 { flex: 1 1 150px; max-width: 340px; }
+.pc-fsec .v-row > .pc-w-190, .pc-fsec .row > .pc-w-190 { flex: 1 1 190px; max-width: 340px; }
+.pc-fsec .v-row > .pc-w-230, .pc-fsec .row > .pc-w-230 { flex: 1 1 230px; max-width: 340px; }

@@ -1,0 +1,19 @@
+{
+  "id": "WorkshopPrinting",
+  "name": "3D Printing",
+  "author": "jhonf441",
+  "version": "2.15.3",
+  "license": "GPL-3.0-or-later",
+  "homepage": "https://github.com/jhonf441/WorkshopPrinting",
+  "tags": [
+    "fff",
+    "3d-printing",
+    "pellet"
+  ],
+  "dwcVersion": "3.7",
+  "dwcDependencies": [
+    "WorkshopService"
+  ],
+  "sbcRequired": false,
+  "data": {}
+}
