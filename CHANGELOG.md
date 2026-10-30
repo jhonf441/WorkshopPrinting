@@ -1,5 +1,21 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.15.8 -- 2026-10-30
+
+- Manifest: sbcRequired true (needs WorkshopService); side bar keeps the group names
+
+## 2.15.7 -- 2026-10-30
+
+- Manifest: sbcRequired true (needs WorkshopService); side bar keeps the group names
+
+## 2.15.6 -- 2026-10-30
+
+- Side bar: group names stay visible when folded and in the narrow layout
+
+## 2.15.5 -- 2026-10-30
+
+- Status: extruder type line with a Change button
+
 ## 2.15.4 -- 2026-10-30
 
 - PID: a switched-off machine is reported as off, not busy

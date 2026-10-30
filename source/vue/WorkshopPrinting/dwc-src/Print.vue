@@ -50,6 +50,10 @@
 								<v-icon size="small" start>mdi-lock</v-icon>{{ $t('plugins.WorkshopPrinting.printing.lock_cold_extrusion') }}
 							</v-btn>
 						</v-alert>
+						<div v-if="tabItems.some(i => i.id === 'extruder')" class="d-flex align-center flex-wrap mb-3" style="gap:8px">
+							<span class="text-body-medium">{{ $t('plugins.WorkshopPrinting.printing.extruder_type_now', { kind: $t('plugins.WorkshopPrinting.extruder.kind_' + extruderKind.value) }) }}</span>
+							<v-btn size="small" variant="outlined" @click="goSection('extruder')">{{ $t('plugins.WorkshopPrinting.printing.change_extruder_type') }}</v-btn>
+						</div>
 						<div v-if="!heaters.length" class="text-body-medium text-medium-emphasis">
 							{{ $t('plugins.WorkshopPrinting.printing.there_are_no_heaters_configured_now') }}
 						</div>

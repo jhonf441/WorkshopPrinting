@@ -385,6 +385,8 @@
 		"change_mode_with_the_button": "Cambia de modo con el botón.",
 		"is_the_extruder_already_mounted": "¿Ya está puesto el extrusor?",
 		"3d_printing_needs_fff_mode": "Impresión 3D necesita el modo FFF",
+		"extruder_type_now": "Tipo de extrusor: {kind}",
+		"change_extruder_type": "Cambiar",
 		"mode_name": "Modo {mode}",
 		"n_faults": "{n} falla(s)",
 		"now_mode": "ahora: {mode}",

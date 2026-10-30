@@ -2,7 +2,7 @@
   "id": "WorkshopPrinting",
   "name": "3D Printing",
   "author": "jhonf441",
-  "version": "2.15.4",
+  "version": "2.15.8",
   "license": "GPL-3.0-or-later",
   "homepage": "https://github.com/jhonf441/WorkshopPrinting",
   "tags": [
@@ -10,10 +10,27 @@
     "3d-printing",
     "pellet"
   ],
-  "dwcVersion": "3.7",
+  "dwcVersion": "3.6",
   "dwcDependencies": [
     "WorkshopService"
   ],
-  "sbcRequired": false,
-  "data": {}
+  "sbcRequired": true,
+  "sbcDsfVersion": "3.6",
+  "data": {},
+  "sdFiles": [
+    "sys/workshop/examples/WorkshopPrinting/macros/mode/selectcnc.g",
+    "sys/workshop/examples/WorkshopPrinting/macros/mode/selectfff.g",
+    "sys/workshop/examples/WorkshopPrinting/macros/mode/selectlaser.g",
+    "sys/workshop/examples/WorkshopPrinting/sys/automodeselect.g",
+    "sys/workshop/examples/WorkshopPrinting/sys/modecnc.g",
+    "sys/workshop/examples/WorkshopPrinting/sys/modefff.g",
+    "sys/workshop/examples/WorkshopPrinting/sys/modelaser.g",
+    "sys/workshop/examples/WorkshopPrinting/sys/modestate.g"
+  ],
+  "dwcFiles": [
+    "css/WorkshopPrinting.13ab4f09.css",
+    "css/WorkshopPrinting.13ab4f09.css.gz",
+    "js/WorkshopPrinting.4999662a.js",
+    "js/WorkshopPrinting.4999662a.js.gz"
+  ]
 }

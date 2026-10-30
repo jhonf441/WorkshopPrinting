@@ -2,7 +2,7 @@
   "id": "WorkshopPrinting",
   "name": "3D Printing",
   "author": "jhonf441",
-  "version": "2.15.4",
+  "version": "2.15.8",
   "license": "GPL-3.0-or-later",
   "homepage": "https://github.com/jhonf441/WorkshopPrinting",
   "tags": [
@@ -14,6 +14,7 @@
   "dwcDependencies": [
     "WorkshopService"
   ],
-  "sbcRequired": false,
+  "sbcRequired": true,
+  "sbcDsfVersion": "3",
   "data": {}
 }
