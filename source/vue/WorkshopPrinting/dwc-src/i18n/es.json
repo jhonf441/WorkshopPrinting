@@ -747,6 +747,7 @@
 		"locked_zones_running": "Hay una calibración de zonas en curso: espera a que termine.",
 		"locked_temperature": "La temperatura debe estar entre 31 y {max} °C.",
 		"locked_machine_busy": "La máquina no está libre: espera a que termine lo que está haciendo.",
+		"locked_machine_off": "La máquina está apagada: enciéndela primero (los calentadores necesitan la fuente de alimentación).",
 		"temperature_c": "Temperatura (°C)",
 		"the_nozzle_and_the_bed_only": "La boquilla y la cama solo existen en modo FFF.",
 		"intro": "La calibración (M303) calienta y enfría varias veces para aprender cómo responde el calentador, y así sostener la temperatura sin oscilar. Hazla con el material que más usas y a su temperatura, con el ventilador de capa como lo usas al imprimir. La boquilla tarda unos 5 minutos; la cama, 10 a 20.",

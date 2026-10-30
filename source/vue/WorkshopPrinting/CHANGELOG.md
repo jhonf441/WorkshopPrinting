@@ -1,5 +1,9 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.15.4 -- 2026-10-30
+
+- PID: a switched-off machine is reported as off, not busy
+
 ## 2.15.3 -- 2026-10-30
 
 - Pellet panel: long zone state texts shortened in the vertical layout

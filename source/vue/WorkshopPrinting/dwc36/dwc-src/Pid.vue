@@ -187,6 +187,7 @@ export default {
 			if (h.state === 'fault') return t('locked_heater_fault');
 			if (this.zActive) return t('locked_zones_running');
 			if (!(this.temp > 30) || this.temp > h.max) return t('locked_temperature');
+			if (this.state === 'off') return t('locked_machine_off');
 			if (this.state !== 'idle') return t('locked_machine_busy');
 			return '';
 		},

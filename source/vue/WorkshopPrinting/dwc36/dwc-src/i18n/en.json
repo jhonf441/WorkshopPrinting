@@ -747,6 +747,7 @@
 		"locked_zones_running": "A zones tuning is running: wait for it to finish.",
 		"locked_temperature": "The temperature must be between 31 and {max} °C.",
 		"locked_machine_busy": "The machine is not free: wait for what it is doing to finish.",
+		"locked_machine_off": "The machine is switched off: turn it on first (the heaters need the power supply).",
 		"temperature_c": "Temperature (°C)",
 		"the_nozzle_and_the_bed_only": "The nozzle and the bed only exist in FFF mode.",
 		"intro": "Tuning (M303) heats and cools several times to learn how the heater responds, so it can hold the temperature without oscillating. Do it with the material you use most and at its temperature, with the part cooling fan as you use it when printing. The nozzle takes about 5 minutes; the bed, 10 to 20.",

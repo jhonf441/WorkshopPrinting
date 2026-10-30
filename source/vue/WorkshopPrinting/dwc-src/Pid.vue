@@ -217,6 +217,7 @@ const reasonNo = computed(() => {
 	if (h.state === 'fault') return t('locked_heater_fault')
 	if (zActive.value) return t('locked_zones_running')
 	if (!(temp.value > 30) || temp.value > h.max) return t('locked_temperature')
+	if (props.state === 'off') return t('locked_machine_off')
 	if (props.state !== 'idle') return t('locked_machine_busy')
 	return ''
 })
