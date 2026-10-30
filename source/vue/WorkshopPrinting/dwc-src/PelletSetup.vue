@@ -126,6 +126,7 @@
 						<v-btn size="small" variant="outlined" :title="$t('plugins.WorkshopPrinting.pellet.tune_flow_tip')" @click="$emit('goto', { section: 'extruder' })"><v-icon size="small" left>mdi-scale-balance</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.tune_flow') }}</v-btn>
 						<v-btn size="small" variant="outlined" @click="$emit('goto', { section: 'pellet' })"><v-icon size="small" left>mdi-engine</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.open_panel') }}</v-btn>
 					</div>
+					<pellet-motor class="mt-3" :busy="busy" :configure="canConfig" :extruders="(model.move && model.move.extruders) || []" :index="extruderNumber" :cold-retract="(model.heat && model.heat.coldRetractTemperature) || 0" :targets="zones.map(z => z.target)" @saved="reloadPending" @msg="say" @goto="g => $emit('goto', g)" />
 				</div>
 
 				<!-- ===== Nozzle change: steps and what to redo with the new diameter ===== -->
@@ -180,6 +181,7 @@ import ExtruderConfig from './ExtruderConfig.vue'
 import PelletFeed from './PelletFeed.vue'
 import Pid from './Pid.vue' // the all-zones PID, mounted here in its zones-only form
 import PelletFanAdd from './PelletFanAdd.vue'
+import PelletMotor from './PelletMotor.vue'
 import NozzleChange from './NozzleChange.vue'
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared
 import { NEED } from './print-sections.js'

@@ -246,6 +246,11 @@ export default {
 select.field.wide {
 	width: 230px;
 }
+/* the list of a native select is drawn by the browser: it must not inherit the light text of the dark theme (white on white) */
+select.field option {
+	color: #212121;
+	background: #ffffff;
+}
 .field.wide {
 	width: 120px;
 }

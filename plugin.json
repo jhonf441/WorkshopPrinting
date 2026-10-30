@@ -2,7 +2,7 @@
   "id": "WorkshopPrinting",
   "name": "3D Printing",
   "author": "jhonf441",
-  "version": "2.15.8",
+  "version": "2.15.10",
   "license": "GPL-3.0-or-later",
   "homepage": "https://github.com/jhonf441/WorkshopPrinting",
   "tags": [
@@ -28,9 +28,9 @@
     "sys/workshop/examples/WorkshopPrinting/sys/modestate.g"
   ],
   "dwcFiles": [
-    "css/WorkshopPrinting.13ab4f09.css",
-    "css/WorkshopPrinting.13ab4f09.css.gz",
-    "js/WorkshopPrinting.4999662a.js",
-    "js/WorkshopPrinting.4999662a.js.gz"
+    "css/WorkshopPrinting.2531825f.css",
+    "css/WorkshopPrinting.2531825f.css.gz",
+    "js/WorkshopPrinting.9f05f900.js",
+    "js/WorkshopPrinting.9f05f900.js.gz"
   ]
 }

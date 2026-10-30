@@ -1,5 +1,13 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.15.10 -- 2026-10-30
+
+- Screw motor assistant (acceleration, jerk, top speed, retraction); the feed select is readable in the dark theme
+
+## 2.15.9 -- 2026-10-30
+
+- Pellet feed select readable in the dark theme; Power: scanned meters already set up open their card, the test sends no name, history empty state with icon
+
 ## 2.15.8 -- 2026-10-30
 
 - Manifest: sbcRequired true (needs WorkshopService); side bar keeps the group names
