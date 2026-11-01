@@ -147,6 +147,7 @@
 import PcSection from './PcSection.vue' // the card with the header of the section (printing-design.css)
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { CFG_FILE, readJson, isError } from './util.js'
+import { coolCode } from './tool-codes.js' // heat, cool and extrusion codes: one module for every page
 import { rememberForNozzle, persistAdvance } from './nozzle-store.js'
 import PelletHmi from './PelletHmi.vue'
 import PelletFeed from './PelletFeed.vue'
@@ -529,7 +530,7 @@ async function powerOffZone() {
 	try {
 		const temps = tempsWith(sel.value, 0);
 		const all = temps.split(':').every(v => Number(v) === 0);
-		const r = await sendCode({ code: all ? `M568 P${props.currentTool.number} A0` : `M568 P${props.currentTool.number} S${temps}`, log: true });
+		const r = await sendCode({ code: all ? coolCode(props.currentTool.number) : `M568 P${props.currentTool.number} S${temps}`, log: true });
 		if (isError(r)) throw new Error(r);
 		msgKind.value = 'success';
 		msg.value = i18n.t('plugins.WorkshopPrinting.pellet.zone_off', { n: sel.value + 1 });

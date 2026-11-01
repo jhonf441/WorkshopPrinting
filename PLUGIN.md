@@ -138,8 +138,8 @@ Picture 9: the material table.
 #### Load material
 - What: a short assistant to feed filament into a filament tool or take it out: heat to the material temperature, push or pull a length at a safe speed, cool down. It is hidden for a pellet tool.
 - Where: Operate > Load material (operator).
-- How: 1. choose the material (its nozzle temperature comes from the Materials table; "Tool temperature" uses the target the tool already has) and press Heat twice; wait for "ready". 2. press Load or Unload twice. When the board has the filament macros (`0:/filaments/<name>/load.g` and `unload.g`) the buttons run M701 / M702; otherwise they move the extruder directly (M83 + G1 E) with the length (1 to 800 mm) and the speed (1 to 20 mm/s) you type; unloading pushes 3 mm first to soften the tip. 3. Cool down if you are not printing now.
-- Watch out: the extruder never moves while the nozzle is below the cold extrusion temperature of the board, with a job running, or when the nozzle reads no temperature; the reason is written next to the buttons.
+- How: 1. choose the material (its nozzle temperature comes from the Materials table; "Tool temperature" uses the target the tool already has) and press Heat twice; wait for "ready". 2. press Load or Unload twice. When the board has the filament macros (`0:/filaments/<name>/load.g` and `unload.g`) the buttons run M701 / M702 (M701 only with a material chosen, since its name is the folder; with "Tool temperature" Load moves directly); otherwise they move the extruder directly (M83 + G1 E) with the length (1 to 800 mm) and the speed (1 to 20 mm/s) you type; unloading pushes 3 mm first to soften the tip. 3. Cool down if you are not printing now (it turns the heaters off and clears the active and standby temperatures of the tool, `M568 S0 R0 A0`, so nothing heats it again when the tool is selected later).
+- Watch out: the extruder never moves while the nozzle is below the cold extrusion temperature of the board, with a job running, or when the nozzle reads no temperature; Heat and Cool down are not offered either with a job running or the machine busy (the temperatures of a job come from the file). The reason is written next to the buttons.
 
 #### 3D job
 ![3D job running](https://raw.githubusercontent.com/jhonf441/WorkshopPrinting/main/img/11-job-running.png)
@@ -151,9 +151,9 @@ Picture 11: a job in progress.
 - How: the state follows the job the machine is running.
 
 #### Job control
-- What: the controls of the print in progress, in the 3D job section under the print state: Pause (M25), Resume (M24) and Cancel (M0, two taps, only while paused, like DWC); Z baby-stepping (M290) in steps of 0.02 and 0.05 mm with the sum the board applies and "Reset to 0" (two taps); the speed factor (M220, 10 to 300 %) and the flow factor of each extruder of the tool (M221 D, 10 to 300 %).
+- What: the controls of the print in progress, in the 3D job section under the print state: Pause (M25), Resume (M24) and Cancel (M0, two taps, only while paused, like DWC); Z baby-stepping (M290) in steps of 0.02 and 0.05 mm (two taps per step) with the sum the board applies and "Reset to 0" (two taps); the speed factor (M220, 10 to 300 %) and the flow factor of each extruder of the tool (M221 D, 10 to 300 %).
 - Where: Operate > 3D job (operator; a viewer sees the values with the buttons grey).
-- How: the Z steps and the percentages apply at once and last until the board restarts or the file changes them. The Z sum is capped at 2 mm either way: more than that is a wrong Z offset, not a correction. A live job has its controls in the Jog bar.
+- How: the Z steps and the percentages work only while a job runs (a printing or paused file job, or a live job); with no job their buttons are grey and the card says so. They apply at once and stay applied after the job ends, until you put them back, the board restarts or a file changes them: with no job running the card warns about what a job left applied (Z sum, speed, flow), and "Reset to 0" and "100 %" are always available to put it back before the next job. The Z sum is capped at 2 mm either way: more than that is a wrong Z offset, not a correction. A live job has its controls in the Jog bar.
 
 #### 3D view
 ![3D view](https://raw.githubusercontent.com/jhonf441/WorkshopPrinting/main/img/10-job-3d-view.png)
@@ -224,9 +224,10 @@ Picture 16: the feeding of the hopper.
 
 Picture 17: the screw motor data.
 
-- What: steps per mm, microsteps, maximum speed, acceleration and jerk of the extruder motor, and the flow and pressure advance now in use.
+- What: steps per mm, microsteps, maximum speed, acceleration and jerk of the extruder motor, and the flow and pressure advance now in use. Below, the screw motor card: the acceleration, the jerk and the top speed as the board reports them (the speed in mm/s and in mm/min), three starting points to begin with (soft, balanced, fast) and the retraction (length and speed).
 - Where: tab "Motor" (picture 17).
-- How: read only; "Calibrate screw flow" opens the Extruder section and "Open the pellet panel" the live panel.
+- How: to change the acceleration, the jerk or the top speed press "Change in Machine" next to it: Machine > Motion opens on that value, shows the change before it writes it, keeps a backup and records it in the history. Type the retraction and press "Save the retraction": it is applied now and saved in `modefff.g` with a `.bak` copy. "Calibrate screw flow" opens the Extruder section and "Open the pellet panel" the live panel.
+- Watch out: Machine changes the first extruder only; for another extruder the card says so and you change its `M201`, `M203` and `M566` lines in the configuration file.
 
 #### Nozzle
 ![Nozzle](https://raw.githubusercontent.com/jhonf441/WorkshopPrinting/main/img/18-setup-nozzle.png)

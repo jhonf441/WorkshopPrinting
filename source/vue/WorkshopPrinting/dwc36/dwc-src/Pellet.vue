@@ -151,6 +151,7 @@ import PcSection from './PcSection.vue' // the card with the header of the secti
 
 import { mapActions } from 'vuex'
 import { CFG_FILE, readJson, isError } from './util.js'
+import { coolCode } from './tool-codes.js' // heat, cool and extrusion codes: one module for every page
 import { rememberForNozzle, persistAdvance } from './nozzle-store.js'
 import PelletHmi from './PelletHmi.vue'
 import PelletFeed from './PelletFeed.vue'
@@ -481,7 +482,7 @@ export default {
 			try {
 				const temps = this.tempsWith(this.sel, 0);
 				const all = temps.split(':').every(v => Number(v) === 0);
-				const r = await this.sendCode({ code: all ? `M568 P${this.currentTool.number} A0` : `M568 P${this.currentTool.number} S${temps}`, log: true });
+				const r = await this.sendCode({ code: all ? coolCode(this.currentTool.number) : `M568 P${this.currentTool.number} S${temps}`, log: true });
 				if (isError(r)) throw new Error(r);
 				this.msgKind = 'success';
 				this.msg = i18n.t('plugins.WorkshopPrinting.pellet.zone_off', { n: this.sel + 1 });

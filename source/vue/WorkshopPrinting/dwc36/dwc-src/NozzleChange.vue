@@ -96,7 +96,8 @@ import i18n from '../../i18n'
 import { mapActions } from 'vuex'
 import { isError, updateCfg, note } from './util.js'
 import { nozzleState } from './nozzle-state.js'
-import { validDiameter, sizeChange, slicerLimits, heatCode, offCode, followUps } from './nozzle-change.js'
+import { validDiameter, sizeChange, slicerLimits, followUps } from './nozzle-change.js'
+import { coolCode, heatCode } from './tool-codes.js' // heat, cool and extrusion codes: one module for every page
 import { getProfile, profileItems } from './nozzle-profiles.js'
 import { readProfiles, snapshotNozzle, applyProfile } from './nozzle-store.js'
 
@@ -158,7 +159,7 @@ export default {
 			const T = (k, o) => i18n.t('plugins.WorkshopPrinting.nozzle.' + k, o);
 			const p = [{
 				kind: 'action', text: T('step_heat', { c: this.temp }), detail: T('step_heat_detail'), button: T('heat'), codes: [heatCode(t, this.temp)],
-				blocked: this.nozzle && this.temp > this.nozzle.max ? T('over_limit', { c: this.nozzle.max }) : ''
+				blocked: !heatCode(t, this.temp) ? T('temp_needed') : this.nozzle && this.temp > this.nozzle.max ? T('over_limit', { c: this.nozzle.max }) : ''
 			}];
 			// a sensor that is not connected reads -273 C: it can never show "hot", so the person checks it by hand
 			if (nozzleState(this.nozzle, this.temp - 10) === 'unreadable') {
@@ -171,7 +172,7 @@ export default {
 			}
 			p.push({ kind: 'manual', text: T('step_remove'), detail: T('step_remove_detail'), check: T('removed') });
 			p.push({ kind: 'manual', text: T('step_fit', { d: this.diameter }), detail: T('step_fit_detail'), check: T('fitted') });
-			p.push({ kind: 'action', text: T('step_off'), button: T('turn_off'), codes: [offCode(t)] });
+			p.push({ kind: 'action', text: T('step_off'), button: T('turn_off'), codes: [coolCode(t)] });
 			p.push({ kind: 'action', text: T('step_save', { d: this.diameter }), button: T('save'), save: true, blocked: this.configure ? '' : T('only_technician') });
 			return p;
 		},

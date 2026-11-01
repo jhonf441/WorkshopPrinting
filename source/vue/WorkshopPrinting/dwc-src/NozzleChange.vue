@@ -92,7 +92,8 @@
 import { computed, ref, watch } from 'vue'
 import { isError, updateCfg, note } from './util.js'
 import { nozzleState } from './nozzle-state.js'
-import { validDiameter, sizeChange, slicerLimits, heatCode, offCode, followUps } from './nozzle-change.js'
+import { validDiameter, sizeChange, slicerLimits, followUps } from './nozzle-change.js'
+import { coolCode, heatCode } from './tool-codes.js' // heat, cool and extrusion codes: one module for every page
 import { getProfile, profileItems as itemsOfProfile } from './nozzle-profiles.js'
 import { readProfiles, snapshotNozzle, applyProfile } from './nozzle-store.js'
 import { sendCode } from './send-code.js' // {code, log} wrapper over the machine store
@@ -180,7 +181,7 @@ const steps = computed(() => {
 	const T = (k, o) => i18n.t('plugins.WorkshopPrinting.nozzle.' + k, o);
 	const p = [{
 		kind: 'action', text: T('step_heat', { c: temp.value }), detail: T('step_heat_detail'), button: T('heat'), codes: [heatCode(t, temp.value)],
-		blocked: nozzle.value && temp.value > nozzle.value.max ? T('over_limit', { c: nozzle.value.max }) : ''
+		blocked: !heatCode(t, temp.value) ? T('temp_needed') : nozzle.value && temp.value > nozzle.value.max ? T('over_limit', { c: nozzle.value.max }) : ''
 	}];
 	// a sensor that is not connected reads -273 C: it can never show "hot", so the person checks it by hand
 	if (nozzleState(nozzle.value, temp.value - 10) === 'unreadable') {
@@ -193,7 +194,7 @@ const steps = computed(() => {
 	}
 	p.push({ kind: 'manual', text: T('step_remove'), detail: T('step_remove_detail'), check: T('removed') });
 	p.push({ kind: 'manual', text: T('step_fit', { d: diameter.value }), detail: T('step_fit_detail'), check: T('fitted') });
-	p.push({ kind: 'action', text: T('step_off'), button: T('turn_off'), codes: [offCode(t)] });
+	p.push({ kind: 'action', text: T('step_off'), button: T('turn_off'), codes: [coolCode(t)] });
 	p.push({ kind: 'action', text: T('step_save', { d: diameter.value }), button: T('save'), save: true, blocked: props.configure ? '' : T('only_technician') });
 	return p;
 })

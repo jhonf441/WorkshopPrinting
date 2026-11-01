@@ -50,14 +50,10 @@ export function usePrintModes() {
 		const cur = modesInfo.value;
 		if (cur) setModes(withMode(cur.state, m, !!on, cur.detected));
 	}
-	// the Machine plugin has the section where the modes are switched on and set up
+	// the Machine plugin has the section where the modes are switched on and set up: it opens on it through ?layout=modes (its
+	// lib/cross-page.js); nothing is stored for the other plugin
 	function openMachineModes() {
-		try {
-			localStorage.setItem('workshopMachineSection', 'modes');
-		} catch (e) {
-			/* the page opens on its last section */
-		}
-		router.push('/Plugins/Machine').catch(() => {});
+		router.push({ path: '/Plugins/Machine', query: { layout: 'modes' } }).catch(() => {});
 	}
 	// the card re-reads what the page owns each time it refreshes: config.g (does it call the saved mode?) and the modes answer
 	async function recheckModes() {

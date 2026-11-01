@@ -181,7 +181,8 @@ import PcSection from './PcSection.vue' // the card with the header of the secti
 
 import { mapActions } from 'vuex'
 import { CFG_FILE, readJson, markStartup, note } from './util.js'
-import { pathExists } from './workshop-ids.js' // the Workbench is another plugin: nothing about it when it is absent
+import { coolCode } from './tool-codes.js' // heat, cool and extrusion codes: one module for every page
+import { pluginActive } from './workshop-ids.js' // the Workbench is another plugin: nothing about it when it is absent
 
 const SUBA_MIN = 5; // °C that must rise in the test
 const TEST_S = 120;
@@ -214,7 +215,7 @@ export default {
 			return this.state ? i18n.t('plugins.WorkshopPrinting.commissioning.machine_not_idle_state', { state: this.state }) : i18n.t('plugins.WorkshopPrinting.commissioning.machine_not_idle');
 		},
 		steps() {
-			const hasWorkbench = pathExists(this.$router, '/Plugins/Workbench');
+			const hasWorkbench = pluginActive(this.$store, 'workbench'); // the lists, not the route: DWC 3.6 cannot remove the route of a plugin that was stopped
 			const cs = this.heaters;
 			const sensOk = cs.length > 0 && cs.every(h => this.sensorOk(h));
 			const calTested = cs.filter(h => (this.resultCal(h) || {}).ok).length;
@@ -372,7 +373,7 @@ export default {
 			return `M140 H${h.id} S${t}`;
 		},
 		async poweroff(h) {
-			const c = h.paper === 'bed' ? 'M140 S0' : h.paper === 'camera' ? 'M141 S0' : h.tool != null ? `M568 P${h.tool} A0` : null;
+			const c = h.paper === 'bed' ? 'M140 S0' : h.paper === 'camera' ? 'M141 S0' : h.tool != null ? coolCode(h.tool) : null;
 			if (c) await this.sendCode({ code: c, log: true }).catch(() => {});
 		},
 		async testHeater(h) {

@@ -1,29 +1,35 @@
 <template>
-	<!-- assistant for the motion of the extruder motor: acceleration, jerk, top speed and retraction. Runs the codes now and WRITES modefff.g -->
+	<!-- the motion of the extruder motor: acceleration, jerk and top speed are SHOWN here and changed in Machine > Motion (plan with preview, backup and history);
+	     the retraction is applied now and WRITTEN in modefff.g. Machine is another plugin: without it (not installed or not enabled) nothing about it is shown (no button,
+	     no name in the texts: the variants _no_machine) -->
 	<v-card outlined class="pa-3">
 		<div class="d-flex align-center flex-wrap" style="gap:8px">
 			<v-icon small>mdi-engine-outline</v-icon>
 			<span class="text-subtitle-1">{{ $t('plugins.WorkshopPrinting.pellet.asst_title') }}</span>
 		</div>
-		<div class="text-caption grey--text mt-1">{{ $t('plugins.WorkshopPrinting.pellet.asst_intro') }}</div>
+		<div class="text-caption grey--text mt-1">{{ machineOn ? $t('plugins.WorkshopPrinting.pellet.asst_intro') : $t('plugins.WorkshopPrinting.pellet.asst_intro_no_machine') }}</div>
 
-		<div class="text-subtitle-2 mt-3">{{ $t('plugins.WorkshopPrinting.pellet.asst_presets') }}</div>
-		<div class="d-flex flex-wrap mt-1" style="gap:8px">
-			<v-btn v-for="p in presets" :key="p.id" small :outlined="!(current && current.id === p.id)" :color="current && current.id === p.id ? 'primary' : undefined" :disabled="!configure" @click="usePreset(p)">
-				{{ $t('plugins.WorkshopPrinting.pellet.asst_preset_' + p.id) }}
-			</v-btn>
-		</div>
-		<div class="text-caption grey--text mt-1">{{ current ? $t('plugins.WorkshopPrinting.pellet.asst_preset_' + current.id + '_note') : $t('plugins.WorkshopPrinting.pellet.asst_preset_none') }}</div>
-
+		<div class="text-subtitle-2 mt-3">{{ $t('plugins.WorkshopPrinting.pellet.asst_machine_title') }}</div>
+		<div class="text-caption grey--text">{{ machineOn ? $t('plugins.WorkshopPrinting.pellet.asst_machine_help') : $t('plugins.WorkshopPrinting.pellet.asst_machine_help_no_machine') }}</div>
+		<div v-if="!editable || !machineOn" class="text-caption warning--text mt-1">{{ machineOn ? $t('plugins.WorkshopPrinting.pellet.asst_machine_first_only', { n: index }) : $t('plugins.WorkshopPrinting.pellet.asst_machine_first_only_no_machine', { n: index }) }}</div>
 		<div v-for="r in rows" :key="r.key" class="mt-3">
 			<div class="d-flex align-center flex-wrap" style="gap:8px">
 				<span class="text-body-2">{{ $t('plugins.WorkshopPrinting.pellet.asst_' + r.key) }}</span>
-				<input v-model.number="form[r.key]" type="number" :step="r.step" :min="limits[r.key].min" :max="limits[r.key].max" class="field" :disabled="!configure" />
+				<span class="text-body-2 font-weight-medium">{{ now[r.key] === null ? '-' : now[r.key] }}</span>
 				<span class="text-caption grey--text">{{ r.unit }}</span>
-				<span v-if="now[r.key] !== null" class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.pellet.asst_now', { n: now[r.key] }) }}</span>
+				<span v-if="r.perMin && now[r.key] !== null" class="text-caption grey--text">({{ machineOn ? $t('plugins.WorkshopPrinting.pellet.asst_per_min', { n: Math.round(now[r.key] * 60) }) : $t('plugins.WorkshopPrinting.pellet.asst_per_min_no_machine', { n: Math.round(now[r.key] * 60) }) }})</span>
+				<v-btn v-if="editable && machineOn" x-small outlined :disabled="!configure" @click="openMachine(r.key)">
+					<v-icon x-small left>mdi-open-in-new</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.asst_machine_open') }}
+				</v-btn>
 			</div>
 			<div class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.pellet.asst_' + r.key + '_help') }}</div>
 		</div>
+
+		<div class="text-subtitle-2 mt-3">{{ $t('plugins.WorkshopPrinting.pellet.asst_presets') }}</div>
+		<div v-for="p in presets" :key="p.id" class="text-caption mt-1" :class="{ 'font-weight-medium': current && current.id === p.id }">
+			{{ $t('plugins.WorkshopPrinting.pellet.asst_preset_' + p.id) }}: {{ $t('plugins.WorkshopPrinting.pellet.asst_preset_values', presetValues(p)) }}
+		</div>
+		<div class="text-caption grey--text mt-1">{{ current ? $t('plugins.WorkshopPrinting.pellet.asst_preset_' + current.id + '_note') : $t('plugins.WorkshopPrinting.pellet.asst_preset_none') }}</div>
 
 		<div class="text-subtitle-2 mt-4">{{ $t('plugins.WorkshopPrinting.pellet.asst_retract_title') }}</div>
 		<div class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.pellet.asst_retract_help') }}</div>
@@ -55,7 +61,8 @@ import i18n from '../../i18n'
 
 import { mapActions } from 'vuex'
 import { changeOAddLineMode, note } from './util.js'
-import { LIMITS, PRESETS, fromModel, presetOf, normalize, plan, retractCheck } from './motor-assist.js'
+import { pluginActive } from './workshop-ids.js' // vue/_shared36: Machine is another plugin, nothing about it when it is absent
+import { LIMITS, PRESETS, fromModel, presetOf, normalizeRetract, retractPlan, retractCheck, machineRoute, machineEditable } from './motor-assist.js'
 
 export default {
 	props: {
@@ -71,34 +78,29 @@ export default {
 			limits: LIMITS,
 			presets: PRESETS,
 			rows: [
-				{ key: 'accel', unit: 'mm/s²', step: 10 },
-				{ key: 'jerk', unit: 'mm/min', step: 10 },
-				{ key: 'speed', unit: 'mm/s', step: 1 }
+				{ key: 'accel', unit: 'mm/s²' },
+				{ key: 'jerk', unit: 'mm/min' },
+				{ key: 'speed', unit: 'mm/s', perMin: true } // Machine's Motion module takes the speed in mm/min
 			],
-			form: { accel: 0, jerk: 0, speed: 0, retractLength: 0, retractSpeed: 20 },
-			filled: false, saving: false, armed: null, armedTimer: null
+			form: { retractLength: 0, retractSpeed: 20 },
+			saving: false, armed: null, armedTimer: null
 		};
 	},
 	computed: {
+		machineOn() {
+			return pluginActive(this.$store, 'machine');
+		},
 		now() {
 			return fromModel(this.extruders[this.index]);
 		},
+		editable() {
+			return machineEditable(this.index);
+		},
 		current() {
-			return presetOf(this.form);
+			return presetOf(this.now);
 		},
 		retract() {
 			return retractCheck(this.coldRetract, this.targets);
-		}
-	},
-	watch: {
-		// the form starts with what the machine has now (once, when the model arrives)
-		now: {
-			immediate: true,
-			handler(v) {
-				if (this.filled || v.accel === null) return;
-				this.filled = true;
-				this.form = Object.assign({}, this.form, { accel: v.accel, jerk: v.jerk, speed: v.speed });
-			}
 		}
 	},
 	beforeDestroy() {
@@ -116,8 +118,14 @@ export default {
 			this.armed = null;
 			fn();
 		},
-		usePreset(p) {
-			this.form = Object.assign({}, this.form, { accel: p.accel, jerk: p.jerk, speed: p.speed });
+		// the numbers of a starting point as the text shows them (the speed also in mm/min, the unit Machine asks for)
+		presetValues(p) {
+			return Object.assign({ speedMin: Math.round(p.speed * 60) }, p);
+		},
+		// acceleration, jerk and top speed are changed in Machine (plan with preview, backup and history): this opens its Motion module on that parameter
+		openMachine(key) {
+			const route = machineRoute(key);
+			if (route && this.$router) this.$router.push(route).catch(() => {});
 		},
 		say(kind, text) {
 			this.$emit('msg', { kind, text });
@@ -127,9 +135,9 @@ export default {
 			this.saving = true;
 			try {
 				if (this.busy) throw new Error(i18n.t('plugins.WorkshopPrinting.pellet.reorder_busy'));
-				const v = normalize(this.form);
+				const v = normalizeRetract(this.form);
 				if (!v.ok) throw new Error(i18n.t('plugins.WorkshopPrinting.pellet.asst_err', { field: i18n.t('plugins.WorkshopPrinting.pellet.asst_' + v.field) }));
-				const p = plan(v.value, this.extruders, this.index);
+				const p = retractPlan(v.value);
 				for (const code of p.codes) {
 					const r = await this.sendCode({ code, log: true });
 					if (/error|abort/i.test(r || '')) throw new Error(code + ': ' + r);

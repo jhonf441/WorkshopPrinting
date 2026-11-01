@@ -2,7 +2,8 @@
 	<!-- Load material (2026-10-30): the short assistant to feed filament into a filament tool or take it out. A pellet tool never sees this
 	     section (print-sections.js hiddenIds). Heat to the material's temperature -> load / unload -> cool down. With the filament macros of
 	     the board (0:/filaments/<name>/load.g, unload.g) it runs M701 / M702; without them it moves the extruder directly within the limits
-	     of filament-load.js. The extruder never moves below the cold extrusion temperature of the board. Operator's (NEED.operate). -->
+	     of filament-load.js. The extruder never moves below the cold extrusion temperature of the board. Operator's (NEED.operate).
+	     ONE main button in the card (DESIGN.md: Load, filled); Heat, Cool down and Unload are secondary (gray outline; armed = filled amber). -->
 	<pc-section icon="mdi-tray-arrow-down" :title="$t('plugins.WorkshopPrinting.printing.filament_load')">
 		<details class="wf-more">
 			<summary>{{ $t('plugins.WorkshopPrinting.common.how_it_works') }}</summary>
@@ -21,19 +22,20 @@
 		</div>
 		<div v-if="loaded" class="text-caption grey--text mt-1">{{ t('filament.loaded_now', { name: loaded }) }}</div>
 		<div class="d-flex align-center flex-wrap mt-2" style="gap:8px">
-			<v-btn small :color="armed === 'heat' ? 'amber darken-3' : 'primary'" :disabled="!isFff || temp === null || !canOperate || sending" @click="arm('heat', heatUp)">
+			<v-btn small :outlined="armed !== 'heat'" :color="armed === 'heat' ? 'amber darken-3' : undefined" :disabled="!isFff || !!heatReason || temp === null || !canOperate || sending" @click="arm('heat', heatUp)">
 				<v-icon small left>mdi-fire</v-icon>{{ armed === 'heat' ? t('filament.heat_again', { temp }) : t('filament.heat') }}
 			</v-btn>
-			<!-- turning the heater off is safe (level 1): one tap -->
-			<v-btn small outlined :disabled="!canOperate || !isFff || !nozzle || !(nozzle.target > 0) || sending" @click="coolDown()">
+			<!-- turning the heater off is safe (level 1): one tap; not in the middle of a job (heatBlock) -->
+			<v-btn small outlined :disabled="!canOperate || !isFff || !!heatReason || !(nozzle.target > 0) || sending" @click="coolDown()">
 				<v-icon small left>mdi-snowflake</v-icon>{{ t('filament.cool') }}
 			</v-btn>
+			<span v-if="isFff && heatReason" class="text-caption grey--text">{{ heatReason }}</span>
 		</div>
 
 		<!-- 2. load / unload: double tap (it moves the extruder); the reason is written when it cannot -->
 		<div class="text-subtitle-2 mt-4">{{ t('filament.step_move') }}</div>
-		<div class="text-caption grey--text">{{ macros.load || macros.unload ? t('filament.macro_help', { name: materialName || loaded || '...' }) : t('filament.direct_help') }}</div>
-		<div v-if="!macros.load || !macros.unload" class="d-flex align-center flex-wrap mt-2" style="gap:8px">
+		<div class="text-caption grey--text">{{ via.load || via.unload ? t('filament.macro_help', { name: materialName || loaded || '...' }) : t('filament.direct_help') }}</div>
+		<div v-if="!via.load || !via.unload" class="d-flex align-center flex-wrap mt-2" style="gap:8px">
 			<span class="text-body-2">{{ t('filament.length') }}</span>
 			<input v-model.number="form.length" type="number" step="10" :min="limits.length.min" :max="limits.length.max" class="field" :disabled="!canOperate" /> mm
 			<span class="text-body-2 ml-2">{{ t('filament.speed') }}</span>
@@ -41,14 +43,14 @@
 			<span class="text-caption grey--text">{{ t('filament.limits', { lmin: limits.length.min, lmax: limits.length.max, smin: limits.speed.min, smax: limits.speed.max }) }}</span>
 		</div>
 		<div class="d-flex align-center flex-wrap mt-2" style="gap:8px">
-			<v-btn small :color="armed === 'load' ? 'amber darken-3' : 'primary'" :disabled="!!blockReason || !(macros.load || formOk) || !canOperate || sending" @click="arm('load', () => move('load'))">
-				<v-icon small left>mdi-arrow-down-bold</v-icon>{{ armed === 'load' ? $t('plugins.WorkshopPrinting.common.tap_again') : t(macros.load ? 'filament.load_macro' : 'filament.load') }}
+			<v-btn small :color="armed === 'load' ? 'amber darken-3' : 'primary'" :disabled="!!blockReason || !(via.load || formOk) || !canOperate || sending" @click="arm('load', () => move('load'))">
+				<v-icon small left>mdi-arrow-down-bold</v-icon>{{ armed === 'load' ? $t('plugins.WorkshopPrinting.common.tap_again') : t(via.load ? 'filament.load_macro' : 'filament.load') }}
 			</v-btn>
-			<v-btn small outlined :color="armed === 'unload' ? 'amber darken-3' : undefined" :disabled="!!blockReason || !(macros.unload || formOk) || !canOperate || sending" @click="arm('unload', () => move('unload'))">
-				<v-icon small left>mdi-arrow-up-bold</v-icon>{{ armed === 'unload' ? $t('plugins.WorkshopPrinting.common.tap_again') : t(macros.unload ? 'filament.unload_macro' : 'filament.unload') }}
+			<v-btn small :outlined="armed !== 'unload'" :color="armed === 'unload' ? 'amber darken-3' : undefined" :disabled="!!blockReason || !(via.unload || formOk) || !canOperate || sending" @click="arm('unload', () => move('unload'))">
+				<v-icon small left>mdi-arrow-up-bold</v-icon>{{ armed === 'unload' ? $t('plugins.WorkshopPrinting.common.tap_again') : t(via.unload ? 'filament.unload_macro' : 'filament.unload') }}
 			</v-btn>
 			<span v-if="blockReason" class="text-caption grey--text">{{ blockReason }}</span>
-			<span v-else-if="!formOk && !(macros.load && macros.unload)" class="text-caption warning--text">{{ t('filament.bad_form') }}</span>
+			<span v-else-if="!formOk && !(via.load && via.unload)" class="text-caption warning--text">{{ t('filament.bad_form') }}</span>
 		</div>
 
 		<!-- 3. the wrap-up -->
@@ -64,7 +66,8 @@ import PcSection from './PcSection.vue' // the card with the header of the secti
 
 import { mapActions } from 'vuex'
 import { CFG_FILE, MATERIALS_DEF, readJson, listItemsFolder, isError } from './util.js'
-import { FILAMENTS_DIR, LOAD_DEFAULTS, LOAD_LIMITS, coolCodes, directCodes, heatCodes, heatState, loadTemp, loadedFilament, macroCodes, macroState, moveBlock, normalize } from './filament-load.js'
+import { FILAMENTS_DIR, LOAD_DEFAULTS, LOAD_LIMITS, heatBlock, heatState, loadTemp, loadedFilament, macroState, moveBlock, moveCodes, normalize, usesMacro } from './filament-load.js'
+import { coolCodes, heatCodes } from './tool-codes.js' // heat, cool and extrusion codes: one module for every page
 import { jobRunning } from './job-control.js'
 import { machineFree } from './machine-free.js' // job (file, paused or live) and machine state (vue/_shared)
 import { ts } from './shared-t.js'
@@ -124,8 +127,19 @@ export default {
 		formOk() {
 			return normalize(this.form).ok;
 		},
+		// which button runs the macro of the board (usesMacro): the labels, the form and the tap follow the same rule
+		via() {
+			return { load: usesMacro('load', this.macros, this.materialName), unload: usesMacro('unload', this.macros, this.materialName) };
+		},
 		free() {
 			return machineFree(this.model, { t: ts, serviceText, serviceDefaultKey, purpose: 'move' });
+		},
+		// why the heater may not be turned on or off now ('' = it may): no tool, job, machine not free
+		heatReason() {
+			const why = heatBlock({ tool: this.tool, nozzle: this.nozzle, busyJob: jobRunning(this.state), notFree: !this.free.free });
+			if (!why) return '';
+			if (why === 'machine') return this.free.reason;
+			return this.t(why === 'job' ? 'filament.heat_block_job' : 'filament.block_' + why);
 		},
 		// why the extruder may not move now ('' = it may): job, machine not free, no reading, below the cold extrusion temperature
 		blockReason() {
@@ -191,25 +205,23 @@ export default {
 			}
 		},
 		heatUp() {
-			if (!this.tool || this.temp === null) return;
+			if (this.heatReason || this.temp === null) return;
 			this.run(heatCodes(this.tool.number, this.temp), this.t('filament.heating_sent', { temp: this.temp }));
 		},
 		coolDown() {
-			if (!this.tool) return;
+			if (this.heatReason) return;
 			this.run(coolCodes(this.tool.number), this.t('filament.cooled'));
 		},
 		// load / unload: the macro of the board when it is there, else the direct extrusion; checked again at the tap
 		move(action) {
 			if (this.blockReason || !this.tool) return;
-			const useMacro = action === 'load' ? this.macros.load : this.macros.unload;
-			if (useMacro) {
-				const codes = macroCodes(action, this.tool.number, this.materialName);
+			const codes = moveCodes(action, this.tool.number, this.macros, this.materialName, this.form);
+			if (!codes.length) return;
+			if (usesMacro(action, this.macros, this.materialName)) {
 				this.run(codes, this.t('filament.macro_done', { code: codes[codes.length - 1] }));
 				return;
 			}
-			const v = normalize(this.form);
-			if (!v.ok) return;
-			this.run(directCodes(action, this.tool.number, v.value), this.t(action === 'load' ? 'filament.loaded' : 'filament.unloaded', { mm: v.value.length }));
+			this.run(codes, this.t(action === 'load' ? 'filament.loaded' : 'filament.unloaded', { mm: normalize(this.form).value.length }));
 		}
 	}
 };

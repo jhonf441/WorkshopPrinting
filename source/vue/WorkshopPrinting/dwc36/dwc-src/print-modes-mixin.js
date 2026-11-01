@@ -27,7 +27,7 @@ export const printModesMixin = {
 			return !!this.modeState && this.modeState.answered && !usesSeveralModes(this.modeState);
 		},
 		machineThere() {
-			return pluginActive('machine');
+			return pluginActive(this.$store, 'machine'); // 3.6: the store goes first (without it the answer was always false)
 		},
 		showModesEntry() {
 			return !!this.modeState && this.modeState.answered && !usesExtraModes(this.modeState);
@@ -59,14 +59,10 @@ export const printModesMixin = {
 			const cur = this.modesInfo;
 			if (cur) this.setModes(withMode(cur.state, m, !!on, cur.detected));
 		},
-		// the Machine plugin has the section where the modes are switched on and set up
+		// the Machine plugin has the section where the modes are switched on and set up: it opens on it through ?layout=modes (its
+		// lib/cross-page.js); nothing is stored for the other plugin
 		openMachineModes() {
-			try {
-				localStorage.setItem('workshopMachineSection', 'modes');
-			} catch (e) {
-				/* the page opens on its last section */
-			}
-			if (this.$router) this.$router.push('/Plugins/Machine').catch(() => {});
+			if (this.$router) this.$router.push({ path: '/Plugins/Machine', query: { layout: 'modes' } }).catch(() => {});
 		},
 		// the card re-reads what the page owns each time it refreshes: config.g (it calls the saved mode?) and the modes answer
 		async recheckModes() {

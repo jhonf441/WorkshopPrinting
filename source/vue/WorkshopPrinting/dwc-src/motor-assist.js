@@ -1,13 +1,15 @@
 'use strict'
 
 // The motion settings of the extruder motor (a pellet screw is not a filament drive): acceleration, jerk, top speed and the firmware
-// retraction. Pure helpers; PelletMotor.vue reads the model, shows these numbers and writes them. Units on the page: acceleration in
-// mm/s2, jerk in mm/min (as the object model), speed in mm/s (the G-code takes mm/min), retraction in mm and mm/s.
+// retraction. Pure helpers; PelletMotor.vue reads the model and shows these numbers. Units on the page: acceleration in mm/s2, jerk in
+// mm/min (as the object model), speed in mm/s (the G-code takes mm/min), retraction in mm and mm/s.
+//
+// Acceleration, jerk and top speed (M201 / M566 / M203 of the extruder) are settings of the machine: they are NOT written from here.
+// They are changed in the Motion module of Machine, which prepares a plan, shows the change, keeps a backup and records it in the
+// history (docs-internal/CONFIG-WRITE-PATH.md). This file only reads them, offers starting points and builds the link to Machine.
+// The firmware retraction (M207) has no plan in Machine yet, so it is still written here, into modefff.g.
 
 export const LIMITS = {
-	accel: { min: 10, max: 5000 },
-	jerk: { min: 1, max: 2000 },
-	speed: { min: 1, max: 300 },
 	retractLength: { min: 0, max: 20 },
 	retractSpeed: { min: 1, max: 100 }
 }
@@ -19,6 +21,11 @@ export const PRESETS = [
 	{ id: 'balanced', accel: 500, jerk: 300, speed: 40 },
 	{ id: 'fast', accel: 1000, jerk: 600, speed: 60 }
 ]
+
+// the value of the page -> the parameter of the Motion module of Machine (ids of its lib/motion-table.js PARAMS)
+export const MACHINE_PARAMS = { accel: 'acceleration', jerk: 'jerk', speed: 'speed' }
+
+const MACHINE_PATH = '/Plugins/Machine'
 
 function num(v) {
 	const n = Number(v)
@@ -44,14 +51,20 @@ export function presetOf(v) {
 	return PRESETS.find(p => p.accel === v.accel && p.jerk === v.jerk && p.speed === v.speed) || null
 }
 
-// checks what was typed; returns { ok: true, value } with numbers in range, or { ok: false, field }
-export function normalize(f) {
+// the route that opens Machine on the Motion module with that value's parameter chosen (?layout=motion&param=acceleration), or null for a key it does not know
+export function machineRoute(key) {
+	const param = Object.prototype.hasOwnProperty.call(MACHINE_PARAMS, key) ? MACHINE_PARAMS[key] : null
+	return param ? { path: MACHINE_PATH, query: { layout: 'motion', param } } : null
+}
+
+// Machine's plan edits ONE letter per extruder ("E"): the first extruder. A second one ("E1") is edited by hand in the configuration file.
+export function machineEditable(index) {
+	return (Math.floor(Number(index)) || 0) === 0
+}
+
+// checks the retraction that was typed; returns { ok: true, value: { retractLength, retractSpeed } } with numbers in range, or { ok: false, field }
+export function normalizeRetract(f) {
 	const out = {}
-	for (const k of ['accel', 'jerk', 'speed']) {
-		const n = num(f && f[k])
-		if (n === null || n < LIMITS[k].min || n > LIMITS[k].max) return { ok: false, field: k }
-		out[k] = n
-	}
 	const len = num(f && f.retractLength === '' ? 0 : f && f.retractLength)
 	if (len === null || len < LIMITS.retractLength.min || len > LIMITS.retractLength.max) return { ok: false, field: 'retractLength' }
 	out.retractLength = len
@@ -65,33 +78,14 @@ export function normalize(f) {
 	return { ok: true, value: out }
 }
 
-// "a:b:c" for the extruders up to `index`: the other extruders keep what they have now (a colon list sets them in order)
-function list(extruders, index, key, value) {
-	const out = []
-	for (let i = 0; i <= index; i++) {
-		const cur = i === index ? value : num(extruders && extruders[i] && extruders[i][key])
-		out.push(cur === null ? value : cur)
-	}
-	return out.join(':')
-}
-
 const round = n => Math.round(n * 1000) / 1000
 
-// the codes to run now and the lines that keep them in modefff.g (each: start of the line it replaces, the line, and what it follows)
-export function plan(value, extruders, index) {
-	const i = Math.max(0, Math.floor(Number(index) || 0))
-	const acc = list(extruders, i, 'acceleration', value.accel)
-	const jerk = list(extruders, i, 'jerk', value.jerk)
-	const spd = list(extruders, i, 'speed', round(value.speed * 60))
-	const lines = [
-		{ start: 'M201 E', text: 'M201 E' + acc + '   ; extruder acceleration (mm/s2)' },
-		{ start: 'M566 E', text: 'M566 E' + jerk + '   ; extruder jerk (mm/min)' },
-		{ start: 'M203 E', text: 'M203 E' + spd + '   ; extruder top speed (mm/min)' }
-	]
-	const retract = value.retractLength > 0
+// the code to run now and the line that keeps it in modefff.g (the start of the line it replaces, the line, and what it follows)
+export function retractPlan(value) {
+	const text = value.retractLength > 0
 		? 'M207 S' + round(value.retractLength) + ' F' + round(value.retractSpeed * 60) + '   ; firmware retraction (G10 / G11)'
 		: 'M207 S0   ; firmware retraction off'
-	lines.push({ start: 'M207 ', text: retract })
+	const lines = [{ start: 'M207 ', text }]
 	return { codes: lines.map(l => l.text.split('   ;')[0]), lines }
 }
 

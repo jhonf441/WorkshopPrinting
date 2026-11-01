@@ -35,13 +35,7 @@ export function sectionRatio(oldD, newD) {
 	return r2((Number(newD) / Number(oldD)) * (Number(newD) / Number(oldD)))
 }
 
-// heats the tool to the melt temperature (active) / stops its heating: only that tool
-export function heatCode(tool, temp) {
-	return 'M568 P' + Number(tool) + ' S' + Math.round(Number(temp)) + ' A2'
-}
-export function offCode(tool) {
-	return 'M568 P' + Number(tool) + ' S0 R0 A0'
-}
+// (heating the tool to the melt temperature and stopping its heating are tool-codes.js: heatCode / coolCode, only that tool)
 
 // the checks that are due after the change, in order; 'goto' is the section of the page where it is done
 export function followUps(change) {

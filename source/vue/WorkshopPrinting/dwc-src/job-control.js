@@ -2,16 +2,15 @@
 
 // ---- Job control of the "3D job" tab (2026-10-30): pause / resume / cancel, Z baby-stepping, speed and flow factors ----
 //
-// Pure helpers of JobControl.vue (test/job-control.test.js). The codes are the ones DWC sends from its own buttons (M25, M24,
-// M0) plus the live corrections a person makes while a print runs: M290 (Z baby-stepping), M220 (speed factor) and M221 (flow
-// factor of one extruder). What the machine has now comes from the object model DWC keeps (state.status, move.axes[].babystep,
-// move.speedFactor, move.extruders[].factor); nothing is asked of the board. A live job (a program through the bridge) has its
-// own controls in the Jog bar: with one running the buttons are not offered (the page passes `live`).
+// Pure helpers of JobControl.vue (test/job-control.test.js). Pause / resume / cancel (the buttons by machine state and their codes
+// M25, M24, M0) are the rule of ./job-rules.js (vue/_shared), the same one the status bar of the Workbench pages uses; here are the
+// live corrections a person makes while a print runs: M290 (Z baby-stepping), M220 (speed factor) and M221 (flow factor of one
+// extruder). What the machine has now comes from the object model DWC keeps (state.status, move.axes[].babystep,
+// move.speedFactor, move.extruders[].factor); nothing is asked of the board.
 
 import { flowCode as flowPercentCode } from './pellet-hmi.js' // the M221 of the pellet panel: same range (10..300 %)
 
-export const JOB_CODES = { pause: 'M25', resume: 'M24', cancel: 'M0' }
-// the states a file job goes through (a simulation is paused and cancelled with the same codes)
+// the states a file job goes through (which of them offer Pause / Resume / Cancel is job-rules.js)
 export const JOB_STATES = { processing: 1, pausing: 1, paused: 1, resuming: 1, simulating: 1, cancelling: 1 }
 
 export const BABY_STEPS = [-0.05, -0.02, 0.02, 0.05] // mm per tap (the fine steps a first layer needs)
@@ -30,20 +29,29 @@ export function jobRunning(status) {
 	return !!JOB_STATES[status || '']
 }
 
-// Which buttons the card offers for the machine state: { pause, resume, cancel } (booleans). Cancel only while paused, like DWC's
-// own button: RRF refuses M0 while a file job is printing ("pause the print before attempting to cancel it").
-export function jobButtons(status, live) {
-	if (live) return { pause: false, resume: false, cancel: false }
-	const s = status || ''
-	return {
-		pause: s === 'processing',
-		resume: s === 'paused',
-		cancel: s === 'paused'
-	}
+// ---- the corrections (M290, M220, M221) only belong to a print in progress ----
+// RRF keeps a Z baby-step and the speed and flow factors AFTER the job ends: nothing clears them, so one given with nothing printing
+// (or left behind by the last job) starts the NEXT job already shifted. The Z steps and the factors are therefore offered only while a
+// job is going on (a file job printing or paused, or a live job); putting them back (Reset, 100 %) is offered always, and what is still
+// applied with no job is shown as a warning (leftoverCorrections).
+export const CORRECTION_STATES = { processing: 1, pausing: 1, paused: 1, resuming: 1 }
+
+export function correctionsOpen(status, live) {
+	return !!live || !!CORRECTION_STATES[status || '']
 }
 
-export function jobCode(action) {
-	return JOB_CODES[action] || ''
+// What is still applied: [{ id: 'baby', value: mm } | { id: 'speed', value: % } | { id: 'flow', extruder, value: % }]; empty when
+// everything is neutral (no Z step, 100 % speed, 100 % flow). baby = babyStepNow(om), factors = factorsNow(om, tool).
+export function leftoverCorrections(baby, factors) {
+	const out = []
+	const b = num(baby)
+	if (b !== null && Math.abs(b) >= 0.005) out.push({ id: 'baby', value: b })
+	const f = factors || {}
+	if (num(f.speed) !== null && f.speed !== 100) out.push({ id: 'speed', value: f.speed })
+	for (const x of f.flows || []) {
+		if (x && num(x.percent) !== null && x.percent !== 100) out.push({ id: 'flow', extruder: x.extruder, value: x.percent })
+	}
+	return out
 }
 
 // ---- Z baby-stepping ----
@@ -75,6 +83,18 @@ export function babyStepText(now) {
 	if (n === null) return '--'
 	const s = Math.abs(n) < 0.005 ? '' : n > 0 ? '+' : '-'
 	return s + Math.abs(n).toFixed(2) + ' mm'
+}
+
+// ---- the double tap of a button that ends or resets something (cancel, baby-step reset; DESIGN.md 5 level 2) ----
+// state = { id, at } of the button armed now (null = none); id = the button tapped; now = ms. The first tap arms it and sends
+// nothing; a second tap of the SAME button within ARM_MS fires it; later, or another button, arms again (never fires the first one).
+//   -> { state: the new armed state (null after firing), fire: true when the action must run now }
+export const ARM_MS = 4000
+export function armedPress(state, id, now) {
+	const t = num(now)
+	const at = state ? num(state.at) : null
+	if (state && state.id === id && t !== null && at !== null && t >= at && t - at < ARM_MS) return { state: null, fire: true }
+	return { state: { id, at: t }, fire: false }
 }
 
 // ---- speed and flow factors ----

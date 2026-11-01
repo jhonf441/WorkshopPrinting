@@ -30,19 +30,25 @@
 			<span v-if="jobReason" class="text-body-small text-medium-emphasis">{{ jobReason }}</span>
 		</div>
 
-		<!-- Z baby-stepping: steps of hundredths, one tap each (DWC's own buttons work the same); the sum is capped by job-control.js and
-		     the reset can move up to that cap at once, so it takes two taps -->
+		<!-- The three corrections (Z, speed, flow) belong to a print in progress: their steps and Apply are off with no job (correct), and what
+		     a job left behind is a warning (leftoverText); Reset and 100 % are always there to put it back (job-control.js) -->
+		<v-alert v-if="leftoverText" density="compact" variant="tonal" type="warning" class="mt-4 mb-0">{{ leftoverText }}</v-alert>
+		<div v-if="correctReason" class="text-body-small text-medium-emphasis mt-3">{{ correctReason }}</div>
+
+		<!-- Z baby-stepping: steps of hundredths; every step takes two taps (it moves Z under a running print) and the reset too (it can move
+		     up to the cap at once); the sum is capped by job-control.js -->
 		<div class="text-title-small mt-4">{{ t('jobControl.baby_title') }}</div>
 		<div class="text-body-small text-medium-emphasis">{{ t('jobControl.baby_help') }}</div>
 		<div class="d-flex align-center flex-wrap mt-1" style="gap:8px">
-			<v-btn v-for="s in steps" :key="s" size="small" variant="outlined" :disabled="!isFff || !babyStepCode(s, babyNow) || !canOperate || sending" @click="baby(s)">
+			<v-btn v-for="s in steps" :key="s" size="small" :variant="armed === 'baby:' + s ? 'elevated' : 'outlined'" :color="armed === 'baby:' + s ? 'amber-darken-3' : undefined" :disabled="!isFff || !correct || !babyStepCode(s, babyNow) || !canOperate || sending" @click="arm('baby:' + s, () => baby(s))">
 				{{ (s > 0 ? '+' : '') + s.toFixed(2) }}
 			</v-btn>
 			<span class="text-body-medium">{{ t('jobControl.baby_now') }} <b class="mono">{{ babyText }}</b></span>
-			<v-btn size="x-small" :variant="armed === 'baby0' ? 'elevated' : 'text'" :color="armed === 'baby0' ? 'amber-darken-3' : undefined" :disabled="!isFff || babyNow === null || Math.abs(babyNow) < 0.005 || !canOperate || sending" @click="arm('baby0', babyReset)">
+			<v-btn size="small" :variant="armed === 'baby0' ? 'elevated' : 'text'" :color="armed === 'baby0' ? 'amber-darken-3' : undefined" :disabled="!isFff || babyNow === null || Math.abs(babyNow) < 0.005 || !canOperate || sending" @click="arm('baby0', babyReset)">
 				{{ armed === 'baby0' ? t('jobControl.baby_reset_again') : t('jobControl.baby_reset') }}
 			</v-btn>
 		</div>
+		<div v-if="armedBaby" class="text-body-small text-warning mt-1">{{ t('jobControl.baby_tap_again', { delta: armedBaby }) }}</div>
 		<div class="text-body-small text-medium-emphasis mt-1">{{ t('jobControl.baby_limit', { limit: babyLimit }) }}</div>
 
 		<!-- speed and flow factors: percentages over what the file asks; "now" is what the board reports -->
@@ -51,16 +57,16 @@
 		<div class="d-flex align-center flex-wrap mt-1" style="gap:8px">
 			<span class="text-body-medium">{{ t('jobControl.speed') }}</span>
 			<input v-model.number="speedNew" type="number" step="5" :min="speedLimits.min" :max="speedLimits.max" class="field" :disabled="!canOperate" /> %
-			<v-btn size="x-small" variant="outlined" :disabled="!isFff || !speedCode(speedNew) || !canOperate || sending" @click="applySpeed(speedNew)">{{ t('jobControl.apply') }}</v-btn>
-			<v-btn size="x-small" variant="text" :disabled="!isFff || factors.speed === 100 || !canOperate || sending" @click="applySpeed(100)">100 %</v-btn>
+			<v-btn size="small" variant="outlined" :disabled="!isFff || !correct || !speedCode(speedNew) || !canOperate || sending" @click="applySpeed(speedNew)">{{ t('jobControl.apply') }}</v-btn>
+			<v-btn size="small" variant="text" :disabled="!isFff || factors.speed === 100 || !canOperate || sending" @click="applySpeed(100)">100 %</v-btn>
 			<span class="text-body-small text-medium-emphasis">{{ t('jobControl.now_pct', { n: factors.speed === null ? '--' : factors.speed }) }}</span>
 		</div>
 		<div class="text-body-small text-medium-emphasis mt-2">{{ t('jobControl.flow_help') }}</div>
 		<div v-for="f in factors.flows" :key="f.extruder" class="d-flex align-center flex-wrap mt-1" style="gap:8px">
 			<span class="text-body-medium">{{ t('jobControl.flow_e', { n: f.extruder }) }}</span>
 			<input v-model.number="flowNew[f.extruder]" type="number" step="1" :min="flowLimits.min" :max="flowLimits.max" class="field" :disabled="!canOperate" /> %
-			<v-btn size="x-small" variant="outlined" :disabled="!isFff || !flowCode(flowNew[f.extruder], f.extruder) || !canOperate || sending" @click="applyFlow(f.extruder, flowNew[f.extruder])">{{ t('jobControl.apply') }}</v-btn>
-			<v-btn size="x-small" variant="text" :disabled="!isFff || f.percent === 100 || !canOperate || sending" @click="applyFlow(f.extruder, 100)">100 %</v-btn>
+			<v-btn size="small" variant="outlined" :disabled="!isFff || !correct || !flowCode(flowNew[f.extruder], f.extruder) || !canOperate || sending" @click="applyFlow(f.extruder, flowNew[f.extruder])">{{ t('jobControl.apply') }}</v-btn>
+			<v-btn size="small" variant="text" :disabled="!isFff || f.percent === 100 || !canOperate || sending" @click="applyFlow(f.extruder, 100)">100 %</v-btn>
 			<span class="text-body-small text-medium-emphasis">{{ t('jobControl.now_pct', { n: f.percent === null ? '--' : f.percent }) }}</span>
 		</div>
 		<div v-if="!factors.flows.length" class="text-body-small text-medium-emphasis mt-1">{{ t('jobControl.no_extruder') }}</div>
@@ -70,7 +76,8 @@
 
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { BABY_LIMIT, BABY_STEPS, FLOW_LIMITS, SPEED_LIMITS, babyResetCode, babyStepCode, babyStepNow, babyStepText, factorsNow, flowCode, jobButtons, jobCode, jobRunning, speedCode } from './job-control.js'
+import { ARM_MS, BABY_LIMIT, BABY_STEPS, FLOW_LIMITS, SPEED_LIMITS, armedPress, babyResetCode, babyStepCode, babyStepNow, babyStepText, correctionsOpen, factorsNow, flowCode, jobRunning, leftoverCorrections, speedCode } from './job-control.js'
+import { jobButtons, jobCode } from './job-rules.js' // the buttons by state and their codes: one rule for every page (vue/_shared)
 import { TZ_FFF_STATES } from './fff-temps.js' // the translated names of the machine states (fff.st_<state>)
 import { isError } from './util.js'
 import { jobInLive } from './machine-free.js' // a live job (program through the bridge) has its controls in the Jog bar (vue/_shared)
@@ -78,6 +85,7 @@ import { NEED } from './print-sections.js'
 import { useRole } from './use-role.js' // what the role may do (vue/_shared)
 import { sendCode } from './send-code.js' // {code, log} wrapper over the machine store
 import { machineModel, i18n } from './dwc-host.js'
+import { pluginActive } from './workshop-ids.js' // vue/_shared
 
 const props = defineProps({
 	isFff: { type: Boolean, default: false }
@@ -92,7 +100,8 @@ const flowLimits = FLOW_LIMITS
 
 const speedNew = ref(100)
 const flowNew = ref({})
-const armed = ref(null)
+const armed = ref(null) // id of the button armed now (armedPress)
+let armedAt = 0
 const armedTimer = ref(null)
 const sending = ref(false)
 const msg = ref(null)
@@ -133,7 +142,7 @@ const stateText = computed(() => {
 // why the three buttons are grey (DESIGN.md 5: the reason written)
 const jobReason = computed(() => {
 	if (!canOperate.value) return t('jobControl.needs_operator');
-	if (live.value) return t('jobControl.live_job');
+	if (live.value) return t(pluginActive('jog') ? 'jobControl.live_job' : 'jobControl.live_job_no_jog'); // the Jog is another plugin: nothing about it when it is absent
 	if (!jobRunning(status.value)) return t('jobControl.no_job');
 	return '';
 })
@@ -142,8 +151,36 @@ const babyNow = computed(() => {
 	return babyStepNow(model.value);
 })
 
+// M290, M220 and M221 only with a job going on (file or live); putting them back is always allowed
+const correct = computed(() => {
+	return correctionsOpen(status.value, live.value);
+})
+
+const correctReason = computed(() => {
+	return props.isFff && canOperate.value && !correct.value ? t('jobControl.corrections_need_job') : '';
+})
+
+// what a job left applied (Z, speed, flow) with nothing printing: the next job would start with it
+const leftoverText = computed(() => {
+	if (!props.isFff || correct.value) return '';
+	const list = leftoverCorrections(babyNow.value, factors.value).map(x => {
+		if (x.id === 'baby') return t('jobControl.leftover_baby', { sum: babyStepText(x.value) });
+		if (x.id === 'speed') return t('jobControl.leftover_speed', { n: x.value });
+		return t('jobControl.leftover_flow', { e: x.extruder, n: x.value });
+	});
+	return list.length ? t('jobControl.leftover', { list: list.join(', ') }) : '';
+})
+
 const babyText = computed(() => {
 	return babyStepText(babyNow.value);
+})
+
+// the Z step armed now (its first tap was given): "+0.02" / "-0.05", '' when none
+const armedBaby = computed(() => {
+	const a = armed.value;
+	if (!a || !a.startsWith('baby:')) return '';
+	const s = Number(a.slice(5));
+	return (s > 0 ? '+' : '') + s.toFixed(2);
 })
 
 const factors = computed(() => {
@@ -165,15 +202,14 @@ function t(key, params) {
 	return i18n.t('plugins.WorkshopPrinting.' + key, params);
 }
 
+// the double tap (armedPress, job-control.js): the first tap arms, the second within ARM_MS fires
 function arm(id, fn) {
-	if (armed.value !== id) {
-		armed.value = id;
-		clearTimeout(armedTimer.value);
-		armedTimer.value = setTimeout(() => { armed.value = null; }, 4000);
-		return;
-	}
-	armed.value = null;
-	fn();
+	const r = armedPress(armed.value ? { id: armed.value, at: armedAt } : null, id, Date.now());
+	armed.value = r.state ? r.state.id : null;
+	armedAt = r.state ? r.state.at : 0;
+	clearTimeout(armedTimer.value);
+	if (r.state) armedTimer.value = setTimeout(() => { armed.value = null; }, ARM_MS);
+	if (r.fire) fn();
 }
 
 async function run(codes, okText) {
@@ -203,7 +239,7 @@ function job(action) {
 
 function baby(step) {
 	const code = babyStepCode(step, babyNow.value);
-	if (!code) return;
+	if (!code || !correct.value) return;
 	run([code], t('jobControl.baby_set', { delta: (step > 0 ? '+' : '') + step.toFixed(2), sum: babyStepText((babyNow.value || 0) + step) }));
 }
 
@@ -213,14 +249,14 @@ function babyReset() {
 
 function applySpeed(percent) {
 	const code = speedCode(percent);
-	if (!code) return;
+	if (!code || (!correct.value && Math.round(percent) !== 100)) return;
 	speedNew.value = Math.round(percent);
 	run([code], t('jobControl.speed_set', { n: Math.round(percent) }));
 }
 
 function applyFlow(extruder, percent) {
 	const code = flowCode(percent, extruder);
-	if (!code) return;
+	if (!code || (!correct.value && Math.round(percent) !== 100)) return;
 	flowNew.value[extruder] = Math.round(percent);
 	run([code], t('jobControl.flow_set', { e: extruder, n: Math.round(percent) }));
 }

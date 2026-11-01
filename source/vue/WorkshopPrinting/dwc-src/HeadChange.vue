@@ -53,12 +53,12 @@
 import PcSection from './PcSection.vue' // the card with the header of the section (printing-design.css)
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { isError } from './util.js'
-import { pathExists } from './workshop-ids.js' // the Workbench is another plugin: nothing about it when it is absent
+import { coolCode } from './tool-codes.js' // heat, cool and extrusion codes: one module for every page
+import { pluginActive } from './workshop-ids.js' // the Workbench is another plugin: nothing about it when it is absent
 import { nozzleState } from './nozzle-state.js'
 import { machineFree } from './machine-free.js' // trabajo de archivo, pausado o en vivo (vue/_shared)
 import { ts } from './shared-t.js'
 import { serviceText, serviceDefaultKey } from './service-text.js'
-import { useRouter } from 'vue-router'
 import { sendCode } from './send-code.js' // {code, log} wrapper over the machine store
 import { machineModel, i18n } from './dwc-host.js'
 
@@ -73,8 +73,6 @@ const props = defineProps({
 	// names of the modes the machine uses (machine-modes.js); null = not known, all of them
 	modes: { type: Array, default: null }
 })
-
-const router = useRouter()
 
 const origin = ref('')
 const destination = ref(null)
@@ -96,7 +94,7 @@ const z = computed(() => {
 
 const steps = computed(() => {
 	const aFFF = destination.value === 'FFF';
-	const hasWorkbench = pathExists(router, '/Plugins/Workbench');
+	const hasWorkbench = pluginActive('workbench'); // the lists, not the route: DWC keeps the route of a plugin that was stopped
 	const since = origin.value === 'FFF'; // the mode it started with (does not change when changing mode)
 	const raiseZ = {
 		kind: 'action', text: i18n.t('plugins.WorkshopPrinting.headChange.raise_z_30_mm_to_make'), button: i18n.t('plugins.WorkshopPrinting.headChange.raise_z'),
@@ -189,7 +187,7 @@ function nameMode(m) {
 
 function codesPowerOff() {
 	const tools = (machineModel().tools || []).filter(t => t);
-	return tools.map(t => `M568 P${t.number} S0 R0 A0`).concat(['M140 S0']);
+	return tools.map(t => coolCode(t.number)).concat(['M140 S0']);
 }
 
 // Steps that move or change the mode (libre: 'mover' / 'settings'): never with a file job,

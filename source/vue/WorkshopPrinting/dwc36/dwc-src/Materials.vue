@@ -22,7 +22,7 @@
 							<td><input v-model.number="m.fan" type="number" min="0" max="100" class="field" :disabled="!canEdit" @change="changed = true" /></td>
 							<td><input v-model.number="m.density" type="number" step="0.01" class="field" :disabled="!canEdit" @change="changed = true" /></td>
 							<td style="white-space:nowrap">
-								<v-btn x-small :color="armed === k ? 'amber darken-3' : 'primary'" :disabled="!isFff || !!problem(m) || !canPreheat" :title="problem(m)" @click="arm(k, m)">
+								<v-btn x-small :color="armed === k ? 'amber darken-3' : 'primary'" :disabled="!isFff || !!problem(m) || !canPreheat || !!heatReason" :title="problem(m) || heatReason" @click="arm(k, m)">
 									<v-icon x-small left>mdi-fire</v-icon>{{ armed === k ? $t('plugins.WorkshopPrinting.common.tap_again') : $t('plugins.WorkshopPrinting.materials.preheat') }}
 								</v-btn>
 								<v-btn v-if="canEdit" x-small icon :title="$t('plugins.WorkshopPrinting.materials.remove')" @click="list.splice(k, 1); changed = true"><v-icon x-small>mdi-delete</v-icon></v-btn>
@@ -65,6 +65,12 @@ import ErrorNotice from './ErrorNotice.vue' // vue/_shared
 import { roleMixin } from './role-mixin.js' // what the role may do (vue/_shared)
 import { isFriendly } from './print-errors.js'
 import { NEED } from './print-sections.js'
+import { heatBlock } from './filament-load.js' // why a heater may not be turned on now (the same guard as Load material)
+import { heatZonesCode } from './tool-codes.js' // heat code without selecting the tool: one module for every page
+import { jobRunning } from './job-control.js'
+import { machineFree } from './machine-free.js' // job (file, paused or live) and machine state (vue/_shared)
+import { ts } from './shared-t.js'
+import { serviceText, serviceDefaultKey } from './service-text.js'
 
 export default {
 	mixins: [roleMixin],
@@ -73,7 +79,8 @@ export default {
 		isFff: { type: Boolean, default: false },
 		heaters: { type: Array, default: () => [] },
 		tools: { type: Array, default: () => [] },
-		currentTool: { type: Object, default: null }
+		currentTool: { type: Object, default: null },
+		state: { type: String, default: '' } // the status of the machine (a file job shows in it): no heating in the middle of a job
 	},
 	computed: {
 		// preheating is an operator's (like the work lights); editing the table writes printing.json: a technician's (NEED, print-sections.js)
@@ -99,6 +106,16 @@ export default {
 		},
 		camera() {
 			return this.heaters.find(h => h.paper === 'camera') || null;
+		},
+		free() {
+			return machineFree(this.$store.state.machine.model, { t: ts, serviceText, serviceDefaultKey, purpose: 'move' });
+		},
+		// why the heaters may not be turned on now ('' = they may): no tool, a job running (its temperatures come from the file), machine not free
+		heatReason() {
+			const why = heatBlock({ tool: this.selectedTool, nozzle: this.nozzle, busyJob: jobRunning(this.state), notFree: !this.free.free });
+			if (!why) return '';
+			if (why === 'machine') return this.free.reason;
+			return i18n.t('plugins.WorkshopPrinting.' + (why === 'job' ? 'filament.heat_block_job' : 'filament.block_' + why));
 		}
 	},
 	watch: {
@@ -173,6 +190,12 @@ export default {
 			this.preheat(m);
 		},
 		async preheat(m) {
+			// the state may have changed since the button was tapped (a job started, the machine went busy)
+			if (this.heatReason) {
+				this.msgKind = 'error';
+				this.msg = i18n.t('plugins.WorkshopPrinting.materials.could_not_preheat', { error: this.heatReason });
+				return;
+			}
 			this.cfg = (await readJson(CFG_FILE, {})) || this.cfg; // the staging may have changed in another tab
 			const t = this.selectedTool;
 			// several zones (pellet): all at the material's temperature
@@ -184,8 +207,15 @@ export default {
 				let v = Math.round(m.nozzle) + (k > 0 && h != null ? Number(esc[h]) || 0 : 0);
 				if (z && z.max) v = Math.min(v, z.max);
 				return Math.max(0, v);
-			}).join(':');
-			const codes = [`T${t.number}`, `M568 P${t.number} S${temps} R${temps} A2`];
+			});
+			// the tool is NOT selected: only its heaters are set (selecting it would run the tool change macros and move the head)
+			const heat = heatZonesCode(t.number, temps);
+			if (!heat) {
+				this.msgKind = 'error';
+				this.msg = i18n.t('plugins.WorkshopPrinting.materials.could_not_preheat', { error: i18n.t('plugins.WorkshopPrinting.materials.nozzle_temperature_missing') });
+				return;
+			}
+			const codes = [heat];
 			if (this.bed && m.bed > 0) codes.push(`M140 S${Math.round(m.bed)}`);
 			if (this.camera && m.camera > 0) codes.push(`M141 S${Math.round(m.camera)}`);
 			const fan = (t.fans || [])[0];

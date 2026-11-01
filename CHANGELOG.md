@@ -1,5 +1,17 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.15.17 -- 2026-10-31
+
+- Lot 2: one relay client, camera client folder, single gallery, one presence helper, shared resources released at the last plugin, flash for the operator
+
+## 2.15.16 -- 2026-10-31
+
+- Hides what names a plugin that is absent; a plugin is active only by the machine list
+
+## 2.15.15 -- 2026-10-30
+
+- Job control cancel only while paused, heat block without tool select, preheat with material, screw motor opens Machine for acceleration, jerk and speed
+
 ## 2.15.14 -- 2026-10-30
 
 - Job control (pause, resume, cancel, baby steps, speed and flow factors) and load material for filament tools

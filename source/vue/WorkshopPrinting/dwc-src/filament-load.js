@@ -7,6 +7,9 @@
 // filament macros of RRF (0:/filaments/<name>/load.g and unload.g) it runs M701 / M702; without them it moves the extruder
 // directly (M83 + G1 E) within LOAD_LIMITS. The extruder NEVER moves below the machine's cold extrusion temperature
 // (heat.coldExtrudeTemperature): the board refuses it anyway, and the page does not even offer the buttons (moveBlock).
+// The heat, cool and extrusion codes themselves are written once, in tool-codes.js (heatCodes, coolCodes, extrudeCodes).
+
+import { extrudeCodes, selectCode } from './tool-codes.js'
 
 export const LOAD_LIMITS = {
 	length: { min: 1, max: 800 }, // mm (a Bowden tube can be long)
@@ -57,38 +60,40 @@ export function macroState(files) {
 	return { load: names.indexOf('load.g') !== -1, unload: names.indexOf('unload.g') !== -1 }
 }
 
-export function heatCodes(toolNumber, temp) {
-	const n = num(toolNumber), t = num(temp)
-	if (n === null || !(t > 0)) return []
-	return ['T' + n, 'M568 P' + n + ' S' + Math.round(t) + ' R' + Math.round(t) + ' A2']
-}
-
-export function coolCodes(toolNumber) {
-	const n = num(toolNumber)
-	return n === null ? [] : ['M568 P' + n + ' A0']
-}
-
 // M701 / M702 with the filament macros of the board (the name is the folder under 0:/filaments)
 export function macroCodes(action, toolNumber, name) {
-	const n = num(toolNumber)
-	if (n === null) return []
-	if (action === 'load') return name ? ['T' + n, 'M701 S"' + String(name).replace(/"/g, '') + '"'] : []
-	if (action === 'unload') return ['T' + n, 'M702']
+	const sel = selectCode(toolNumber)
+	if (!sel) return []
+	if (action === 'load') return name ? [sel, 'M701 S"' + String(name).replace(/"/g, '') + '"'] : []
+	if (action === 'unload') return [sel, 'M702']
 	return []
 }
 
 // Without the macros: a relative extrusion at the typed length and speed, waiting for it to end (M400). Unload pushes TIP_PUSH_MM
 // first, then pulls the whole length back.
 export function directCodes(action, toolNumber, form) {
-	const n = num(toolNumber)
 	const v = normalize(form)
-	if (n === null || !v.ok || (action !== 'load' && action !== 'unload')) return []
+	if (!v.ok || (action !== 'load' && action !== 'unload')) return []
 	const F = Math.round(v.value.speed * 60)
-	const codes = ['T' + n, 'M83']
-	if (action === 'load') codes.push('G1 E' + v.value.length + ' F' + F)
-	else codes.push('G1 E' + TIP_PUSH_MM + ' F' + Math.min(F, 120), 'G1 E-' + v.value.length + ' F' + F)
-	codes.push('M400')
-	return codes
+	if (action === 'load') return extrudeCodes(toolNumber, [{ mm: v.value.length, feed: F }])
+	return extrudeCodes(toolNumber, [{ mm: TIP_PUSH_MM, feed: Math.min(F, 120) }, { mm: -v.value.length, feed: F }])
+}
+
+// ---- what a Load / Unload tap sends ----
+// The macro only when the board has it and, for load, a material names its folder (M701 S"<name>"); M702 needs no name (the board
+// unloads what it remembers). Otherwise the direct extrusion with the form typed. A load without a material name therefore never
+// sends M701 without S, nor nothing at all: it falls back to the direct extrusion, which the page shows with its length and speed
+// (usesMacro drives the labels and the form) and which moveBlock still guards (never below the cold extrusion temperature).
+export function usesMacro(action, macros, material) {
+	const m = macros || {}
+	if (action === 'load') return !!(m.load && material)
+	if (action === 'unload') return !!m.unload
+	return false
+}
+
+export function moveCodes(action, toolNumber, macros, material, form) {
+	if (usesMacro(action, macros, material)) return macroCodes(action, toolNumber, material)
+	return directCodes(action, toolNumber, form)
 }
 
 // ---- why the extruder may not move now ('' = it may) ----
@@ -103,6 +108,20 @@ export function moveBlock(opts) {
 	if (o.nozzle.sensorBad || o.nozzle.state === 'fault') return 'fault'
 	const min = num(o.minTemp)
 	if (min === null || !(num(o.nozzle.current) >= min)) return 'cold'
+	return ''
+}
+
+// ---- why the nozzle heater may not be turned on or off now ('' = it may) ----
+//   opts: { tool, nozzle, busyJob, notFree }
+//   'no_tool'  no tool or no nozzle heater   'job'  a file job runs (its temperatures come from the file)
+//   'machine'  the machine is not free (reason of machineFree)
+// The same guard as moveBlock without the temperature: heating or cooling in the middle of a job ruins it (a cold nozzle stops
+// extruding, a hot one burns the plastic), so the Heat and Cool down buttons are not offered then.
+export function heatBlock(opts) {
+	const o = opts || {}
+	if (!o.tool || !o.nozzle) return 'no_tool'
+	if (o.busyJob) return 'job'
+	if (o.notFree) return 'machine'
 	return ''
 }
 

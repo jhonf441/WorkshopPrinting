@@ -177,7 +177,8 @@
 import PcSection from './PcSection.vue' // the card with the header of the section (printing-design.css)
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { CFG_FILE, readJson, markStartup, note } from './util.js'
-import { pathExists } from './workshop-ids.js' // the Workbench is another plugin: nothing about it when it is absent
+import { coolCode } from './tool-codes.js' // heat, cool and extrusion codes: one module for every page
+import { pluginActive } from './workshop-ids.js' // the Workbench is another plugin: nothing about it when it is absent
 import { useRouter } from 'vue-router'
 import { sendCode } from './send-code.js' // {code, log} wrapper over the machine store
 import { i18n } from './dwc-host.js'
@@ -227,7 +228,7 @@ const reasonBusy = computed(() => {
 })
 
 const steps = computed(() => {
-	const hasWorkbench = pathExists(router, '/Plugins/Workbench');
+	const hasWorkbench = pluginActive('workbench'); // the lists, not the route: DWC keeps the route of a plugin that was stopped
 	const cs = props.heaters;
 	const sensOk = cs.length > 0 && cs.every(h => sensorOk(h));
 	const calTested = cs.filter(h => (resultCal(h) || {}).ok).length;
@@ -405,7 +406,7 @@ function codePut(h, t) {
 }
 
 async function poweroff(h) {
-	const c = h.paper === 'bed' ? 'M140 S0' : h.paper === 'camera' ? 'M141 S0' : h.tool != null ? `M568 P${h.tool} A0` : null;
+	const c = h.paper === 'bed' ? 'M140 S0' : h.paper === 'camera' ? 'M141 S0' : h.tool != null ? coolCode(h.tool) : null;
 	if (c) await sendCode({ code: c, log: true }).catch(() => {});
 }
 

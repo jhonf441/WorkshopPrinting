@@ -57,7 +57,8 @@ import PcSection from './PcSection.vue' // the card with the header of the secti
 
 import { mapActions } from 'vuex'
 import { isError } from './util.js'
-import { pathExists } from './workshop-ids.js' // the Workbench is another plugin: nothing about it when it is absent
+import { coolCode } from './tool-codes.js' // heat, cool and extrusion codes: one module for every page
+import { pluginActive } from './workshop-ids.js' // the Workbench is another plugin: nothing about it when it is absent
 import { nozzleState } from './nozzle-state.js'
 import { machineFree } from './machine-free.js' // trabajo de archivo, pausado o en vivo (vue/_shared)
 import { ts } from './shared-t.js'
@@ -89,7 +90,7 @@ export default {
 		},
 		steps() {
 			const aFFF = this.destination === 'FFF';
-			const hasWorkbench = pathExists(this.$router, '/Plugins/Workbench');
+			const hasWorkbench = pluginActive(this.$store, 'workbench'); // the lists, not the route: DWC 3.6 cannot remove the route of a plugin that was stopped
 			const since = this.origin === 'FFF'; // the mode it started with (does not change when changing mode)
 			const raiseZ = {
 				kind: 'action', text: i18n.t('plugins.WorkshopPrinting.headChange.raise_z_30_mm_to_make'), button: i18n.t('plugins.WorkshopPrinting.headChange.raise_z'),
@@ -181,7 +182,7 @@ export default {
 		},
 		codesPowerOff() {
 			const tools = (this.$store.state.machine.model.tools || []).filter(t => t);
-			return tools.map(t => `M568 P${t.number} S0 R0 A0`).concat(['M140 S0']);
+			return tools.map(t => coolCode(t.number)).concat(['M140 S0']);
 		},
 		// Steps that move or change the mode (libre: 'mover' / 'settings'): never with a file job,
 		// paused or live, nor with the machine busy (motion audit,

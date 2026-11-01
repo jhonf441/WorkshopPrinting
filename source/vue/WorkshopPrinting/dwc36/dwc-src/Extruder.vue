@@ -89,6 +89,7 @@ import { roleMixin } from './role-mixin.js' // what the role may do (vue/_shared
 import { isFriendly } from './print-errors.js'
 import { NEED } from './print-sections.js'
 import { kindOfTool, loadExtruderKinds, saveExtruderKind } from './extruder-kind.js' // pellets or filament of each tool (printing.json)
+import { extrudeCodes } from './tool-codes.js' // heat, cool and extrusion codes: one module for every page
 
 export default {
 	mixins: [roleMixin],
@@ -178,10 +179,12 @@ export default {
 		async extrude(mm, f, test) {
 			const L = Math.max(1, Math.min(500, Number(mm) || 0));
 			const F = Math.max(10, Math.min(1200, Number(f) || 60));
+			const codes = extrudeCodes(this.tool && this.tool.number, [{ mm: L, feed: F }]);
+			if (!codes.length) return; // no tool: the buttons are off then (can)
 			this.busy = true;
 			this.msg = null;
 			try {
-				await this.send([`T${this.tool.number}`, 'M83', `G1 E${L} F${F}`, 'M400']);
+				await this.send(codes);
 				this.msgKind = 'success';
 				this.msg = test ? i18n.t('plugins.WorkshopPrinting.extruder.extruded_weigh_it', { mm: L }) : i18n.t('plugins.WorkshopPrinting.extruder.purge_done', { mm: L });
 				if (test) this.weightG = null;

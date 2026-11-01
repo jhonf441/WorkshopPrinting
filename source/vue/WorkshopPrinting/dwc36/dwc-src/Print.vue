@@ -214,7 +214,7 @@
 
 					<!-- ===== Operate: Materiales (preheat) ===== -->
 					<v-tab-item v-if="canOperate" value="materials">
-						<materiales :is-fff="isFff" :heaters="heaters" :tools="tools" :current-tool="tool" />
+						<materiales :is-fff="isFff" :heaters="heaters" :tools="tools" :current-tool="tool" :state="state" />
 					</v-tab-item>
 
 					<!-- ===== Operate: load / unload filament (filament tools only: hiddenIds) ===== -->
@@ -265,6 +265,7 @@ import FffJob from './FffJob.vue' // 3D job tab: temperatures, print state, job 
 import FilamentLoad from './FilamentLoad.vue' // load / unload filament (filament tools only)
 import { heaterConfigRows } from './heater-config.js' // the rows of "How it is configured"
 import { explainSensor, isSensorFault, isError, readText, MODE_FILE } from './util.js'
+import { coolCode } from './tool-codes.js' // heat, cool and extrusion codes: one module for every page
 import { pluginOf, pluginActive } from './workshop-ids.js' // Id nuevo o viejo del plugin (vue/_shared)
 import { machineFree } from './machine-free.js' // trabajo de archivo, pausado o en vivo (vue/_shared)
 import { ts } from './shared-t.js'
@@ -703,7 +704,7 @@ export default {
 			}
 		},
 		async cool() {
-			const codes = this.tools.map(t => `M568 P${t.number} A0`);
+			const codes = this.tools.map(t => coolCode(t.number));
 			if (this.heaters.some(h => h.paper === 'bed')) codes.push('M140 S0');
 			if (this.heaters.some(h => h.paper === 'camera')) codes.push('M141 S0');
 			try {

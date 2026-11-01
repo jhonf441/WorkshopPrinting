@@ -87,6 +87,7 @@ import { useRole } from './use-role.js' // what the role may do (vue/_shared)
 import { sendCode } from './send-code.js' // {code, log} wrapper over the machine store
 import { i18n } from './dwc-host.js'
 import { kindOfTool, loadExtruderKinds, saveExtruderKind } from './extruder-kind.js' // pellets or filament of each tool (printing.json)
+import { extrudeCodes } from './tool-codes.js' // heat, cool and extrusion codes: one module for every page
 
 const props = defineProps({
 	isFff: { type: Boolean, default: false },
@@ -184,10 +185,12 @@ async function send(codes) {
 async function extrude(mm, f, test) {
 	const L = Math.max(1, Math.min(500, Number(mm) || 0));
 	const F = Math.max(10, Math.min(1200, Number(f) || 60));
+	const codes = extrudeCodes(props.tool && props.tool.number, [{ mm: L, feed: F }]);
+	if (!codes.length) return; // no tool: the buttons are off then (can)
 	busy.value = true;
 	msg.value = null;
 	try {
-		await send([`T${props.tool.number}`, 'M83', `G1 E${L} F${F}`, 'M400']);
+		await send(codes);
 		msgKind.value = 'success';
 		msg.value = test ? i18n.t('plugins.WorkshopPrinting.extruder.extruded_weigh_it', { mm: L }) : i18n.t('plugins.WorkshopPrinting.extruder.purge_done', { mm: L });
 		if (test) weightG.value = null;
