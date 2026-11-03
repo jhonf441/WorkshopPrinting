@@ -8,14 +8,18 @@
 		</div>
 		<div v-show="open">
 			<canvas
-				ref="canvas" class="fff-canvas"
+				v-show="!unavailable" ref="canvas" class="fff-canvas"
 				@pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up"
 			/>
+			<div v-if="unavailable" class="wf-note fff-nocanvas">{{ t('fff.no_canvas') }}</div>
+			<div v-if="!prev && !unavailable" class="d-flex justify-center mt-2">
+				<v-btn size="small" color="primary" @click="$emit('pick')">{{ t('fff.empty_button') }}</v-btn>
+			</div>
 			<div class="d-flex align-center flex-wrap mt-1" style="gap:6px">
 				<v-btn size="x-small" variant="outlined" @click="view('iso')">{{ t('fff.view_iso') }}</v-btn>
 				<v-btn size="x-small" variant="outlined" @click="view('up')">{{ t('fff.view_top') }}</v-btn>
 				<v-btn size="x-small" variant="outlined" @click="view('front')">{{ t('fff.view_front') }}</v-btn>
-				<v-btn size="x-small" variant="outlined" @click="bed()">{{ withBed ? t('fff.bed_hide') : t('fff.bed_show') }}</v-btn>
+				<v-btn v-if="prev" size="x-small" variant="outlined" @click="bed()">{{ withBed ? t('fff.bed_hide') : t('fff.bed_show') }}</v-btn>
 			</div>
 			<div class="text-body-small text-medium-emphasis mt-1">{{ info }}</div>
 			<div class="text-body-small text-medium-emphasis">{{ t('fff.view3d_help') }}</div>
@@ -44,6 +48,9 @@ const canvas = ref(null)
 const open = ref(false)
 const withBed = ref(false)
 const info = ref('')
+const unavailable = ref(false) // no 2D drawing context: the card says so instead of a grey box
+
+const emit = defineEmits(['pick']) // the empty state asks the tab to load the chosen file
 
 // not reactive on purpose: typed arrays of up to 20000 segments, redrawn many times per second while turning
 h = fff3dInit({
@@ -53,7 +60,8 @@ h = fff3dInit({
 	time: () => ({ t: 0, simulating: false }),
 	om: () => machineModel(),
 	t: t,
-	setInfo: (s) => { info.value = s; }
+	setInfo: (s) => { info.value = s; },
+	setUnavailable: (v) => { unavailable.value = v; }
 });
 open.value = h.open;
 

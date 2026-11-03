@@ -26,7 +26,7 @@
 				<v-chip v-if="shown.follows" x-small outlined color="success">{{ t('fff.follows_print') }}</v-chip>
 				<v-btn v-else-if="followable" x-small text @click="follow()">{{ t('fff.follow_print') }}</v-btn>
 			</div>
-			<fff-3d-view ref="view" class="mt-3" :prev="prev" :path="prevPath" :layer-sel="shown.sel" :layer-mode="shown.mode" />
+			<fff-3d-view ref="view" class="mt-3" @pick="emptyPick" :prev="prev" :path="prevPath" :layer-sel="shown.sel" :layer-mode="shown.mode" />
 		</v-card>
 	</pc-section>
 </template>
@@ -126,6 +126,11 @@ export default {
 			} finally {
 				this.reading = false;
 			}
+		},
+		// the button of the empty 3D view: load the chosen file, or look for files if none is chosen yet
+		emptyPick() {
+			if (this.file) this.read();
+			else this.loadList();
 		},
 		pick(v) {
 			this.layerSel = parseInt(v, 10) || 0;

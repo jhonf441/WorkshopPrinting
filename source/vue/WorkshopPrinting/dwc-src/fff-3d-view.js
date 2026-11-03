@@ -30,11 +30,13 @@ export var TZ_FFF3D_OPEN_KEY = "workshopFff3dView"; // localStorage key of the 3
 export function fff3dInit(h) {
   h.open = false;
   try {
+    // open unless the person closed it: an empty view still draws the bed, so it is never a blank grey box
     var saved = localStorage.getItem(TZ_FFF3D_OPEN_KEY);
-    h.open = saved === "1";
+    h.open = saved !== "0";
   } catch (e) {
-    /* closed */
+    h.open = true;
   }
+  h.unavailable = false;
   h.view = { rotX: TZ_FFF3D_VIEWS.iso.rotX, rotZ: TZ_FFF3D_VIEWS.iso.rotZ };
   h.zoom = 1;
   h.withBed = false;
@@ -185,10 +187,49 @@ export function fff3dRequest(h) {
   (typeof requestAnimationFrame === "function" ? requestAnimationFrame : function (fn) { setTimeout(fn, 16); })(function () { fff3dPaint(h); });
 }
 
-function drawEmpty(h) {
+// no job (or not a 3D print, or the file is being read): the bed in perspective with its size, and a short text.
+// Only neutral greys (same as --wf-line / --wf-icon of design/family.css), so it works in the light and dark themes.
+export function fff3dDrawEmpty(h) {
   var cv = adjustCanvas(h);
   if (!cv) return;
-  cv.clearRect(0, 0, h.widthCv, h.heightCv);
+  var w = h.widthCv, hh = h.heightCv;
+  cv.clearRect(0, 0, w, hh);
+  var bed = tzFff3dBed(h.om && h.om()) || { xmin: 0, xmax: 200, ymin: 0, ymax: 200 };
+  var box = { xmin: bed.xmin, xmax: bed.xmax, ymin: bed.ymin, ymax: bed.ymax, zmin: 0, zmax: 0.01 };
+  // the empty bed follows the chosen view and the zoom too: the view buttons and the mouse must do something with no job loaded
+  var fit = tzFff3dFit(box, h.view.rotX, h.view.rotZ, w, hh, 34, h.zoom);
+  function pt(x, y) {
+    var r = tzFff3dProject({ x: x, y: y, z: 0 }, h.view.rotX, h.view.rotZ, fit.scale);
+    return [r.x + fit.ox, r.y + fit.oy];
+  }
+  function line(a, b) { cv.moveTo(a[0], a[1]); cv.lineTo(b[0], b[1]); }
+  var i, step = 50, x, y;
+  cv.lineWidth = 1;
+  if (cv.setLineDash) cv.setLineDash([]);
+  cv.beginPath();
+  cv.strokeStyle = "rgba(128, 128, 128, 0.3)";
+  for (x = Math.ceil(bed.xmin / step) * step; x < bed.xmax; x += step) if (x > bed.xmin) line(pt(x, bed.ymin), pt(x, bed.ymax));
+  for (y = Math.ceil(bed.ymin / step) * step; y < bed.ymax; y += step) if (y > bed.ymin) line(pt(bed.xmin, y), pt(bed.xmax, y));
+  cv.stroke();
+  cv.beginPath();
+  cv.strokeStyle = "rgba(128, 128, 128, 0.5)";
+  cv.lineWidth = 1.5;
+  var c = [pt(bed.xmin, bed.ymin), pt(bed.xmax, bed.ymin), pt(bed.xmax, bed.ymax), pt(bed.xmin, bed.ymax)];
+  for (i = 0; i < 5; i++) { if (i) cv.lineTo(c[i % 4][0], c[i % 4][1]); else cv.moveTo(c[0][0], c[0][1]); }
+  cv.stroke();
+  cv.fillStyle = "rgba(128, 128, 128, 0.95)";
+  cv.textAlign = "center";
+  cv.textBaseline = "middle";
+  var mid = pt((bed.xmin + bed.xmax) / 2, (bed.ymin + bed.ymax) / 2);
+  cv.font = "600 14px sans-serif";
+  var title = h.prev && h.prev() && h.prev().mode !== "FFF" ? h.t("fff.only_fff") : h.reading || h.t("fff.empty_title");
+  cv.fillText(title, w / 2, Math.min(hh - 30, mid[1]));
+  cv.font = "12px sans-serif";
+  cv.fillText(h.t("fff.bed_dims", { x: Math.round(bed.xmax - bed.xmin), y: Math.round(bed.ymax - bed.ymin) }), w / 2, hh - 12);
+}
+
+function drawEmpty(h) {
+  fff3dDrawEmpty(h);
 }
 
 function adjustCanvas(h) {
@@ -203,7 +244,17 @@ function adjustCanvas(h) {
     h.canvas.style.height = hh + "px";
     h.encKey = "";
   }
-  return h.canvas.getContext("2d");
+  var cv = h.canvas.getContext && h.canvas.getContext("2d");
+  if (!cv) {
+    // no 2D drawing context (blocked or unsupported): say it instead of leaving a grey box
+    if (!h.unavailable) {
+      h.unavailable = true;
+      h.setInfo(h.t("fff.no_canvas"));
+      if (h.setUnavailable) h.setUnavailable(true);
+    }
+    return null;
+  }
+  return cv;
 }
 
 function box3d(h) {
@@ -286,8 +337,11 @@ export function fff3dPaint(h) {
   if (!h.open || !h.el.isConnected) return;
   var cv = adjustCanvas(h);
   if (!cv) return;
+  if (!h.data) {
+    drawEmpty(h);
+    return;
+  }
   cv.clearRect(0, 0, h.widthCv, h.heightCv);
-  if (!h.data) return;
   var sec = h.data.sec;
   if (!sec.n) {
     h.setInfo(h.t("fff.nothing"));

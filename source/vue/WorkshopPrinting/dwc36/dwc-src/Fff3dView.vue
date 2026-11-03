@@ -8,14 +8,18 @@
 		</div>
 		<div v-show="open">
 			<canvas
-				ref="canvas" class="fff-canvas"
+				v-show="!unavailable" ref="canvas" class="fff-canvas"
 				@pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up"
 			/>
+			<div v-if="unavailable" class="wf-note fff-nocanvas">{{ t('fff.no_canvas') }}</div>
+			<div v-if="!prev && !unavailable" class="d-flex justify-center mt-2">
+				<v-btn small color="primary" @click="$emit('pick')">{{ t('fff.empty_button') }}</v-btn>
+			</div>
 			<div class="d-flex align-center flex-wrap mt-1" style="gap:6px">
 				<v-btn x-small outlined @click="view('iso')">{{ t('fff.view_iso') }}</v-btn>
 				<v-btn x-small outlined @click="view('up')">{{ t('fff.view_top') }}</v-btn>
 				<v-btn x-small outlined @click="view('front')">{{ t('fff.view_front') }}</v-btn>
-				<v-btn x-small outlined @click="bed()">{{ withBed ? t('fff.bed_hide') : t('fff.bed_show') }}</v-btn>
+				<v-btn v-if="prev" x-small outlined @click="bed()">{{ withBed ? t('fff.bed_hide') : t('fff.bed_show') }}</v-btn>
 			</div>
 			<div class="text-caption grey--text mt-1">{{ info }}</div>
 			<div class="text-caption grey--text">{{ t('fff.view3d_help') }}</div>
@@ -36,7 +40,7 @@ export default {
 		layerMode: { type: String, default: 'until' } // "until" | "single"
 	},
 	data() {
-		return { open: false, withBed: false, info: '' };
+		return { open: false, withBed: false, info: '', unavailable: false };
 	},
 	created() {
 		// not reactive on purpose: typed arrays of up to 20000 segments, redrawn many times per second while turning
@@ -47,7 +51,8 @@ export default {
 			time: () => ({ t: 0, simulating: false }),
 			om: () => this.$store.state.machine.model,
 			t: this.t,
-			setInfo: (s) => { this.info = s; }
+			setInfo: (s) => { this.info = s; },
+			setUnavailable: (v) => { this.unavailable = v; }
 		});
 		this.open = this.h.open;
 	},

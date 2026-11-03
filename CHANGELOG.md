@@ -1,5 +1,13 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.15.19 -- 2026-11-02
+
+- 3D view: view buttons and mouse work with no job
+
+## 2.15.18 -- 2026-11-01
+
+- Printing: the 3D view shows the bed and a clear empty state instead of a grey box, and says so when the canvas is not available
+
 ## 2.15.17 -- 2026-10-31
 
 - Lot 2: one relay client, camera client folder, single gallery, one presence helper, shared resources released at the last plugin, flash for the operator
