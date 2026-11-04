@@ -1,5 +1,9 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.15.20 -- 2026-11-03
+
+- Charts: the unit label no longer overlaps the top value of the Y axis
+
 ## 2.15.19 -- 2026-11-02
 
 - 3D view: view buttons and mouse work with no job
