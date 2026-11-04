@@ -34,6 +34,8 @@ export default {
 		},
 		text() {
 			if (!this.error) return ''
+			// a missing sign-in is said once, by the sign-in chip of the page bar (and the session card): no second notice here
+			if (this.kind === 'login') return ''
 			if (typeof this.error === 'string') return this.error
 			return errorText(this.error, ts)
 		},

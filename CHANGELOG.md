@@ -1,5 +1,13 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.15.23 -- 2026-11-04
+
+- ErrorNotice: no second sign-in notice (the page bar chip says it)
+
+## 2.15.22 -- 2026-11-04
+
+- Start-up card locked without a session; shared help tip; session chip class
+
 ## 2.15.21 -- 2026-11-03
 
 - Session: standard login notice (shared ErrorNotice)

@@ -31,6 +31,8 @@ const emit = defineEmits(['retry'])
 const kind = computed(() => errorKind(props.error))
 const text = computed(() => {
 	if (!props.error) return ''
+	// a missing sign-in is said once, by the sign-in chip of the page bar (and the session card): no second notice here
+	if (kind.value === 'login') return ''
 	if (typeof props.error === 'string') return props.error
 	return errorText(props.error, ts)
 })
