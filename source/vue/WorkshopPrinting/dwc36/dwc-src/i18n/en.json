@@ -645,7 +645,6 @@
 		"spec_vmax": "Max",
 		"spec_acc": "Acceleration",
 		"spec_jerk": "Jerk",
-		"coupled_pid_note": "In a pellet barrel the zones are coupled to each other: tuning only one gives a false model. They are all tuned, one at a time and with the neighbours hot.",
 		"target_now": "target {t} °C",
 		"tune_pid_tip": "Auto-tune of this heater (M303): goes to the PID tab with this zone picked",
 		"tune_flow": "Calibrate screw flow",

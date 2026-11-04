@@ -645,7 +645,6 @@
 		"spec_vmax": "Máx",
 		"spec_acc": "Aceleración",
 		"spec_jerk": "Jerk",
-		"coupled_pid_note": "En un tubo de pellet las zonas están acopladas entre sí: calibrar una sola da un modelo falso. Se calibran todas, una por una y con las vecinas calientes.",
 		"target_now": "objetivo {t} °C",
 		"tune_pid_tip": "Autoajuste de este calentador (M303): lleva a la pestaña PID con esta zona elegida",
 		"tune_flow": "Calibrar flujo del tornillo",

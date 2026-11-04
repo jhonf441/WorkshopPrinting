@@ -67,10 +67,7 @@
 <v-icon class="pc-ico" small>mdi-tune</v-icon>
 <h3>{{ $t('plugins.WorkshopPrinting.pellet.coupled_pid_title') }}</h3>
 </div>
-						<details class="wf-more">
-							<summary>{{ $t('plugins.WorkshopPrinting.common.how_it_works') }}</summary>
-							<p>{{ $t('plugins.WorkshopPrinting.pellet.coupled_pid_note') }}</p>
-						</details>
+						<!-- the explanation of the coupled zones lives in the fold of pid.vue (one fold, not two) -->
 						<pid v-if="section === 'zones'" zones-only :is-fff="isFff" :heaters="heaters" :tool="currentTool" :state="state" />
 					</div>
 					<div class="wf-sub">

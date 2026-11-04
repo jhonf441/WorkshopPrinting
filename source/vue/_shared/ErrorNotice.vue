@@ -1,5 +1,5 @@
 <template>
-	<v-alert v-if="text" density="compact" variant="outlined" :type="kind === 'role' ? 'warning' : 'error'" class="mb-2 error-notice" role="alert">
+	<v-alert v-if="text" density="compact" variant="outlined" :type="kind === 'login' ? 'info' : kind === 'role' ? 'warning' : 'error'" class="mb-2 error-notice" role="alert">
 		<div class="d-flex align-center flex-wrap" style="gap:8px">
 			<span class="error-notice-text">{{ text }}</span>
 			<v-spacer />
