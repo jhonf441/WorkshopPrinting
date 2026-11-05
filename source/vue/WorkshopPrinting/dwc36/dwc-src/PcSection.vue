@@ -5,6 +5,7 @@
 			<v-icon class="pc-ico" small>{{ icon }}</v-icon>
 			<h3>{{ title }}</h3>
 			<p v-if="lead" class="wf-lead">{{ lead }}</p>
+			<slot name="help" />
 		</div>
 		<slot />
 	</section>

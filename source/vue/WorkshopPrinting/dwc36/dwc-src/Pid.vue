@@ -55,13 +55,12 @@
 			     with the neighbours hot. Done by the service (API pid.start): it continues even if the page is closed. -->
 			<template v-if="toolsZones.length">
 				<v-divider v-if="!zonesOnly" class="my-4" />
-				<div v-if="!zonesOnly" class="text-subtitle-1 font-weight-medium">{{ $t('plugins.WorkshopPrinting.pid.all_zones_automatic') }}</div>
-				<details class="wf-more mt-1">
-					<summary>{{ $t('plugins.WorkshopPrinting.common.how_it_works') }}</summary>
-					<p>
-					{{ $t('plugins.WorkshopPrinting.pid.in_a_barrel_with_several_zones') }} <b>{{ $t('plugins.WorkshopPrinting.pid.coupled') }}</b>{{ $t('plugins.WorkshopPrinting.pid.if_you_tune_a_zone_with') }}
-					</p>
-				</details>
+				<div class="d-flex align-center" style="gap:4px">
+					<div v-if="!zonesOnly" class="text-subtitle-1 font-weight-medium">{{ $t('plugins.WorkshopPrinting.pid.all_zones_automatic') }}</div>
+					<help-tip :title="$t('plugins.WorkshopPrinting.pid.all_zones_automatic')">
+						{{ $t('plugins.WorkshopPrinting.pid.in_a_barrel_with_several_zones') }} <b>{{ $t('plugins.WorkshopPrinting.pid.coupled') }}</b>{{ $t('plugins.WorkshopPrinting.pid.if_you_tune_a_zone_with') }}
+					</help-tip>
+				</div>
 				<v-row v-if="toolsZones.length > 1" dense class="mt-2">
 					<v-col cols="12">
 						<v-btn-toggle v-model="toolZ" mandatory dense color="primary">
@@ -126,6 +125,7 @@
 
 <script>
 import i18n from '../../i18n'
+import HelpTip from './HelpTip.vue' // vue/_shared36
 import PcSection from './PcSection.vue' // the card with the header of the section (printing-design.css)
 
 'use strict'
@@ -148,7 +148,7 @@ import { NEED } from './print-sections.js'
 
 export default {
 	mixins: [roleMixin],
-	components: { PidDetail: PidDetail, PidTuneChart, ErrorNotice, PcSection },
+	components: { PidDetail: PidDetail, PidTuneChart, ErrorNotice, PcSection, HelpTip },
 	props: {
 		isFff: { type: Boolean, default: false },
 		zonesOnly: { type: Boolean, default: false }, // only the all-zones tuning (mounted inside the pellet setup)

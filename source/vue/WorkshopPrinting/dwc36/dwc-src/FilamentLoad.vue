@@ -5,10 +5,14 @@
 	     of filament-load.js. The extruder never moves below the cold extrusion temperature of the board. Operator's (NEED.operate).
 	     ONE main button in the card (DESIGN.md: Load, filled); Heat, Cool down and Unload are secondary (gray outline; armed = filled amber). -->
 	<pc-section icon="mdi-tray-arrow-down" :title="$t('plugins.WorkshopPrinting.printing.filament_load')">
-		<details class="wf-more">
-			<summary>{{ $t('plugins.WorkshopPrinting.common.how_it_works') }}</summary>
-			<p>{{ t('filament.help_what') }} {{ t('filament.help_why') }} {{ t('filament.help_missing') }} {{ t('filament.help_how') }}</p>
-		</details>
+		<template v-slot:help>
+			<help-tip :title="$t('plugins.WorkshopPrinting.printing.filament_load')">
+				<p class="mb-1">{{ t('filament.help_what') }}</p>
+				<p class="mb-1">{{ t('filament.help_why') }}</p>
+				<p class="mb-1">{{ t('filament.help_missing') }}</p>
+				<p class="mb-0">{{ t('filament.help_how') }}</p>
+			</help-tip>
+		</template>
 		<v-alert v-if="!isFff" dense text type="info" class="mt-3 mb-0">{{ t('filament.only_fff') }}</v-alert>
 
 		<!-- 1. the material and the temperature: double tap (it heats, DESIGN.md 5 level 2) -->
@@ -64,6 +68,7 @@
 import PcSection from './PcSection.vue' // the card with the header of the section (printing-design.css)
 'use strict'
 
+import HelpTip from './HelpTip.vue' // vue/_shared36
 import { mapActions } from 'vuex'
 import { CFG_FILE, MATERIALS_DEF, readJson, listItemsFolder, isError } from './util.js'
 import { FILAMENTS_DIR, LOAD_DEFAULTS, LOAD_LIMITS, heatBlock, heatState, loadTemp, loadedFilament, macroState, moveBlock, moveCodes, normalize, usesMacro } from './filament-load.js'
@@ -77,7 +82,7 @@ import { roleMixin } from './role-mixin.js' // what the role may do (vue/_shared
 
 export default {
 	mixins: [roleMixin],
-	components: { PcSection },
+	components: { PcSection, HelpTip },
 	props: {
 		isFff: { type: Boolean, default: false },
 		tool: { type: Object, default: null },

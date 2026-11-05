@@ -7,11 +7,13 @@
 			<v-icon small>mdi-play-pause</v-icon>
 			<span class="text-subtitle-1">{{ t('jobControl.title') }}</span>
 			<v-chip small outlined>{{ stateText }}</v-chip>
+			<help-tip :title="t('jobControl.title')">
+				<p class="mb-1">{{ t('jobControl.help_what') }}</p>
+				<p class="mb-1">{{ t('jobControl.help_why') }}</p>
+				<p class="mb-1">{{ t('jobControl.help_missing') }}</p>
+				<p class="mb-0">{{ t('jobControl.help_how') }}</p>
+			</help-tip>
 		</div>
-		<details class="wf-more mt-1">
-			<summary>{{ $t('plugins.WorkshopPrinting.common.how_it_works') }}</summary>
-			<p>{{ t('jobControl.help_what') }} {{ t('jobControl.help_why') }} {{ t('jobControl.help_missing') }} {{ t('jobControl.help_how') }}</p>
-		</details>
 		<v-alert v-if="!isFff" dense text type="info" class="mt-2 mb-0">{{ t('jobControl.only_fff') }}</v-alert>
 
 		<!-- pause / resume / cancel: cancel ends the job for good, so it takes two taps (DESIGN.md 5: danger = red outline, armed = filled) -->
@@ -79,6 +81,7 @@
 <script>
 'use strict'
 
+import HelpTip from './HelpTip.vue' // vue/_shared36
 import { mapActions } from 'vuex'
 import { ARM_MS, BABY_LIMIT, BABY_STEPS, FLOW_LIMITS, SPEED_LIMITS, armedPress, babyResetCode, babyStepCode, babyStepNow, babyStepText, correctionsOpen, factorsNow, flowCode, jobRunning, leftoverCorrections, speedCode } from './job-control.js'
 import { jobButtons, jobCode } from './job-rules.js' // the buttons by state and their codes: one rule for every page (vue/_shared)
@@ -90,6 +93,7 @@ import { pluginActive } from './workshop-ids.js' // vue/_shared36
 import { roleMixin } from './role-mixin.js' // what the role may do (vue/_shared)
 
 export default {
+	components: { HelpTip },
 	mixins: [roleMixin],
 	props: {
 		isFff: { type: Boolean, default: false }
