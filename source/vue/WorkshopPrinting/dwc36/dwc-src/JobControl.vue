@@ -18,13 +18,13 @@
 		<div class="text-subtitle-2 mt-3">{{ t('jobControl.job_title') }}</div>
 		<div class="text-caption grey--text">{{ t('jobControl.job_help') }}</div>
 		<div class="d-flex align-center flex-wrap mt-1" style="gap:8px">
-			<v-btn small color="primary" :disabled="!buttons.pause || !canOperate || sending" @click="job('pause')">
+			<v-btn small color="primary" :disabled="!buttons.pause || !canOperate || sending" :title="lockOperate" @click="job('pause')">
 				<v-icon small left>mdi-pause</v-icon>{{ t('jobControl.pause') }}
 			</v-btn>
-			<v-btn small color="primary" :disabled="!buttons.resume || !canOperate || sending" @click="job('resume')">
+			<v-btn small color="primary" :disabled="!buttons.resume || !canOperate || sending" :title="lockOperate" @click="job('resume')">
 				<v-icon small left>mdi-play</v-icon>{{ t('jobControl.resume') }}
 			</v-btn>
-			<v-btn small color="error" :outlined="armed !== 'cancel'" :disabled="!buttons.cancel || !canOperate || sending" @click="arm('cancel', () => job('cancel'))">
+			<v-btn small color="error" :outlined="armed !== 'cancel'" :disabled="!buttons.cancel || !canOperate || sending" :title="lockOperate" @click="arm('cancel', () => job('cancel'))">
 				<v-icon small left>mdi-stop</v-icon>{{ armed === 'cancel' ? t('jobControl.cancel_again') : t('jobControl.cancel') }}
 			</v-btn>
 			<span v-if="jobReason" class="text-caption grey--text">{{ jobReason }}</span>
@@ -39,12 +39,13 @@
 		     up to the cap at once); the sum is capped by job-control.js -->
 		<div class="text-subtitle-2 mt-4">{{ t('jobControl.baby_title') }}</div>
 		<div class="text-caption grey--text">{{ t('jobControl.baby_help') }}</div>
+		<div v-if="!canOperate" class="text-caption lock-reason">{{ lockOperate }}</div>
 		<div class="d-flex align-center flex-wrap mt-1" style="gap:8px">
-			<v-btn v-for="s in steps" :key="s" small :outlined="armed !== 'baby:' + s" :color="armed === 'baby:' + s ? 'amber darken-3' : undefined" :disabled="!isFff || !correct || !babyStepCode(s, babyNow) || !canOperate || sending" @click="arm('baby:' + s, () => baby(s))">
+			<v-btn v-for="s in steps" :key="s" small :outlined="armed !== 'baby:' + s" :color="armed === 'baby:' + s ? 'amber darken-3' : undefined" :disabled="!isFff || !correct || !babyStepCode(s, babyNow) || !canOperate || sending" :title="lockOperate" @click="arm('baby:' + s, () => baby(s))">
 				{{ (s > 0 ? '+' : '') + s.toFixed(2) }}
 			</v-btn>
 			<span class="text-body-2">{{ t('jobControl.baby_now') }} <b class="mono">{{ babyText }}</b></span>
-			<v-btn small :text="armed !== 'baby0'" :color="armed === 'baby0' ? 'amber darken-3' : undefined" :disabled="!isFff || babyNow === null || Math.abs(babyNow) < 0.005 || !canOperate || sending" @click="arm('baby0', babyReset)">
+			<v-btn small :text="armed !== 'baby0'" :color="armed === 'baby0' ? 'amber darken-3' : undefined" :disabled="!isFff || babyNow === null || Math.abs(babyNow) < 0.005 || !canOperate || sending" :title="lockOperate" @click="arm('baby0', babyReset)">
 				{{ armed === 'baby0' ? t('jobControl.baby_reset_again') : t('jobControl.baby_reset') }}
 			</v-btn>
 		</div>
@@ -54,19 +55,20 @@
 		<!-- speed and flow factors: percentages over what the file asks; "now" is what the board reports -->
 		<div class="text-subtitle-2 mt-4">{{ t('jobControl.factors_title') }}</div>
 		<div class="text-caption grey--text">{{ t('jobControl.speed_help') }}</div>
+		<div v-if="!canOperate" class="text-caption lock-reason">{{ lockOperate }}</div>
 		<div class="d-flex align-center flex-wrap mt-1" style="gap:8px">
 			<span class="text-body-2">{{ t('jobControl.speed') }}</span>
-			<input v-model.number="speedNew" type="number" step="5" :min="speedLimits.min" :max="speedLimits.max" class="field" :disabled="!canOperate" /> %
-			<v-btn small outlined :disabled="!isFff || !correct || !speedCode(speedNew) || !canOperate || sending" @click="applySpeed(speedNew)">{{ t('jobControl.apply') }}</v-btn>
-			<v-btn small text :disabled="!isFff || factors.speed === 100 || !canOperate || sending" @click="applySpeed(100)">100 %</v-btn>
+			<input v-model.number="speedNew" type="number" step="5" :min="speedLimits.min" :max="speedLimits.max" class="field" :disabled="!canOperate" :title="lockOperate" /> %
+			<v-btn small outlined :disabled="!isFff || !correct || !speedCode(speedNew) || !canOperate || sending" :title="lockOperate" @click="applySpeed(speedNew)">{{ t('jobControl.apply') }}</v-btn>
+			<v-btn small text :disabled="!isFff || factors.speed === 100 || !canOperate || sending" :title="lockOperate" @click="applySpeed(100)">100 %</v-btn>
 			<span class="text-caption grey--text">{{ t('jobControl.now_pct', { n: factors.speed === null ? '--' : factors.speed }) }}</span>
 		</div>
 		<div class="text-caption grey--text mt-2">{{ t('jobControl.flow_help') }}</div>
 		<div v-for="f in factors.flows" :key="f.extruder" class="d-flex align-center flex-wrap mt-1" style="gap:8px">
 			<span class="text-body-2">{{ t('jobControl.flow_e', { n: f.extruder }) }}</span>
-			<input v-model.number="flowNew[f.extruder]" type="number" step="1" :min="flowLimits.min" :max="flowLimits.max" class="field" :disabled="!canOperate" /> %
-			<v-btn small outlined :disabled="!isFff || !correct || !flowCode(flowNew[f.extruder], f.extruder) || !canOperate || sending" @click="applyFlow(f.extruder, flowNew[f.extruder])">{{ t('jobControl.apply') }}</v-btn>
-			<v-btn small text :disabled="!isFff || f.percent === 100 || !canOperate || sending" @click="applyFlow(f.extruder, 100)">100 %</v-btn>
+			<input v-model.number="flowNew[f.extruder]" type="number" step="1" :min="flowLimits.min" :max="flowLimits.max" class="field" :disabled="!canOperate" :title="lockOperate" /> %
+			<v-btn small outlined :disabled="!isFff || !correct || !flowCode(flowNew[f.extruder], f.extruder) || !canOperate || sending" :title="lockOperate" @click="applyFlow(f.extruder, flowNew[f.extruder])">{{ t('jobControl.apply') }}</v-btn>
+			<v-btn small text :disabled="!isFff || f.percent === 100 || !canOperate || sending" :title="lockOperate" @click="applyFlow(f.extruder, 100)">100 %</v-btn>
 			<span class="text-caption grey--text">{{ t('jobControl.now_pct', { n: f.percent === null ? '--' : f.percent }) }}</span>
 		</div>
 		<div v-if="!factors.flows.length" class="text-caption grey--text mt-1">{{ t('jobControl.no_extruder') }}</div>
@@ -104,6 +106,9 @@ export default {
 		canOperate() {
 			return this.atLeast(NEED.operate);
 		},
+		lockOperate() {
+			return this.lockText(NEED.operate);
+		},
 		model() {
 			return this.$store.state.machine.model;
 		},
@@ -127,7 +132,7 @@ export default {
 		},
 		// why the three buttons are grey (DESIGN.md 5: the reason written)
 		jobReason() {
-			if (!this.canOperate) return this.t('jobControl.needs_operator');
+			if (!this.canOperate) return this.lockOperate;
 			if (this.live) return this.t(pluginActive(this.$store, 'jog') ? 'jobControl.live_job' : 'jobControl.live_job_no_jog'); // the Jog is another plugin: nothing about it when it is absent
 			if (!jobRunning(this.status)) return this.t('jobControl.no_job');
 			return '';

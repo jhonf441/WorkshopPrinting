@@ -297,7 +297,7 @@ export default {
 <style scoped>
 .step { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(128, 128, 128, 0.15); opacity: 0.6; }
 .step.current, .step.done { opacity: 1; }
-.step-num { flex: none; width: 24px; height: 24px; border-radius: 50%; background: #607d8b; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+.step-num { flex: none; width: 24px; height: 24px; border-radius: 50%; background: #546e7a; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
 .step.current .step-num { background: #1976d2; }
 .step.done .step-num { background: #2e7d32; }
 .step-body { flex: 1; min-width: 0; }

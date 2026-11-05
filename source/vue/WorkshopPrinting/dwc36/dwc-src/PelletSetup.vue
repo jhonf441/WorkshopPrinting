@@ -162,7 +162,7 @@
 						<v-card-actions>
 							<v-spacer />
 							<v-btn text @click="ask = null">{{ $t('plugins.WorkshopPrinting.pellet.reorder_cancel') }}</v-btn>
-							<v-btn color="warning" :loading="writing" @click="confirmReorder()">{{ $t('plugins.WorkshopPrinting.pellet.reorder_do') }}</v-btn>
+							<v-btn color="warning" class="black--text" :loading="writing" @click="confirmReorder()">{{ $t('plugins.WorkshopPrinting.pellet.reorder_do') }}</v-btn>
 						</v-card-actions>
 					</v-card>
 				</v-dialog>

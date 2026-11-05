@@ -42,6 +42,7 @@
 				<v-btn v-if="canEdit" x-small :color="changed ? 'primary' : ''" :disabled="!changed" :loading="saving" @click="save()">{{ $t('plugins.WorkshopPrinting.common.save') }}</v-btn>
 				<v-btn v-if="canEdit" x-small text @click="restore()">{{ $t('plugins.WorkshopPrinting.materials.factory_values') }}</v-btn>
 				<span v-if="!isFff" class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.materials.preheat_only_in_fff_mode') }}</span>
+				<span v-if="!canEdit" class="text-caption grey--text lock-reason"><v-icon x-small left>mdi-lock-outline</v-icon>{{ lockText(needEdit) }}</span>
 			</div>
 			<div class="text-caption grey--text mt-1">
 				{{ $t('plugins.WorkshopPrinting.materials.machine_limits', { nozzle: nozzle ? nozzle.max : '--', bed: bed ? bed.max : '--' }) }}<template v-if="camera">, {{ $t('plugins.WorkshopPrinting.materials.chamber_c_value', { c: camera.max }) }}</template>. {{ $t('plugins.WorkshopPrinting.materials.red_out_of_limit') }}
@@ -89,6 +90,9 @@ export default {
 		},
 		canEdit() {
 			return this.atLeast(NEED.configure);
+		},
+		needEdit() {
+			return NEED.configure;
 		},
 		selectedTool() {
 			return this.tools.find(t => t.number === this.toolSel) || this.currentTool;

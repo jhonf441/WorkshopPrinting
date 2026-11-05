@@ -1,5 +1,13 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.15.25 -- 2026-11-04
+
+- Rebuilt with the readable text colours, the shared start-up card and the session notice
+
+## 2.15.24 -- 2026-11-04
+
+- SideTabs: rebuilt with the side bar fix (the v-for template was missing)
+
 ## 2.15.23 -- 2026-11-04
 
 - ErrorNotice: no second sign-in notice (the page bar chip says it)

@@ -40,8 +40,12 @@ import FffJobStatus from './FffJobStatus.vue'
 import JobControl from './JobControl.vue' // pause / resume / cancel, Z baby-stepping, speed and flow factors
 import Fff3dView from './Fff3dView.vue'
 import { fffListGcodes, fffJobFile, fffLayerShown, fffPrinting } from './fff-job.js'
+import { roleMixin } from './role-mixin.js' // what the role may do (vue/_shared)
+import { isRefusal } from './session-note.js'
+import { refusalNow } from './session-now.js' // a refusal told by its cause
 
 export default {
+	mixins: [roleMixin],
 	components: { FffJobStatus, JobControl, Fff3dView, PcSection },
 	props: {
 		isFff: { type: Boolean, default: false }
@@ -89,6 +93,11 @@ export default {
 		t(key, params) {
 			return this.$t('plugins.WorkshopPrinting.' + key, params);
 		},
+		// the person signed in / out or the role changed: the list is read again, and a file that was refused is read again
+		onSessionChange() {
+			this.loadList();
+			if (this.file && this.msg && !this.prev) this.read();
+		},
 		loadList() {
 			if (this.loadingList) return;
 			this.loadingList = true;
@@ -122,7 +131,9 @@ export default {
 			} catch (e) {
 				this.prev = null;
 				this.prevPath = '';
-				this.msg = this.t('fff.could_not_read', { e: (e && e.message) || e });
+				// a refusal says its cause (sign in / role), not the raw message of the service
+				this.msg = isRefusal(e) ? refusalNow(e, 'operator') : this.t('fff.could_not_read', { e: (e && e.message) || e });
+				if (isRefusal(e)) this.msgKind = 'warning';
 			} finally {
 				this.reading = false;
 			}

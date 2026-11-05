@@ -131,7 +131,7 @@ import PcSection from './PcSection.vue' // the card with the header of the secti
 'use strict'
 
 import { mapActions } from 'vuex'
-import { api, apiText } from './workshop-api.js'
+import { api } from './workshop-api.js'
 import { MODE_FILE, CFG_FILE, MATERIALS_DEF, readText, writeText, readJson, changeLineMode, isError, markStartup, note } from './util.js'
 import PidDetail from './PidDetail.vue'
 import PidTuneChart from './PidTuneChart.vue'
@@ -141,6 +141,8 @@ import { rememberForNozzle } from './nozzle-store.js'
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared
 import { roleMixin } from './role-mixin.js' // what the role may do (vue/_shared)
 import { isFriendly } from './print-errors.js'
+import { isRefusal } from './session-note.js'
+import { refusalNow } from './session-now.js' // a refusal told by its cause
 import { NEED } from './print-sections.js'
 
 
@@ -329,6 +331,14 @@ export default {
 		clearTimeout(this.probing);
 	},
 	methods: {
+		// the person signed in / out or the role changed: the tuning state and the model are read again
+		onSessionChange() {
+			this.failure = null;
+			this.msg = null;
+			this.readTrace();
+			this.readStateZ();
+			this.readModel();
+		},
 		async readTrace() {
 			if (this.destroyed) return;
 			try {
@@ -350,6 +360,13 @@ export default {
 		...mapActions('machine', ['sendCode']),
 		// a failed step: a missing role / PIN / service is shown with ErrorNotice (what role is needed, the PIN dialog); the rest keeps its text
 		fail(e, text) {
+			// signed out / low role: the sentence of the cause (sign in, or which role is needed), not the raw refusal
+			if (isRefusal(e)) {
+				this.failure = null;
+				this.msgKind = 'warning';
+				this.msg = refusalNow(e, NEED.configure);
+				return;
+			}
 			if (isFriendly(e)) {
 				this.failure = e;
 				this.msg = null;
@@ -470,7 +487,9 @@ export default {
 		},
 		// API of WorkshopService pid.<op>: the JSON text of the service, or throws
 		async m9003(op, args) {
-			const r = String((await apiText('pid.' + op, args || {})) || '').trim();
+			// api() (not apiText) so a refusal keeps its code (403 / 401) and the page can say the cause
+			const answer = await api('pid.' + op, args || {});
+			const r = String((typeof answer === 'string' ? answer : JSON.stringify(answer)) || '').trim();
 			if (!r.startsWith('{') && isError(r)) throw new Error(r.replace(/^Error:\s*/i, ''));
 			return r;
 		},

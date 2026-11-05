@@ -278,7 +278,7 @@ export default {
 	width: 24px;
 	height: 24px;
 	border-radius: 50%;
-	background: #607d8b;
+	background: #546e7a;
 	color: #fff;
 	display: flex;
 	align-items: center;
