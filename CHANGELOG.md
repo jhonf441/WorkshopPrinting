@@ -1,5 +1,9 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.15.27 -- 2026-11-05
+
+- Darker primary button hover, Workbench save label, generic RS485 notes
+
 ## 2.15.26 -- 2026-11-05
 
 - Sign out no longer reopens the PIN dialog

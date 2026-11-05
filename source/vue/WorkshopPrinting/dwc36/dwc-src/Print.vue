@@ -718,7 +718,8 @@ export default {
 				const r = await this.sendCode({ code: hasMacro ? 'M98 P"0:/macros/mode/selectfff.g"' : 'M451', log: true });
 				if (/error/i.test(r || '')) throw new Error(r);
 				if (!hasMacro && this.model.global && typeof this.model.global.has === 'function' && this.model.global.has('selectedMode')) await this.sendCode({ code: 'set global.selectedMode = "FFF"', log: true });
-				await new Promise(done => setTimeout(done, 1500));
+				// the board needs a moment to apply M451 and the model a moment to show it: wait for it up to 10 s instead of a fixed 1.5 s
+				for (let waited = 0; !this.isFff && waited < 10000; waited += 500) await new Promise(done => setTimeout(done, 500));
 				if (!this.isFff) throw new Error(i18n.t('plugins.WorkshopPrinting.printing.mode_not_changed', { mode: this.mode || '?' }));
 				this.msgKind = 'success';
 				this.msg = i18n.t('plugins.WorkshopPrinting.printing.fff_mode_loaded_check_in_status');
