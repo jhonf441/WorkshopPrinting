@@ -325,7 +325,6 @@
 		"group_operate": "Operar",
 		"group_configure": "Configurar",
 		"pellet_panel": "Panel del pellet",
-		"ask_technician_fff": "Pide a un tecnico que cambie a FFF: cambiar de modo es de un tecnico o del administrador.",
 		"cold_needs_technician": "Permitir la extrusion en frio lo hace un tecnico o el administrador. Volver a bloquearla puede hacerlo un operador.",
 		"heaters_off_the_automatic_fans_keep": "Calentadores apagados. Los ventiladores automáticos siguen hasta que las boquillas se enfríen.",
 		"fff_mode_loaded_check_in_status": "Modo FFF cargado. Revisa en Estado que los calentadores y sensores lean bien antes de calentar.",
@@ -1091,7 +1090,6 @@
 		"service_not_running": "no está en marcha (Ajustes > Complementos)",
 		"service_sign_in": "hace falta iniciar sesión para comprobarlo",
 		"service_role": "tu rol no puede comprobarlo: hace falta técnico",
-		"locked": "Sin sesión: inicia sesión para crear o cambiar archivos desde aquí.",
 		"what_is": "¿Qué es esto?",
 		"what_is_hide": "Ocultar la explicación",
 		"what_label": "Qué es",
@@ -1237,8 +1235,7 @@
 		"no_layers": "Este archivo no tiene extrusión (parece de láser o CNC): no hay capas de impresión 3D que mostrar. Elige un archivo de impresión 3D."
 	},
 	"errors": {
-		"need_technician": "Guardar {file} necesita el rol de tecnico o administrador. Pide ayuda a un tecnico.",
-		"need_login": "Identificate con tu nombre y PIN para guardar {file}."
+		"save_action": "Guardar {file}"
 	},
 	"nozzle": {
 		"sec_nozzle": "Boquilla",

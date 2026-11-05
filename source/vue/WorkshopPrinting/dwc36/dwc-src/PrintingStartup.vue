@@ -2,12 +2,11 @@
 	<div>
 	<pc-section icon="mdi-clipboard-check-outline" :title="$t('plugins.WorkshopPrinting.printing.printer_tests')">
 		<v-alert v-if="startupPending > 0" dense text type="warning" class="mb-2">{{ $t('plugins.WorkshopPrinting.commissioning.start_chip_first') }}</v-alert>
-		<details class="wf-more">
-			<summary>{{ $t('plugins.WorkshopPrinting.common.how_it_works') }}</summary>
+		<help-guide :title="$t('plugins.WorkshopPrinting.common.how_it_works')">
 			<p>
 			{{ $t('plugins.WorkshopPrinting.commissioning.for_the_first_time_everything_is') }}
 			</p>
-		</details>
+		</help-guide>
 		<v-alert v-if="!isFff" dense text type="info" class="mt-3 mb-0">
 			{{ $t('plugins.WorkshopPrinting.commissioning.first_switch_the_machine_to_fff') }}
 			<v-btn x-small text color="primary" @click="$emit('go', 'head')">{{ $t('plugins.WorkshopPrinting.commissioning.go_to_head_change') }}</v-btn>
@@ -176,6 +175,7 @@
 <script>
 import i18n from '../../i18n'
 import PcSection from './PcSection.vue' // the card with the header of the section (printing-design.css)
+import HelpGuide from './HelpGuide.vue' // vue/_shared36
 
 'use strict'
 
@@ -192,7 +192,7 @@ const TEST_S = 120;
 // opens one at a time with ONE main button (test, confirm or go to the tab
 // where it is done). The ids of cfg.startup do not change (Pid and Extruder mark them).
 export default {
-	components: { PcSection },
+	components: { HelpGuide, PcSection },
 	props: {
 		startupPending: { type: Number, default: 0 },
 		isFff: { type: Boolean, default: false },

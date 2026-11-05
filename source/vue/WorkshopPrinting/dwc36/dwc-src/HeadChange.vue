@@ -1,11 +1,10 @@
 <template>
 	<pc-section icon="mdi-swap-horizontal" :title="$t('plugins.WorkshopPrinting.printing.head_change')">
-		<details class="wf-more">
-			<summary>{{ $t('plugins.WorkshopPrinting.common.how_it_works') }}</summary>
+		<help-guide :title="$t('plugins.WorkshopPrinting.common.how_it_works')">
 			<p>
 			{{ $t('plugins.WorkshopPrinting.headChange.wizard_to_change_the_head_steps') }}
 			</p>
-		</details>
+		</help-guide>
 
 		<div class="d-flex flex-wrap align-center mt-3" style="gap:8px">
 			<span class="text-body-2">{{ $t('plugins.WorkshopPrinting.headChange.switch_from') }} <b>{{ nameMode(origin) || '...' }}</b> {{ $t('plugins.WorkshopPrinting.headChange.to') }}</span>
@@ -52,6 +51,7 @@
 <script>
 import i18n from '../../i18n'
 import PcSection from './PcSection.vue' // the card with the header of the section (printing-design.css)
+import HelpGuide from './HelpGuide.vue' // vue/_shared36
 
 'use strict'
 
@@ -68,7 +68,7 @@ const MACRO_MODE = { FFF: '0:/macros/mode/selectfff.g', Laser: '0:/macros/mode/s
 const cold = 50; // °C: below it the nozzle can be removed
 
 export default {
-	components: { PcSection },
+	components: { HelpGuide, PcSection },
 	props: {
 		mode: { type: String, default: '' },
 		state: { type: String, default: '' },

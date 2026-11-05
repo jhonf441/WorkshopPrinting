@@ -7,6 +7,8 @@
 			<span v-if="currentTool" class="wf-pill">T{{ currentTool.number }}</span>
 			<p class="wf-lead">{{ $t('plugins.WorkshopPrinting.pellet.setup_intro') }}</p>
 		</div>
+		<!-- ONE reason for every button of the setup that this person cannot press (writing the configuration is a technician's) -->
+		<lock-reason :min="needConfig" class="mt-2" />
 		<v-alert v-if="!isFff" dense text type="info" class="mt-3 mb-0">{{ $t('plugins.WorkshopPrinting.common.the_extruder_only_exists_in_fff') }}</v-alert>
 		<template v-else>
 			<div v-if="!currentTool" class="text-body-2 grey--text mt-3">{{ $t('plugins.WorkshopPrinting.pellet.no_tool_defined') }}</div>
@@ -185,6 +187,7 @@ import PelletFanAdd from './PelletFanAdd.vue'
 import PelletMotor from './PelletMotor.vue'
 import NozzleChange from './NozzleChange.vue'
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared
+import LockReason from './LockReason.vue' // vue/_shared36
 import { roleMixin } from './role-mixin.js' // what the role sees and may do (vue/_shared)
 import { NEED } from './print-sections.js'
 import { isFriendly } from './print-errors.js'
@@ -193,7 +196,9 @@ import { COLORS, zoneState, zoneLabel, moveItem, reorderM563 } from './pellet-hm
 
 export default {
 	mixins: [roleMixin],
-	components: { ExtruderConfig, PelletFeed, PelletFanAdd, PelletMotor, NozzleChange, ErrorNotice, Pid },
+	sessionData: ['msg', 'msgKind', 'failure', 'ask', 'newFan'], // what the person who left did or was refused stays nowhere (ESTANDAR 3)
+	sessionErrors: ['msg', 'msgKind', 'failure'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
+	components: { LockReason, ExtruderConfig, PelletFeed, PelletFanAdd, PelletMotor, NozzleChange, ErrorNotice, Pid },
 	props: {
 		isFff: { type: Boolean, default: false },
 		currentTool: { type: Object, default: null },
@@ -230,6 +235,9 @@ export default {
 		// this view writes the configuration: only a technician (Print.vue mounts it only for that role, and each action checks it again)
 		canConfig() {
 			return this.atLeast(NEED.configure);
+		},
+		needConfig() {
+			return NEED.configure;
 		},
 		model() {
 			return this.$store.state.machine.model;

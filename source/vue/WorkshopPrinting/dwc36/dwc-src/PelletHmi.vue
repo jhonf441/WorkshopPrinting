@@ -142,7 +142,7 @@
 		</svg>
 		<div class="legend text-caption">
 			<span><i style="background:#2e7d32" />{{ $t('plugins.WorkshopPrinting.pellet.at_temperature') }}</span>
-			<span><i style="background:#ff8f00" />{{ $t('plugins.WorkshopPrinting.pellet.heating') }}</span>
+			<span><i style="background:#fb8c00" />{{ $t('plugins.WorkshopPrinting.pellet.heating') }}</span>
 			<span><i style="background:#e65100" />{{ $t('plugins.WorkshopPrinting.pellet.overshot') }}</span>
 			<span><i style="background:#c62828" />{{ $t('plugins.WorkshopPrinting.pellet.fault_no_sensor') }}</span>
 			<span><i style="background:#616161" />{{ $t('plugins.WorkshopPrinting.pellet.off') }}</span>
@@ -373,7 +373,7 @@ export default {
 	fill: rgba(236, 239, 241, 0.85);
 }
 .drop {
-	fill: #ff8f00;
+	fill: #fb8c00;
 	animation: hmi-drop 0.9s ease-in infinite;
 }
 @keyframes hmi-drop {
@@ -433,7 +433,7 @@ export default {
 }
 .ring {
 	fill: none;
-	stroke: #ff8f00;
+	stroke: #fb8c00;
 	stroke-width: 3;
 	pointer-events: none;
 }

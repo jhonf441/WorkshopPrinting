@@ -1,14 +1,10 @@
 <template>
 	<div>
-		<details class="wf-more">
-			<summary>{{ $t('plugins.WorkshopPrinting.common.how_it_works') }}</summary>
-		<div class="wf-help pc-help">
-			<v-icon small>mdi-information-outline</v-icon>
+		<help-guide :title="$t('plugins.WorkshopPrinting.common.how_it_works')">
 			<div><b>{{ $t('plugins.WorkshopPrinting.extruderConfig.extruder_configuration_what_the_board_reads') }}</b><div class="mt-1">
 			{{ $t('plugins.WorkshopPrinting.extruderConfig.each_zone_is_a_heater_with') }} <b>{{ $t('plugins.WorkshopPrinting.common.save') }}</b> {{ $t('plugins.WorkshopPrinting.extruderConfig.writes') }} <code>sys/modefff.g</code> {{ $t('plugins.WorkshopPrinting.extruderConfig.directly_with_a_backup_copy_then') }}
 			</div></div>
-		</div>
-		</details>
+		</help-guide>
 		<div v-if="loading" class="text-body-2 grey--text mt-2">{{ $t('plugins.WorkshopPrinting.extruderConfig.reading_modefff_g') }}</div>
 		<div v-else-if="errReading" class="text-body-2 error--text mt-2">{{ errReading }}</div>
 		<template v-else>
@@ -156,13 +152,14 @@
 			</div>
 			<div class="d-flex flex-wrap align-center mt-2" style="gap:8px">
 				<v-btn small outlined :disabled="hFree == null || sFree == null" @click="addZone()"><v-icon small left>mdi-plus</v-icon>{{ $t('plugins.WorkshopPrinting.extruderConfig.add_zone') }}</v-btn>
-				<v-btn small color="primary" :disabled="!changes.length || !!errors.length || saving" :loading="saving" @click="save()">
+				<v-btn small color="primary" :disabled="!changes.length || !!errors.length || saving || !canConfig" :loading="saving" @click="save()">
 					<v-icon small left>mdi-content-save</v-icon>{{ $t('plugins.WorkshopPrinting.common.save_to_modefff_g') }}
 				</v-btn>
 				<v-btn small outlined :disabled="changes.length > 0" @click="reload()">{{ $t('plugins.WorkshopPrinting.extruderConfig.reload_fff_mode') }}</v-btn>
 				<v-btn small text :disabled="!changes.length" @click="read()">{{ $t('plugins.WorkshopPrinting.extruderConfig.discard_changes') }}</v-btn>
 				<span v-if="reloadPending" class="text-caption warning--text">{{ $t('plugins.WorkshopPrinting.extruderConfig.saved_reload_fff_mode_so_the') }}</span>
 			</div>
+			<lock-reason :min="needConfig" class="mt-1" />
 			<div v-if="changes.length" class="text-caption mt-2">
 				<b>{{ $t('plugins.WorkshopPrinting.extruderConfig.will_change') }}</b>
 				<ul class="mt-1">
@@ -184,6 +181,8 @@ import { mapActions } from 'vuex'
 import { readText, writeText, MODE_FILE, isError, note } from './util.js'
 import { isFriendly } from './print-errors.js'
 import { roleMixin } from './role-mixin.js' // what the role may do (vue/_shared)
+import HelpGuide from './HelpGuide.vue' // vue/_shared36
+import LockReason from './LockReason.vue' // vue/_shared36
 import { NEED } from './print-sections.js'
 import {
 	partir, command, param, RX_OUTPUT, RX_OUTPUT_RELAY, RX_THERMISTOR, RX_CS, isCA, isSpiKind, readSensor, copySensor,
@@ -198,6 +197,7 @@ const MAX_MONITORS = 3; // P0 (the cap of the zone) + P1 + P2 (RRF: "assuming 3 
 
 export default {
 	mixins: [roleMixin],
+	components: { HelpGuide, LockReason },
 	props: {
 		tool: { type: Object, default: null }
 	},
@@ -205,6 +205,13 @@ export default {
 		return { text: null, textConfig: '', othersModes: {}, viewPins: false, msgPin: '', zones: [], loading: true, errReading: null, openZones: {}, saving: false, reloadPending: false };
 	},
 	computed: {
+		// saving writes modefff.g: a technician's (the reason sits under the buttons)
+		canConfig() {
+			return this.atLeast(NEED.configure);
+		},
+		needConfig() {
+			return NEED.configure;
+		},
 		model() {
 			return this.$store.state.machine.model;
 		},

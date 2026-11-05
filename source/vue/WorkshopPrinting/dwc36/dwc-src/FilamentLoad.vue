@@ -14,6 +14,8 @@
 			</help-tip>
 		</template>
 		<v-alert v-if="!isFff" dense text type="info" class="mt-3 mb-0">{{ t('filament.only_fff') }}</v-alert>
+		<!-- ONE reason for every button and field of the card that this person cannot use (an operator's) -->
+		<lock-reason :min="needOperate" class="mt-2" />
 
 		<!-- 1. the material and the temperature: double tap (it heats, DESIGN.md 5 level 2) -->
 		<div class="text-subtitle-2 mt-3">{{ t('filament.step_material') }}</div>
@@ -33,7 +35,7 @@
 			<v-btn small outlined :disabled="!canOperate || !isFff || !!heatReason || !(nozzle.target > 0) || sending" @click="coolDown()">
 				<v-icon small left>mdi-snowflake</v-icon>{{ t('filament.cool') }}
 			</v-btn>
-			<span v-if="isFff && heatReason" class="text-caption grey--text">{{ heatReason }}</span>
+			<div v-if="isFff && heatReason" class="wf-note is-info mb-0" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ heatReason }}</span></div>
 		</div>
 
 		<!-- 2. load / unload: double tap (it moves the extruder); the reason is written when it cannot -->
@@ -53,8 +55,8 @@
 			<v-btn small :outlined="armed !== 'unload'" :color="armed === 'unload' ? 'amber darken-3' : undefined" :disabled="!!blockReason || !(via.unload || formOk) || !canOperate || sending" @click="arm('unload', () => move('unload'))">
 				<v-icon small left>mdi-arrow-up-bold</v-icon>{{ armed === 'unload' ? $t('plugins.WorkshopPrinting.common.tap_again') : t(via.unload ? 'filament.unload_macro' : 'filament.unload') }}
 			</v-btn>
-			<span v-if="blockReason" class="text-caption grey--text">{{ blockReason }}</span>
-			<span v-else-if="!formOk && !(via.load && via.unload)" class="text-caption warning--text">{{ t('filament.bad_form') }}</span>
+			<div v-if="blockReason" class="wf-note is-info mb-0" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ blockReason }}</span></div>
+			<div v-else-if="!formOk && !(via.load && via.unload)" class="wf-note is-warn mb-0" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ t('filament.bad_form') }}</span></div>
 		</div>
 
 		<!-- 3. the wrap-up -->
@@ -69,6 +71,7 @@ import PcSection from './PcSection.vue' // the card with the header of the secti
 'use strict'
 
 import HelpTip from './HelpTip.vue' // vue/_shared36
+import LockReason from './LockReason.vue' // vue/_shared36
 import { mapActions } from 'vuex'
 import { CFG_FILE, MATERIALS_DEF, readJson, listItemsFolder, isError } from './util.js'
 import { FILAMENTS_DIR, LOAD_DEFAULTS, LOAD_LIMITS, heatBlock, heatState, loadTemp, loadedFilament, macroState, moveBlock, moveCodes, normalize, usesMacro } from './filament-load.js'
@@ -82,7 +85,9 @@ import { roleMixin } from './role-mixin.js' // what the role may do (vue/_shared
 
 export default {
 	mixins: [roleMixin],
-	components: { PcSection, HelpTip },
+	sessionData: ['armed', 'msg', 'msgKind'], // what the person who left did or was refused stays nowhere (ESTANDAR 3)
+	sessionErrors: ['msg', 'msgKind'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
+	components: { PcSection, HelpTip, LockReason },
 	props: {
 		isFff: { type: Boolean, default: false },
 		tool: { type: Object, default: null },
@@ -101,6 +106,9 @@ export default {
 		// heating and moving the extruder: an operator's, like the pellet motor test (NEED, print-sections.js)
 		canOperate() {
 			return this.atLeast(NEED.operate);
+		},
+		needOperate() {
+			return NEED.operate;
 		},
 		model() {
 			return this.$store.state.machine.model;

@@ -21,14 +21,14 @@
 						{{ ' ' }}<template v-if="canConfig">{{ $t('plugins.WorkshopPrinting.printing.use') }} <a href="#" @click.prevent="section = 'head'">{{ $t('plugins.WorkshopPrinting.printing.head_change') }}</a>{{ $t('plugins.WorkshopPrinting.printing.it_guides_you_to_remove_it') }}</template>
 					</div>
 					<!-- changing the mode is a technician's (F3-P): the others are told whom to ask instead of getting a button -->
-					<v-alert v-if="!canConfig" dense text type="info" class="mt-3 mb-0 ask-technician">{{ $t('plugins.WorkshopPrinting.printing.ask_technician_fff') }}</v-alert>
-					<div v-else class="d-flex align-center flex-wrap mt-3" style="gap:8px">
+					<lock-reason :min="needConfig" class="mt-3 ask-technician" />
+					<div v-if="canConfig" class="d-flex align-center flex-wrap mt-3" style="gap:8px">
 						<!-- changes the machine's configuration: amber double tap (DESIGN.md 5) -->
 						<v-btn small :color="armed === 'mode' ? 'amber darken-3' : 'primary'" :disabled="!!reasonNoMode" @click="arm('mode', changeAfff)">
 							<v-icon small left>mdi-printer-3d-nozzle</v-icon>{{ armed === 'mode' ? $t('plugins.WorkshopPrinting.printing.tap_again_switch_to_fff_mode') : $t('plugins.WorkshopPrinting.printing.switch_to_fff_mode') }}
 						</v-btn>
 						<v-btn small outlined @click="section = 'head'"><v-icon small left>mdi-swap-horizontal</v-icon>{{ $t('plugins.WorkshopPrinting.printing.head_change') }}</v-btn>
-						<span v-if="reasonNoMode" class="text-caption grey--text">{{ reasonNoMode }}</span>
+						<div v-if="reasonNoMode" class="wf-note is-warn mb-0 mt-0" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ reasonNoMode }}</span></div>
 					</div>
 					<v-alert v-if="msg" dense text :type="msgKind" class="mt-2 mb-0">{{ msg }}</v-alert>
 				</v-card>
@@ -47,10 +47,10 @@
 							<div class="text-body-2">
 								{{ $t('plugins.WorkshopPrinting.printing.the_extruder_pushes_even_with_the') }}
 							</div>
-							<v-btn small class="mt-2" outlined :loading="coldSending" :disabled="!canOperate" :title="lockText(needOperate)" @click="blockCold()">
+							<v-btn small class="mt-2" outlined :loading="coldSending" :disabled="!canOperate" @click="blockCold()">
 								<v-icon small left>mdi-lock</v-icon>{{ $t('plugins.WorkshopPrinting.printing.lock_cold_extrusion') }}
 							</v-btn>
-							<div v-if="!canOperate" class="text-caption mt-1 lock-reason">{{ lockText(needOperate) }}</div>
+							<lock-reason :min="needOperate" class="mt-1" />
 						</v-alert>
 						<div class="d-flex align-center flex-wrap mb-2" style="gap:16px">
 							<span class="text-body-2">{{ $t('plugins.WorkshopPrinting.printing.heated_bed_line', { state: bedText }) }}</span>
@@ -87,9 +87,10 @@
 									<v-progress-linear :value="h.max && !h.sensorBad ? (h.current / h.max) * 100 : 0" :color="h.current > 50 ? 'amber darken-3' : 'grey'" height="6" rounded class="mt-2" />
 									<template v-if="h.state === 'fault' || h.sensorBad">
 										<div class="text-caption error--text mt-2">{{ h.explanation || $t('plugins.WorkshopPrinting.printing.the_heater_is_in_fault') }}</div>
-										<v-btn x-small outlined color="error" class="mt-1" :disabled="h.sensorBad || !canOperate" :title="h.sensorBad ? $t('plugins.WorkshopPrinting.printing.fix_the_sensor_first') : lockText(needOperate)" @click="deleteFault(h)">
+										<v-btn x-small outlined color="error" class="mt-1" :disabled="h.sensorBad || !canOperate" :title="h.sensorBad ? $t('plugins.WorkshopPrinting.printing.fix_the_sensor_first') : undefined" @click="deleteFault(h)">
 											{{ $t('plugins.WorkshopPrinting.printing.clear_fault_m562') }}
 										</v-btn>
+										<lock-reason :min="needOperate" class="mt-1" />
 									</template>
 								</v-card>
 							</v-col>
@@ -109,10 +110,10 @@
 						</div>
 						<div v-if="isFff" class="d-flex flex-wrap mt-3" style="gap:8px">
 							<!-- apagar es seguro (nivel 1): un toque -->
-							<v-btn small outlined :disabled="!canOperate" :title="lockText(needOperate)" @click="cool()">
+							<v-btn small outlined :disabled="!canOperate" @click="cool()">
 								<v-icon small left>mdi-snowflake</v-icon>{{ $t('plugins.WorkshopPrinting.printing.turn_off_all_heaters') }}
 							</v-btn>
-							<span v-if="!canOperate" class="text-caption grey--text align-self-center lock-reason">{{ lockText(needOperate) }}</span>
+							<lock-reason :min="needOperate" class="align-self-center" />
 						</div>
 						<!-- How it is configured (2026-10-11): what the board's model says
 						     for each heater; "Read from the board" also asks for the output, the
@@ -177,15 +178,16 @@
 								{{ $t('plugins.WorkshopPrinting.printing.relocks_on_restart') }} {{ textModeCold }}
 							</div>
 							<div class="d-flex align-center flex-wrap mt-3" style="gap:8px">
-								<v-btn v-if="coldAllowed" small color="primary" :loading="coldSending" :disabled="!canOperate" :title="lockText(needOperate)" @click="blockCold()">
+								<v-btn v-if="coldAllowed" small color="primary" :loading="coldSending" :disabled="!canOperate" @click="blockCold()">
 									<v-icon small left>mdi-lock</v-icon>{{ $t('plugins.WorkshopPrinting.printing.lock_cold_extrusion') }}
 								</v-btn>
 								<!-- level 4: red; without the workshop's notice it falls back to the double tap -->
-								<v-btn v-else small :color="armed === 'cold' ? 'amber darken-3' : 'error'" :outlined="armed !== 'cold'" :disabled="coldAllowed == null || !canAllowCold" :loading="coldSending" :title="lockText(needCold)" @click="touchCold()">
+								<v-btn v-else small :color="armed === 'cold' ? 'amber darken-3' : 'error'" :outlined="armed !== 'cold'" :disabled="coldAllowed == null || !canAllowCold" :loading="coldSending" @click="touchCold()">
 									<v-icon small left>mdi-lock-open-variant</v-icon>{{ armed === 'cold' ? $t('plugins.WorkshopPrinting.printing.tap_again_allow_cold_extrusion') : $t('plugins.WorkshopPrinting.printing.allow_cold_extrusion') }}
 								</v-btn>
-								<span v-if="coldAllowed == null" class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.printing.no_data_from_the_board_yet') }}</span>
-								<span v-else-if="!coldAllowed && !canAllowCold" class="text-caption grey--text">{{ lockText(needCold) }}</span>
+								<lock-reason v-if="coldAllowed" :min="needOperate" />
+								<div v-else-if="coldAllowed == null" class="wf-note is-info mb-0 mt-0" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ $t('plugins.WorkshopPrinting.printing.no_data_from_the_board_yet') }}</span></div>
+								<lock-reason v-else :min="needCold" />
 							</div>
 						</v-card>
 						<div v-if="isFff && extruder" class="text-caption grey--text mt-3">
@@ -290,12 +292,16 @@ import SideTabs from './SideTabs.vue'
 import { sectionColor } from './section-colors.js' // the color of the open section (top line of the card)
 import { roleMixin } from './role-mixin.js' // what the role sees and may do (vue/_shared)
 import { sideItems, sectionToShow, restoreSection, hiddenIds, NEED, SECTIONS } from './print-sections.js'
+import LockReason from './LockReason.vue' // vue/_shared36
 import HiddenNote from './HiddenNote.vue' // the quiet line for the sections the role does not see (vue/_shared)
 import { kindOfTool, loadExtruderKinds } from './extruder-kind.js' // pellets or filament of each tool: the pellet sections only show for a pellet tool
 
 export default {
 	mixins: [roleMixin, printModesMixin],
-	components: { PageHeader, SideTabs, HiddenNote, HeadChange: HeadChange, Materiales: materials, Extrusor: extruder, Pid, Pellet, PelletSetup, PrintingStartup: StartupPrint, StartupPanel: StartupPanel, ChartState, FffJob, FilamentLoad, PcSection },
+	// what the person who left had read or done stays nowhere: the messages and the armed tap go, the files are read again (onSessionChange)
+	sessionData: ['armed', 'msg', 'msgKind', 'modeHasM302'],
+	sessionErrors: ['msg', 'msgKind'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
+	components: { PageHeader, SideTabs, HiddenNote, LockReason, HeadChange: HeadChange, Materiales: materials, Extrusor: extruder, Pid, Pellet, PelletSetup, PrintingStartup: StartupPrint, StartupPanel: StartupPanel, ChartState, FffJob, FilamentLoad, PcSection },
 	data() {
 		let section = restoreSection(null);
 		try {
@@ -368,6 +374,9 @@ export default {
 		},
 		needCold() {
 			return NEED.cold;
+		},
+		needConfig() {
+			return NEED.configure;
 		},
 		// every section with its role, for the note about the ones this person does not see
 		allSections() {
@@ -748,7 +757,7 @@ export default {
 
 <style scoped>
 .banner-mode {
-	border-color: #ff8f00 !important;
+	border-color: var(--wf-warn, #fb8c00) !important;
 }
 .edge-fault {
 	border-color: #e53935 !important;

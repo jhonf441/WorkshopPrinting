@@ -14,7 +14,7 @@
 
 import { ts } from './shared-t.js'
 import { RANK_OPS } from './role-view.js'
-import { accessReason, workshopCan, workshopRole } from './workshop-auth.js'
+import { accessReason, sessionState, workshopCan, workshopRole } from './workshop-auth.js'
 import { noticeKindOf, noticeText } from './notice-kind.js'
 
 function kindOf(reason) {
@@ -22,7 +22,7 @@ function kindOf(reason) {
 }
 
 function sentence(kind, need) {
-	return kind ? noticeText(kind, { needed: need, role: workshopRole() }, ts) : ''
+	return kind ? noticeText(kind, { needed: need, role: workshopRole(), state: sessionState() }, ts) : ''
 }
 
 export function lockKindOp(op, need, ctx) {

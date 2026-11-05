@@ -1,11 +1,12 @@
 <template>
 	<pc-section icon="mdi-grain" :title="$t('plugins.WorkshopPrinting.printing.pellet_panel')">
-		<details class="wf-more">
-			<summary>{{ $t('plugins.WorkshopPrinting.common.how_it_works') }}</summary>
+		<help-guide :title="$t('plugins.WorkshopPrinting.common.how_it_works')">
 			<p>
 			{{ $t('plugins.WorkshopPrinting.pellet.intro_1') }} <b>{{ $t('plugins.WorkshopPrinting.pellet.intro_pellet_extruder') }}</b>{{ $t('plugins.WorkshopPrinting.pellet.intro_2') }} <b>{{ $t('plugins.WorkshopPrinting.pellet.intro_several_zones') }}</b> {{ $t('plugins.WorkshopPrinting.pellet.intro_3') }} <b>{{ $t('plugins.WorkshopPrinting.pellet.intro_steps') }}</b>{{ $t('plugins.WorkshopPrinting.pellet.intro_4') }}
 			</p>
-		</details>
+		</help-guide>
+		<!-- ONE reason for the heat, fan and motor controls of the card that this person cannot use (an operator's) -->
+		<lock-reason :min="needOperate" class="mt-2" />
 		<v-alert v-if="!isFff" dense text type="info" class="mt-3 mb-0">{{ $t('plugins.WorkshopPrinting.common.the_extruder_only_exists_in_fff') }}</v-alert>
 		<template v-else>
 			<div v-if="!currentTool" class="text-body-2 grey--text mt-3">{{ $t('plugins.WorkshopPrinting.pellet.no_tool_defined') }}</div>
@@ -34,12 +35,12 @@
 							<div class="d-flex align-center flex-wrap mt-3" style="gap:8px">
 								<input v-model.number="tempNew" type="number" step="5" min="0" :max="zoneSel.max" class="field" /> °C
 								<!-- calentar = nivel 2 (DESIGN.md 5): doble toque ambar -->
-								<v-btn small :color="armed === 'heat' ? 'amber darken-3' : 'primary'" :disabled="!canHeat || !canOperate" :title="lockOperate" @click="arm('heat', heatZone)">
+								<v-btn small :color="armed === 'heat' ? 'amber darken-3' : 'primary'" :disabled="!canHeat || !canOperate" @click="arm('heat', heatZone)">
 									<v-icon small left>mdi-fire</v-icon>{{ armed === 'heat' ? $t('plugins.WorkshopPrinting.pellet.tap_again_heats_to', { c: tempNew }) : $t('plugins.WorkshopPrinting.pellet.heat_this_zone') }}
 								</v-btn>
-								<v-btn small outlined :disabled="!(zoneSel.target > 0) || !canOperate" :title="lockOperate" @click="powerOffZone()"><v-icon small left>mdi-snowflake</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.turn_zone_off') }}</v-btn>
+								<v-btn small outlined :disabled="!(zoneSel.target > 0) || !canOperate" @click="powerOffZone()"><v-icon small left>mdi-snowflake</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.turn_zone_off') }}</v-btn>
 							</div>
-							<div v-if="reasonNo" class="text-caption grey--text mt-1">{{ reasonNo }}</div>
+							<div v-if="reasonNo" class="wf-note is-info mt-1" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ reasonNo }}</span></div>
 							<v-divider class="my-3" />
 							<div class="text-body-2">
 								<template v-if="sel === 0">
@@ -66,11 +67,11 @@
 							<div v-if="fanSel.state === 'ordered'" class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.pellet.fan_no_tach_note') }}</div>
 							<div v-else-if="fanSel.state === 'stalled'" class="text-caption error--text">{{ $t('plugins.WorkshopPrinting.pellet.fan_stalled_note') }}</div>
 							<template v-if="!fanSel.thermostatic">
-								<v-slider v-model="fanNew" :min="0" :max="100" step="5" dense hide-details thumb-label :disabled="!canOperate" :title="lockOperate" @end="setFan()" />
+								<v-slider v-model="fanNew" :min="0" :max="100" step="5" dense hide-details thumb-label :disabled="!canOperate" @end="setFan()" />
 								<div class="d-flex flex-wrap mt-2" style="gap:6px">
-									<v-btn x-small outlined :disabled="!canOperate" :title="lockOperate" @click="fanNew = 0; setFan()">{{ $t('plugins.WorkshopPrinting.pellet.fan_off') }}</v-btn>
-									<v-btn x-small outlined :disabled="!canOperate" :title="lockOperate" @click="fanNew = 50; setFan()">50 %</v-btn>
-									<v-btn x-small outlined :disabled="!canOperate" :title="lockOperate" @click="fanNew = 100; setFan()">100 %</v-btn>
+									<v-btn x-small outlined :disabled="!canOperate" @click="fanNew = 0; setFan()">{{ $t('plugins.WorkshopPrinting.pellet.fan_off') }}</v-btn>
+									<v-btn x-small outlined :disabled="!canOperate" @click="fanNew = 50; setFan()">50 %</v-btn>
+									<v-btn x-small outlined :disabled="!canOperate" @click="fanNew = 100; setFan()">100 %</v-btn>
 								</div>
 								<div class="text-caption grey--text mt-2">{{ $t('plugins.WorkshopPrinting.pellet.fan_runtime_note') }}</div>
 							</template>
@@ -79,7 +80,7 @@
 								<div class="d-flex align-center flex-wrap mt-2" style="gap:8px">
 									{{ $t('plugins.WorkshopPrinting.pellet.fan_on_from') }} <input v-model.number="trigLow" type="number" step="1" min="0" max="300" class="field" /> °C
 									{{ $t('plugins.WorkshopPrinting.pellet.fan_full_from') }} <input v-model.number="trigHigh" type="number" step="1" min="0" max="300" class="field" /> °C
-									<v-btn small :color="armed === 'trig' ? 'amber darken-3' : 'primary'" :disabled="!trigOk || !canOperate" :title="lockOperate" @click="arm('trig', setTrigger)">
+									<v-btn small :color="armed === 'trig' ? 'amber darken-3' : 'primary'" :disabled="!trigOk || !canOperate" @click="arm('trig', setTrigger)">
 										{{ armed === 'trig' ? $t('plugins.WorkshopPrinting.common.tap_again') : $t('plugins.WorkshopPrinting.pellet.fan_apply') }}
 									</v-btn>
 								</div>
@@ -104,20 +105,20 @@
 							<div class="d-flex align-center flex-wrap mt-1" style="gap:8px">
 								<input v-model.number="testMm" type="number" step="1" min="1" max="100" class="field" /> mm
 								<input v-model.number="testSpeed" type="number" step="0.5" min="0.5" max="60" class="field" /> mm/s
-								<v-btn small :color="armed === 'ext' ? 'amber darken-3' : 'primary'" :disabled="!!motorReason || !canOperate" :title="lockOperate" @click="arm('ext', () => runTest(false))">
+								<v-btn small :color="armed === 'ext' ? 'amber darken-3' : 'primary'" :disabled="!!motorReason || !canOperate" @click="arm('ext', () => runTest(false))">
 									<v-icon small left>mdi-arrow-down-bold</v-icon>{{ armed === 'ext' ? $t('plugins.WorkshopPrinting.common.tap_again') : $t('plugins.WorkshopPrinting.pellet.extrude') }}
 								</v-btn>
-								<v-btn small outlined :color="armed === 'ret' ? 'amber darken-3' : undefined" :disabled="!!motorReason || !canOperate" :title="lockOperate" @click="arm('ret', () => runTest(true))">
+								<v-btn small outlined :color="armed === 'ret' ? 'amber darken-3' : undefined" :disabled="!!motorReason || !canOperate" @click="arm('ret', () => runTest(true))">
 									<v-icon small left>mdi-arrow-up-bold</v-icon>{{ armed === 'ret' ? $t('plugins.WorkshopPrinting.common.tap_again') : $t('plugins.WorkshopPrinting.pellet.retract') }}
 								</v-btn>
 							</div>
-							<div v-if="motorReason" class="text-caption grey--text mt-1">{{ motorReason }}</div>
+							<div v-if="motorReason" class="wf-note is-info mt-1" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ motorReason }}</span></div>
 							<v-divider class="my-3" />
 							<div class="d-flex align-center flex-wrap" style="gap:8px">
 								{{ $t('plugins.WorkshopPrinting.pellet.flow') }} <input v-model.number="flowNew" type="number" step="1" min="10" max="300" class="field" /> %
-								<v-btn x-small outlined :disabled="!flowCodeOk || !canOperate" :title="lockOperate" @click="applyFlow()">{{ $t('plugins.WorkshopPrinting.pellet.fan_apply') }}</v-btn>
+								<v-btn x-small outlined :disabled="!flowCodeOk || !canOperate" @click="applyFlow()">{{ $t('plugins.WorkshopPrinting.pellet.fan_apply') }}</v-btn>
 								<span class="ml-3">{{ $t('plugins.WorkshopPrinting.pellet.advance') }}</span> <input v-model.number="paNew" type="number" step="0.01" min="0" max="2" class="field" /> s
-								<v-btn x-small outlined :disabled="!paCodeOk || !canOperate" :title="lockOperate" @click="applyAdvance()">{{ $t('plugins.WorkshopPrinting.pellet.fan_apply') }}</v-btn>
+								<v-btn x-small outlined :disabled="!paCodeOk || !canOperate" @click="applyAdvance()">{{ $t('plugins.WorkshopPrinting.pellet.fan_apply') }}</v-btn>
 							</div>
 							<div class="text-caption grey--text mt-2">{{ $t('plugins.WorkshopPrinting.pellet.motor_runtime_note') }}</div>
 							<v-btn v-if="canConfig" x-small outlined class="mt-2" :title="$t('plugins.WorkshopPrinting.pellet.tune_flow_tip')" @click="$emit('goto', { section: 'extruder' })"><v-icon x-small left>mdi-scale-balance</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.tune_flow') }}</v-btn>
@@ -133,7 +134,6 @@
 					</v-col>
 				</v-row>
 
-				<div v-if="!canOperate" class="text-caption mt-3 lock-reason"><v-icon x-small left>mdi-lock-outline</v-icon>{{ lockOperate }}</div>
 				<error-notice v-if="failure" :error="failure" class="mt-3" />
 				<v-alert v-if="msg" dense text :type="msgKind" class="mt-3 mb-0">{{ msg }}</v-alert>
 				<div v-if="canConfig" class="mt-4">
@@ -147,6 +147,8 @@
 <script>
 import i18n from '../../i18n'
 import PcSection from './PcSection.vue' // the card with the header of the section (printing-design.css)
+import HelpGuide from './HelpGuide.vue' // vue/_shared36
+import LockReason from './LockReason.vue' // vue/_shared36
 
 'use strict'
 
@@ -168,7 +170,9 @@ import { spinSeconds, fanState, fanCode, fanTriggerCode, extrudeCode, flowCode, 
 
 export default {
 	mixins: [roleMixin],
-	components: { PelletHmi, PelletFeed, ErrorNotice, PcSection },
+	sessionData: ['msg', 'msgKind', 'failure', 'armed'], // what the person who left did or was refused stays nowhere (ESTANDAR 3)
+	sessionErrors: ['msg', 'msgKind', 'failure'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
+	components: { HelpGuide, PelletHmi, PelletFeed, ErrorNotice, PcSection, LockReason },
 	props: {
 		isFff: { type: Boolean, default: false },
 		currentTool: { type: Object, default: null },
@@ -196,9 +200,8 @@ export default {
 		canConfig() {
 			return this.atLeast(NEED.configure);
 		},
-		// why the heat / fan / motor controls are grey for this person (signed out, or a role below operator)
-		lockOperate() {
-			return this.lockText(NEED.operate);
+		needOperate() {
+			return NEED.operate;
 		},
 		model() {
 			return this.$store.state.machine.model;
@@ -339,7 +342,7 @@ export default {
 	},
 	methods: {
 		...mapActions('machine', ['sendCode']),
-		// color segun el estado (DESIGN.md 2): verde en temperatura, ambar calentando,
+		// color segun el estado (DESIGN.md 2): verde en temperatura, naranja calentando,
 		// naranja pasada, rojo falla, gris apagada
 		colorZone(z) {
 			if (z.sensorBad || z.state === 'fault') return '#c62828';
@@ -347,7 +350,7 @@ export default {
 			if (!(z.target > 0) || z.state === 'off') return '#616161';
 			if (z.current > z.target + 10) return '#e65100';
 			if (Math.abs(z.current - z.target) <= 3) return '#2e7d32';
-			return '#ff8f00';
+			return '#fb8c00';
 		},
 		stateZone(z) {
 			if (z.sensorBad) return i18n.t('plugins.WorkshopPrinting.common.no_sensor');

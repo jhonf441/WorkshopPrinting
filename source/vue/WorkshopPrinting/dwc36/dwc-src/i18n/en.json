@@ -325,7 +325,6 @@
 		"group_operate": "Operate",
 		"group_configure": "Configure",
 		"pellet_panel": "Pellet panel",
-		"ask_technician_fff": "Ask a technician to switch to FFF: changing the mode is for a technician or the administrator.",
 		"cold_needs_technician": "Allowing cold extrusion is for a technician or the administrator. An operator can lock it again.",
 		"heaters_off_the_automatic_fans_keep": "Heaters off. The automatic fans keep running until the nozzles cool down.",
 		"fff_mode_loaded_check_in_status": "FFF mode loaded. Check in Status that heaters and sensors read correctly before heating.",
@@ -1091,7 +1090,6 @@
 		"service_not_running": "is not running (Settings > Plugins)",
 		"service_sign_in": "needs you to sign in to be checked",
 		"service_role": "your role cannot check it: a technician is needed",
-		"locked": "Not signed in: sign in to create or change files from here.",
 		"what_is": "What is this?",
 		"what_is_hide": "Hide the explanation",
 		"what_label": "What it is",
@@ -1237,8 +1235,7 @@
 		"no_layers": "This file has no extrusion (it looks like a laser or CNC file): there are no 3D printing layers to show. Pick a 3D printing file."
 	},
 	"errors": {
-		"need_technician": "Saving {file} needs the technician or administrator role. Ask a technician for help.",
-		"need_login": "Identify yourself with your name and PIN to save {file}."
+		"save_action": "Saving {file}"
 	},
 	"nozzle": {
 		"sec_nozzle": "Nozzle",

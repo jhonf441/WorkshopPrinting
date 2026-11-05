@@ -1,11 +1,10 @@
 <template>
 	<pc-section icon="mdi-flask-outline" :title="$t('plugins.WorkshopPrinting.printing.materials')">
-		<details class="wf-more">
-			<summary>{{ $t('plugins.WorkshopPrinting.common.how_it_works') }}</summary>
+		<help-guide :title="$t('plugins.WorkshopPrinting.common.how_it_works')">
 			<p>
 			{{ $t('plugins.WorkshopPrinting.materials.temperatures_for_each_plastic_as_pellets') }} <b>{{ $t('plugins.WorkshopPrinting.materials.preheat') }}</b> {{ $t('plugins.WorkshopPrinting.materials.preheat_explain') }}
 			</p>
-		</details>
+		</help-guide>
 		<div v-if="!loaded" class="text-caption grey--text mt-3">{{ $t('plugins.WorkshopPrinting.common.reading') }}</div>
 		<template v-else>
 			<div style="overflow-x:auto" class="mt-3">
@@ -42,8 +41,9 @@
 				<v-btn v-if="canEdit" x-small :color="changed ? 'primary' : ''" :disabled="!changed" :loading="saving" @click="save()">{{ $t('plugins.WorkshopPrinting.common.save') }}</v-btn>
 				<v-btn v-if="canEdit" x-small text @click="restore()">{{ $t('plugins.WorkshopPrinting.materials.factory_values') }}</v-btn>
 				<span v-if="!isFff" class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.materials.preheat_only_in_fff_mode') }}</span>
-				<span v-if="!canEdit" class="text-caption grey--text lock-reason"><v-icon x-small left>mdi-lock-outline</v-icon>{{ lockText(needEdit) }}</span>
-			</div>
+				</div>
+			<!-- ONE reason for the preheat buttons and the table: preheating is an operator's, editing a technician's -->
+			<lock-reason :min="lockNeed" class="mt-1" />
 			<div class="text-caption grey--text mt-1">
 				{{ $t('plugins.WorkshopPrinting.materials.machine_limits', { nozzle: nozzle ? nozzle.max : '--', bed: bed ? bed.max : '--' }) }}<template v-if="camera">, {{ $t('plugins.WorkshopPrinting.materials.chamber_c_value', { c: camera.max }) }}</template>. {{ $t('plugins.WorkshopPrinting.materials.red_out_of_limit') }}
 				<template v-if="nozzleZones.length > 1"> {{ $t('plugins.WorkshopPrinting.materials.nozzle_has_n_zones', { n: nozzleZones.length }) }}</template>
@@ -57,6 +57,8 @@
 <script>
 import i18n from '../../i18n'
 import PcSection from './PcSection.vue' // the card with the header of the section (printing-design.css)
+import HelpGuide from './HelpGuide.vue' // vue/_shared36
+import LockReason from './LockReason.vue' // vue/_shared36
 
 'use strict'
 
@@ -75,7 +77,9 @@ import { serviceText, serviceDefaultKey } from './service-text.js'
 
 export default {
 	mixins: [roleMixin],
-	components: { ErrorNotice, PcSection },
+	sessionData: ['armed', 'msg', 'msgKind', 'failure'], // what the person who left did or was refused stays nowhere (ESTANDAR 3)
+	sessionErrors: ['msg', 'msgKind', 'failure'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
+	components: { HelpGuide, ErrorNotice, PcSection, LockReason },
 	props: {
 		isFff: { type: Boolean, default: false },
 		heaters: { type: Array, default: () => [] },
@@ -93,6 +97,10 @@ export default {
 		},
 		needEdit() {
 			return NEED.configure;
+		},
+		// the role the buttons still wait for: the one of the preheat first, then the one of the table
+		lockNeed() {
+			return this.canPreheat ? NEED.configure : NEED.operate;
 		},
 		selectedTool() {
 			return this.tools.find(t => t.number === this.toolSel) || this.currentTool;

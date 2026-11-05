@@ -55,6 +55,7 @@
 						{{ armed === 'feedrm' ? $t('plugins.WorkshopPrinting.common.tap_again') : $t('plugins.WorkshopPrinting.pellet.feed_remove') }}
 					</v-btn>
 				</div>
+				<lock-reason min="operator" class="mt-1" />
 				<div v-if="configure" class="text-caption grey--text mt-2">{{ $t('plugins.WorkshopPrinting.pellet.feed_save_note') }}</div>
 			</v-card>
 </template>
@@ -65,12 +66,14 @@ import i18n from '../../i18n'
 'use strict'
 
 import { mapActions } from 'vuex'
+import LockReason from './LockReason.vue' // vue/_shared36
 import { confirmRisk } from './risk.js' // the JS plugins' box, else a box of the page (vue/_shared36)
 import { MODE_FILE, readText, writeText, updateCfg, isError, note } from './util.js'
 import { isFriendly } from './print-errors.js'
 import { normalize as normFeed, hopperState, pinOk, pinInUse, nextFree, pulseCodes, definitionLines, triggerLine, triggerMacro, applyFeedToMode, nextTrigger, markedTrigger } from './pellet-feed.js'
 
 export default {
+	components: { LockReason },
 	props: {
 		config: { type: Object, default: null }, // what printing.json keeps ("feed")
 		tool: { type: Object, default: null },

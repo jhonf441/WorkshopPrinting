@@ -15,6 +15,7 @@
 				<v-btn small outlined :loading="loadingList" @click="loadList()"><v-icon small left>mdi-refresh</v-icon>{{ t('fff.refresh') }}</v-btn>
 				<v-btn small color="primary" :disabled="!file" :loading="reading" @click="read()"><v-icon small left>mdi-cube-outline</v-icon>{{ t('fff.load') }}</v-btn>
 			</div>
+			<session-notice v-if="refusal" :kind="refusal" needed="operator" class="mt-2" />
 			<v-alert v-if="msg" dense text :type="msgKind" class="mt-2 mb-0">{{ msg }}</v-alert>
 			<!-- look at it layer by layer (same controls the Workbench's Simulate card had) -->
 			<div v-if="prev && layers > 0" class="d-flex align-center flex-wrap mt-3" style="gap:8px">
@@ -41,18 +42,21 @@ import JobControl from './JobControl.vue' // pause / resume / cancel, Z baby-ste
 import Fff3dView from './Fff3dView.vue'
 import { fffListGcodes, fffJobFile, fffLayerShown, fffPrinting } from './fff-job.js'
 import { roleMixin } from './role-mixin.js' // what the role may do (vue/_shared)
-import { isRefusal } from './session-note.js'
-import { refusalNow } from './session-now.js' // a refusal told by its cause
+import { refusalKind } from './session-refusal.js' // the cause of a refusal: session | role
+import { signedOut } from './workshop-auth.js'
+import SessionNotice from './SessionNotice.vue' // vue/_shared36
 
 export default {
 	mixins: [roleMixin],
-	components: { FffJobStatus, JobControl, Fff3dView, PcSection },
+	sessionData: ['prev', 'prevPath', 'layerSel', 'msg', 'msgKind', 'refusal'], // the 3D preview came from the service with the old session (ESTANDAR 3)
+	sessionErrors: ['msg', 'msgKind', 'refusal'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
+	components: { SessionNotice, FffJobStatus, JobControl, Fff3dView, PcSection },
 	props: {
 		isFff: { type: Boolean, default: false }
 	},
 	data() {
 		return {
-			files: [], loadingList: false, file: '', reading: false, msg: '', msgKind: 'error',
+			files: [], loadingList: false, file: '', reading: false, msg: '', msgKind: 'error', refusal: '',
 			prev: null, prevPath: '', layerSel: null, layerMode: 'until'
 		};
 	},
@@ -113,6 +117,7 @@ export default {
 			if (!this.file || this.reading) return;
 			this.reading = true;
 			this.msg = '';
+			this.refusal = '';
 			this.msgKind = 'error';
 			const path = this.file;
 			try {
@@ -132,8 +137,8 @@ export default {
 				this.prev = null;
 				this.prevPath = '';
 				// a refusal says its cause (sign in / role), not the raw message of the service
-				this.msg = isRefusal(e) ? refusalNow(e, 'operator') : this.t('fff.could_not_read', { e: (e && e.message) || e });
-				if (isRefusal(e)) this.msgKind = 'warning';
+				this.refusal = refusalKind(e, signedOut());
+				this.msg = this.refusal ? '' : this.t('fff.could_not_read', { e: (e && e.message) || e });
 			} finally {
 				this.reading = false;
 			}

@@ -5,8 +5,8 @@
 // Pure helpers of PelletHmi.vue and Pellet.vue (test/pellet-hmi.test.js): colours, the G-code of every edit the panel
 // offers and the reasons why an action is not allowed now. Nothing here touches the machine or the DOM.
 
-// state colours (DESIGN.md 2): green at temperature, amber heating, orange overshoot, red fault, grey off
-export var COLORS = { ok: '#2e7d32', heating: '#ff8f00', over: '#e65100', fault: '#c62828', off: '#616161', tuning: '#e65100' }
+// state colours (DESIGN.md 2): green at temperature, orange heating, orange overshoot, red fault, grey off
+export var COLORS = { ok: '#2e7d32', heating: '#fb8c00', over: '#e65100', fault: '#c62828', off: '#616161', tuning: '#e65100' }
 
 export function zoneState(z) {
 	if (!z) return 'off'

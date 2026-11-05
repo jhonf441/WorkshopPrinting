@@ -29,6 +29,7 @@
 				{{ armed === 'add' ? $t('plugins.WorkshopPrinting.common.tap_again') : $t('plugins.WorkshopPrinting.pellet.newfan_save') }}
 			</v-btn>
 		</div>
+		<lock-reason min="technician" class="mt-1" />
 		<div class="text-caption grey--text mt-2">{{ $t('plugins.WorkshopPrinting.pellet.newfan_note') }}</div>
 		<template v-if="made.length">
 			<v-divider class="my-3" />
@@ -50,12 +51,14 @@ import i18n from '../../i18n'
 'use strict'
 
 import { mapActions } from 'vuex'
+import LockReason from './LockReason.vue' // vue/_shared36
 import { confirmRisk } from './risk.js' // the JS plugins' box, else a box of the page (vue/_shared36)
 import { MODE_FILE, readText, writeText, note } from './util.js'
 import { pinInUse } from './pellet-feed.js'
 import { normalize, applyFan, marked, removeFan, nextFanIndex } from './pellet-fans.js'
 
 export default {
+	components: { LockReason },
 	props: {
 		tool: { type: Object, default: null },
 		busy: { type: Boolean, default: false },

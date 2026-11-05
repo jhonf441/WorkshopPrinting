@@ -1,11 +1,10 @@
 <template>
 	<pc-section icon="mdi-chart-bell-curve" :title="$t('plugins.WorkshopPrinting.common.pid')" :bare="zonesOnly">
-		<details v-if="!zonesOnly" class="wf-more">
-			<summary>{{ $t('plugins.WorkshopPrinting.common.how_it_works') }}</summary>
+		<help-guide v-if="!zonesOnly" :title="$t('plugins.WorkshopPrinting.common.how_it_works')">
 			<p>
 			{{ $t('plugins.WorkshopPrinting.pid.intro') }} <b>{{ $t('plugins.WorkshopPrinting.pid.do_not_leave') }}</b>
 			</p>
-		</details>
+		</help-guide>
 		<v-alert v-if="!isFff" dense text type="info" class="mt-3 mb-0">{{ $t('plugins.WorkshopPrinting.pid.the_nozzle_and_the_bed_only') }}</v-alert>
 		<template v-else>
 			<template v-if="!zonesOnly">
@@ -118,6 +117,7 @@
 				</template>
 			</template>
 		</template>
+		<session-notice v-if="refusal" :kind="refusal" :needed="needConfig" class="mt-3" />
 		<error-notice v-if="failure" :error="failure" class="mt-3" />
 		<v-alert v-if="msg" dense text :type="msgKind" class="mt-3 mb-0">{{ msg }}</v-alert>
 	</pc-section>
@@ -127,6 +127,7 @@
 import i18n from '../../i18n'
 import HelpTip from './HelpTip.vue' // vue/_shared36
 import PcSection from './PcSection.vue' // the card with the header of the section (printing-design.css)
+import HelpGuide from './HelpGuide.vue' // vue/_shared36
 
 'use strict'
 
@@ -141,14 +142,17 @@ import { rememberForNozzle } from './nozzle-store.js'
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared
 import { roleMixin } from './role-mixin.js' // what the role may do (vue/_shared)
 import { isFriendly } from './print-errors.js'
-import { isRefusal } from './session-note.js'
-import { refusalNow } from './session-now.js' // a refusal told by its cause
+import { refusalKind } from './session-refusal.js' // the cause of a refusal: session | role
+import { signedOut } from './workshop-auth.js'
+import SessionNotice from './SessionNotice.vue' // vue/_shared36
 import { NEED } from './print-sections.js'
 
 
 export default {
 	mixins: [roleMixin],
-	components: { PidDetail: PidDetail, PidTuneChart, ErrorNotice, PcSection, HelpTip },
+	sessionData: ['trace', 'msg', 'msgKind', 'failure', 'refusal', 'armed', 'armedG'], // what the person who left read, did or was refused stays nowhere (ESTANDAR 3)
+	sessionErrors: ['msg', 'msgKind', 'failure', 'refusal'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
+	components: { SessionNotice, HelpGuide, PidDetail: PidDetail, PidTuneChart, ErrorNotice, PcSection, HelpTip },
 	props: {
 		isFff: { type: Boolean, default: false },
 		zonesOnly: { type: Boolean, default: false }, // only the all-zones tuning (mounted inside the pellet setup)
@@ -160,7 +164,7 @@ export default {
 		return {
 			// the real record of the tuning in progress (or the last one): the SERVICE takes it (dsf/pid_trace.py); here it is only read
 			trace: null, traceTick: 0, startedHere: null, destroyed: false, // startedHere: the target typed here, for when the board does not publish it
-			which: null, temp: 200, armed: false, armedG: false, timer: null, modelTxt: '', lineFile: '', saving: false, msg: null, msgKind: 'info', failure: null, wasCalibrating: false,
+			which: null, temp: 200, armed: false, armedG: false, timer: null, modelTxt: '', lineFile: '', saving: false, msg: null, msgKind: 'info', failure: null, refusal: '', wasCalibrating: false,
 			// all the zones (2026-10-11): state published by the Pi (S"estado") and editable targets
 			toolZ: null, objZ: {}, zState: null, probing: null, armedZ: false, armedZG: false, cancellingZ: false,
 			savingZ: false, textMode: '', cfgImp: null
@@ -270,7 +274,7 @@ export default {
 	},
 	watch: {
 		msg(v) {
-			if (v) this.failure = null;
+			if (v) { this.failure = null; this.refusal = ''; }
 		},
 		options: {
 			immediate: true,
@@ -361,10 +365,11 @@ export default {
 		// a failed step: a missing role / PIN / service is shown with ErrorNotice (what role is needed, the PIN dialog); the rest keeps its text
 		fail(e, text) {
 			// signed out / low role: the sentence of the cause (sign in, or which role is needed), not the raw refusal
-			if (isRefusal(e)) {
+			const kind = refusalKind(e, signedOut());
+			if (kind) {
 				this.failure = null;
-				this.msgKind = 'warning';
-				this.msg = refusalNow(e, NEED.configure);
+				this.msg = null;
+				this.refusal = kind;
 				return;
 			}
 			if (isFriendly(e)) {

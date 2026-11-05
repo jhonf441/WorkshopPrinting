@@ -50,6 +50,7 @@
 			</v-btn>
 			<v-btn small outlined @click="$emit('goto', { section: 'pellet' })"><v-icon small left>mdi-flask-outline</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.asst_test') }}</v-btn>
 		</div>
+		<lock-reason min="technician" class="mt-1" />
 		<div class="text-caption grey--text mt-2">{{ $t('plugins.WorkshopPrinting.pellet.asst_note') }}</div>
 	</v-card>
 </template>
@@ -60,11 +61,13 @@ import i18n from '../../i18n'
 'use strict'
 
 import { mapActions } from 'vuex'
+import LockReason from './LockReason.vue' // vue/_shared36
 import { changeOAddLineMode, note } from './util.js'
 import { pluginActive } from './workshop-ids.js' // vue/_shared36: Machine is another plugin, nothing about it when it is absent
 import { LIMITS, PRESETS, fromModel, presetOf, normalizeRetract, retractPlan, retractCheck, machineRoute, machineEditable } from './motor-assist.js'
 
 export default {
+	components: { LockReason },
 	props: {
 		busy: { type: Boolean, default: false },
 		configure: { type: Boolean, default: false }, // the role writes the configuration (technician) and the setup view

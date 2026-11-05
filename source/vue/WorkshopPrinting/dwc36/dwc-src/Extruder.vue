@@ -4,6 +4,8 @@
 		<v-alert v-else-if="!hot" dense text type="warning" class="mb-3">
 			{{ $t('plugins.WorkshopPrinting.extruder.needs_hot_nozzle', { now: nozzle ? Math.round(nozzle.current) : '--', min: Math.round(minExtrusion) }) }}
 		</v-alert>
+		<!-- ONE reason for what this person cannot change here (the kind of extruder and what is saved to modefff.g are a technician's) -->
+		<lock-reason :min="needConfig" class="mb-3" />
 
 		<!-- Tipo de extrusor -->
 		<div class="text-subtitle-2 mb-1">{{ $t('plugins.WorkshopPrinting.extruder.kind_title', { tool: toolName }) }}</div>
@@ -65,7 +67,7 @@
 		</v-alert>
 		<div v-if="calculation" class="d-flex flex-wrap mt-2" style="gap:8px">
 			<v-btn small outlined :disabled="busy" @click="applyChanges(false)">{{ $t('plugins.WorkshopPrinting.extruder.apply_now_until_the_mode_changes') }}</v-btn>
-			<v-btn small :color="armed === 'save' ? 'amber darken-3' : 'primary'" :disabled="busy" @click="arm('save', () => applyChanges(true))">
+			<v-btn small :color="armed === 'save' ? 'amber darken-3' : 'primary'" :disabled="busy || !canConfig" @click="arm('save', () => applyChanges(true))">
 				{{ armed === 'save' ? $t('plugins.WorkshopPrinting.common.tap_again') : $t('plugins.WorkshopPrinting.common.save_to_modefff_g') }}
 			</v-btn>
 		</div>
@@ -86,6 +88,7 @@ import { CFG_FILE, MATERIALS_DEF, readJson, updateCfg, changeLineMode, isError, 
 import { rememberForNozzle } from './nozzle-store.js'
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared
 import { roleMixin } from './role-mixin.js' // what the role may do (vue/_shared)
+import LockReason from './LockReason.vue' // vue/_shared36
 import { isFriendly } from './print-errors.js'
 import { NEED } from './print-sections.js'
 import { kindOfTool, loadExtruderKinds, saveExtruderKind } from './extruder-kind.js' // pellets or filament of each tool (printing.json)
@@ -93,7 +96,9 @@ import { extrudeCodes } from './tool-codes.js' // heat, cool and extrusion codes
 
 export default {
 	mixins: [roleMixin],
-	components: { ErrorNotice, PcSection },
+	sessionData: ['armed', 'busy', 'msg', 'msgKind', 'failure'], // what the person who left did or was refused stays nowhere (ESTANDAR 3)
+	sessionErrors: ['msg', 'msgKind', 'failure'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
+	components: { ErrorNotice, PcSection, LockReason },
 	props: {
 		isFff: { type: Boolean, default: false },
 		nozzle: { type: Object, default: null },
@@ -118,6 +123,9 @@ export default {
 		},
 		canConfig() {
 			return this.atLeast(NEED.configure);
+		},
+		needConfig() {
+			return NEED.configure;
 		},
 		currentSteps() {
 			return this.extruder ? this.extruder.stepsPerMm : null;
