@@ -14,6 +14,7 @@ export const SECTIONS = [
 	{ id: 'state', icon: 'mdi-thermometer', label: 'common.status', group: 'printing.group_operate', fff: true },
 	{ id: 'bed', icon: 'mdi-radiator', label: 'printing.bed_zones', group: 'printing.group_operate', fff: true },
 	{ id: 'pellet', icon: 'mdi-grain', label: 'printing.pellet_panel', group: 'printing.group_operate', fff: true },
+	{ id: 'hotend', icon: 'mdi-printer-3d-nozzle', label: 'printing.filament_panel', group: 'printing.group_operate', fff: true },
 	{ id: 'materials', icon: 'mdi-flask-outline', label: 'printing.materials', group: 'printing.group_operate', min: 'operator', fff: true },
 	{ id: 'filament', icon: 'mdi-tray-arrow-down', label: 'printing.filament_load', group: 'printing.group_operate', min: 'operator', fff: true },
 	{ id: 'job', icon: 'mdi-cube-outline', label: 'fff.tab', group: 'printing.group_operate', fff: true },
@@ -25,12 +26,12 @@ export const SECTIONS = [
 ];
 
 // ids of the sections that do not apply to this machine: the head change on a machine that uses one mode only, the pellet sections
-// (panel and setup) on a filament extruder, the filament load on a pellet extruder
+// (panel and setup) on a filament extruder, the filament load and the filament panel on a pellet extruder
 export function hiddenIds(hideHead, kind) {
 	const ids = [];
 	if (hideHead) ids.push('head');
 	if (kind === 'filament') ids.push('pellet', 'zones');
-	else ids.push('filament');
+	else ids.push('filament', 'hotend');
 	return ids;
 }
 

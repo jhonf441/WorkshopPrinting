@@ -7,6 +7,7 @@ export const SECTION_COLORS = {
 	state: '#1E88E5',
 	bed: '#C2185B',
 	pellet: '#F4511E',
+	hotend: '#FB8C00',
 	materials: '#AB47BC',
 	filament: '#8D6E63',
 	job: '#FFA000',

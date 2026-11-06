@@ -219,6 +219,11 @@
 						<pellet :is-fff="isFff" :current-tool="tool" :heaters="heaters" :tools="tools" :fans="fans" @goto="goTo" />
 					</v-tab-item>
 
+					<!-- ===== Operate: the filament panel (heater, extruder flow, layer fan, hotend fan; filament tools only: hiddenIds) ===== -->
+					<v-tab-item value="hotend">
+						<filament-panel :is-fff="isFff" :tool="tool" :heaters="heaters" :fans="fans" :state="state" @goto="goTo" />
+					</v-tab-item>
+
 					<!-- ===== Configure: pellet zones (reorder, steps, feeding, outputs and sensors; writes modefff.g) ===== -->
 					<v-tab-item v-if="canConfig" value="zones">
 						<pellet-setup :is-fff="isFff" :current-tool="tool" :heaters="heaters" :fans="fans" :state="state" @goto="goTo" />
@@ -302,6 +307,7 @@ import { roleMixin } from './role-mixin.js' // what the role sees and may do (vu
 import { sideItems, sectionToShow, restoreSection, hiddenIds, NEED, SECTIONS } from './print-sections.js'
 import LockReason from './LockReason.vue' // vue/_shared36
 import HiddenNote from './HiddenNote.vue' // the quiet line for the sections the role does not see (vue/_shared)
+import FilamentPanel from './FilamentPanel.vue'
 import { kindOfTool, loadExtruderKinds } from './extruder-kind.js' // pellets or filament of each tool: the pellet sections only show for a pellet tool
 
 export default {
@@ -309,7 +315,7 @@ export default {
 	// what the person who left had read or done stays nowhere: the messages and the armed tap go, the files are read again (onSessionChange)
 	sessionData: ['armed', 'msg', 'msgKind', 'modeHasM302'],
 	sessionErrors: ['msg', 'msgKind'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
-	components: { PageHeader, SideTabs, HiddenNote, LockReason, HeadChange: HeadChange, Materiales: materials, Extrusor: extruder, Pid, Pellet, PelletSetup, PrintingStartup: StartupPrint, StartupPanel: StartupPanel, ChartState, BedZones, FffJob, FilamentLoad, PcSection },
+	components: { PageHeader, SideTabs, HiddenNote, LockReason, HeadChange: HeadChange, Materiales: materials, Extrusor: extruder, Pid, Pellet, PelletSetup, PrintingStartup: StartupPrint, StartupPanel: StartupPanel, ChartState, BedZones, FffJob, FilamentLoad, FilamentPanel, PcSection },
 	data() {
 		let section = restoreSection(null);
 		try {

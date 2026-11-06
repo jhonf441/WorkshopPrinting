@@ -1,5 +1,9 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.17.3 -- 2026-11-06
+
+- Filament extruder panel in Operate: heater, flow, layer fan and hotend fan
+
 ## 2.17.2 -- 2026-11-05
 
 - QA batch: 3D view resets per file, draws the bed for a file with no layers
