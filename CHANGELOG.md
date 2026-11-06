@@ -1,5 +1,9 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.17.8 -- 2026-11-06
+
+- Refusals: the sign-in chip and only the note nearest to the touch blink; a reason fits its text so the blink rings the words
+
 ## 2.17.7 -- 2026-11-06
 
 - Side bar and session: the bar follows the session, the real icon with a small lock, the needed role under the name; a page follows a sign-in made in another tab

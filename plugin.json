@@ -2,7 +2,7 @@
   "id": "WorkshopPrinting",
   "name": "3D Printing",
   "author": "jhonf441",
-  "version": "2.17.7",
+  "version": "2.17.8",
   "license": "GPL-3.0-or-later",
   "homepage": "https://github.com/jhonf441/WorkshopPrinting",
   "tags": [
@@ -29,9 +29,9 @@
     "sys/workshop/macros/work/bedzones-set.g"
   ],
   "dwcFiles": [
-    "css/WorkshopPrinting.a717301f.css",
-    "css/WorkshopPrinting.a717301f.css.gz",
-    "js/WorkshopPrinting.8ef25fa6.js",
-    "js/WorkshopPrinting.8ef25fa6.js.gz"
+    "css/WorkshopPrinting.a9a83bd0.css",
+    "css/WorkshopPrinting.a9a83bd0.css.gz",
+    "js/WorkshopPrinting.c06ec5e8.js",
+    "js/WorkshopPrinting.c06ec5e8.js.gz"
   ]
 }
