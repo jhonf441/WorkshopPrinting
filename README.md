@@ -1,5 +1,11 @@
 # WorkshopPrinting (3D printing)
 
+<!-- notice:start -->
+> **Read before installing.** This plugin runs with real permissions on your machine. Read [SECURITY.md](SECURITY.md) and the section **Permissions and what it changes** below: they say what it can do, which files it writes, and what it sends outside your network (nothing, unless you turn a feature on).
+
+> **The Workshop users and roles do not protect DWC itself.** Anyone who can open DWC on your network can send G-code, move the machine, edit `config.g` and upload files, whatever the Workshop roles say: Duet has no roles of its own. Set a DWC password (`M551`) and keep the machine on a network you trust.
+<!-- notice:end -->
+
 
 
 Page `/Plugins/Printing` ("3D printing"). Heaters, extruder, materials and the 3D job (FFF mode): state, preheat and configuration, head change guide, printer tests, pellet zones and feed, extruder flow, nozzle change and PID calibration (M303). It is made for pellet extruders and also works with a filament extruder (see *Extruder type*).

@@ -1,3 +1,4 @@
+<!-- lock-reason-in-parent: the ONE reason of this group is drawn by Pellet.vue / PelletSetup.vue, so the controls below are disabled without repeating it -->
 <template>
 	<!-- Nozzle change of the pellet extruder (technician): guided steps (hot, because the pellet inside is hard when cold) and what has to be
 	     done again afterwards, since the firmware does not know the diameter. -->
@@ -17,7 +18,6 @@
 					:label="$t('plugins.WorkshopPrinting.nozzle.fitted_diameter')" suffix="mm" :disabled="!configure || busyHere" />
 				<v-btn small color="primary" :disabled="!configure || !validFirst || busyHere" :loading="running === 'first'" @click="registerCurrent">{{ $t('plugins.WorkshopPrinting.nozzle.first_button') }}</v-btn>
 			</div>
-			<lock-reason min="technician" class="mt-1" />
 			<v-alert v-if="firstMsg" dense text :type="firstKind" class="mt-2 mb-0">{{ firstMsg }}</v-alert>
 		</v-card>
 
@@ -73,7 +73,6 @@
 					<div class="text-caption">{{ $t('plugins.WorkshopPrinting.nozzle.profile_found', { date: profile.date || '?' }) }}</div>
 					<div v-for="i in profileItems" :key="i.id" class="text-caption"><b>{{ $t('plugins.WorkshopPrinting.nozzle.profile_' + i.id) }}</b>: <code>{{ i.text }}</code></div>
 					<v-btn x-small color="primary" class="mt-1" :disabled="!configure || busyHere" :loading="applying" @click="applySaved">{{ $t('plugins.WorkshopPrinting.nozzle.profile_apply') }}</v-btn>
-					<lock-reason min="technician" class="mt-1" />
 				</div>
 				<div v-else-if="!restored.length && after && after.change !== 'same'" class="text-caption grey--text mt-2">{{ $t('plugins.WorkshopPrinting.nozzle.profile_none', { d: diameter }) }}</div>
 				<v-alert v-if="restored.length" dense text type="success" class="mt-2 mb-0">{{ $t('plugins.WorkshopPrinting.nozzle.profile_applied', { list: restored.map(i => $t('plugins.WorkshopPrinting.nozzle.profile_' + i)).join(', ') }) }}</v-alert>
@@ -94,7 +93,6 @@ import i18n from '../../i18n'
 'use strict'
 
 import { mapActions } from 'vuex'
-import LockReason from './LockReason.vue' // vue/_shared36
 import { isError, updateCfg, note } from './util.js'
 import { nozzleState } from './nozzle-state.js'
 import { validDiameter, sizeChange, slicerLimits, followUps } from './nozzle-change.js'
@@ -103,7 +101,6 @@ import { getProfile, profileItems } from './nozzle-profiles.js'
 import { readProfiles, snapshotNozzle, applyProfile } from './nozzle-store.js'
 
 export default {
-	components: { LockReason },
 	props: {
 		tool: { type: Object, default: null },
 		zones: { type: Array, default: () => [] }, // heaters of the tool, nozzle first

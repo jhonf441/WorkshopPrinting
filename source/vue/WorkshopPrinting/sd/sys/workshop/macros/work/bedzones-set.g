@@ -1,9 +1,9 @@
 ; bedzones-set.g -- BACKUP of the "Bed zones" section of Printing: sets the temperature of the bed zones from the board alone, with
 ; WorkshopService stopped. The service is what splits a slicer's "M140 S60" (no bed number) across the zones; without it that code only reaches bed 0.
 ;
-;     M98 P"0:/sys/workshop/macros/bedzones-set.g" S60        every active zone to 60 C (plus its offset)
-;     M98 P"0:/sys/workshop/macros/bedzones-set.g" S0         every zone of the settings off, active or not (a stop reaches all of them)
-;     M98 P"0:/sys/workshop/macros/bedzones-set.g" S60 B2     ONLY bed 2, exactly 60 C (no offset), the way the page's per-zone setpoint does
+;     M98 P"0:/sys/workshop/macros/work/bedzones-set.g" S60        every active zone to 60 C (plus its offset)
+;     M98 P"0:/sys/workshop/macros/work/bedzones-set.g" S0         every zone of the settings off, active or not (a stop reaches all of them)
+;     M98 P"0:/sys/workshop/macros/work/bedzones-set.g" S60 B2     ONLY bed 2, exactly 60 C (no offset), the way the page's per-zone setpoint does
 ;
 ; Param S: temperature in C (0 or less turns the zones off). Param B (optional): one bed number instead of all the active zones.
 ; The bed is B and NOT P: in M98 the P is the name of this file, so a macro never receives a P (a P written after the file name is lost and ALL the zones are set).
@@ -13,7 +13,7 @@
 ; The firmware keeps its own protection and this macro never goes around it: the PID, the M143 limit and the fault detection of every heater are RRF's, and
 ; a temperature at or over the M143 limit of a heater is refused here BEFORE anything is sent. It does not wait for the temperature (use M116).
 
-var en = exists(global.workshopLanguage) ? (global.workshopLanguage == "en") : false   ; messages in English (DWC language, see sys/workshop/macros/language.g)
+var en = exists(global.workshopLanguage) ? (global.workshopLanguage == "en") : false   ; messages in English (DWC language, see sys/workshop/macros/system/language.g)
 var maxTemp = 110    ; C: only when the service never wrote bedzones.g; otherwise the maximum of the Bed zones settings is used
 var copy = fileexists("0:/sys/workshop/config/bedzones.g")
 if var.copy

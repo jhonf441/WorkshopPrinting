@@ -32,11 +32,11 @@
 					</div>
 					<v-alert v-if="msg" dense text :type="msgKind" class="mt-2 mb-0">{{ msg }}</v-alert>
 				</v-card>
-		<hidden-note :sections="allSections" class="mb-2" />
 		<div class="st-layout">
 				<side-tabs v-model="section" :items="tabItems" />
 				<div class="st-body" :style="{ '--wf-sec': secColor }">
-				<v-tabs-items v-model="section" class="transparent">
+				<locked-cover v-if="lockedNow" :needed="lockedNow" />
+				<v-tabs-items v-else v-model="section" class="transparent">
 					<!-- ===== Operate: Estado ===== -->
 					<v-tab-item value="state">
 						<pc-section icon="mdi-thermometer" :title="$t('plugins.WorkshopPrinting.common.status')">
@@ -50,7 +50,6 @@
 							<v-btn small class="mt-2" outlined :loading="coldSending" :disabled="!canOperate" @click="blockCold()">
 								<v-icon small left>mdi-lock</v-icon>{{ $t('plugins.WorkshopPrinting.printing.lock_cold_extrusion') }}
 							</v-btn>
-							<lock-reason :min="needOperate" class="mt-1" />
 						</v-alert>
 						<div class="d-flex align-center flex-wrap mb-2" style="gap:16px">
 							<span class="text-body-2">{{ $t('plugins.WorkshopPrinting.printing.heated_bed_line', { state: bedText }) }}</span>
@@ -90,7 +89,6 @@
 										<v-btn x-small outlined color="error" class="mt-1" :disabled="h.sensorBad || !canOperate" :title="h.sensorBad ? $t('plugins.WorkshopPrinting.printing.fix_the_sensor_first') : undefined" @click="deleteFault(h)">
 											{{ $t('plugins.WorkshopPrinting.printing.clear_fault_m562') }}
 										</v-btn>
-										<lock-reason :min="needOperate" class="mt-1" />
 									</template>
 								</v-card>
 							</v-col>
@@ -113,7 +111,6 @@
 							<v-btn small outlined :disabled="!canOperate" @click="cool()">
 								<v-icon small left>mdi-snowflake</v-icon>{{ $t('plugins.WorkshopPrinting.printing.turn_off_all_heaters') }}
 							</v-btn>
-							<lock-reason :min="needOperate" class="align-self-center" />
 						</div>
 						<!-- How it is configured (2026-10-11): what the board's model says
 						     for each heater; "Read from the board" also asks for the output, the
@@ -185,11 +182,11 @@
 								<v-btn v-else small :color="armed === 'cold' ? 'amber darken-3' : 'error'" :outlined="armed !== 'cold'" :disabled="coldAllowed == null || !canAllowCold" :loading="coldSending" @click="touchCold()">
 									<v-icon small left>mdi-lock-open-variant</v-icon>{{ armed === 'cold' ? $t('plugins.WorkshopPrinting.printing.tap_again_allow_cold_extrusion') : $t('plugins.WorkshopPrinting.printing.allow_cold_extrusion') }}
 								</v-btn>
-								<lock-reason v-if="coldAllowed" :min="needOperate" />
 								<div v-else-if="coldAllowed == null" class="wf-note is-info mb-0 mt-0" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ $t('plugins.WorkshopPrinting.printing.no_data_from_the_board_yet') }}</span></div>
-								<lock-reason v-else :min="needCold" />
 							</div>
 						</v-card>
+						<!-- ONE reason for the whole tab (clear fault, turn off, cold extrusion), below the controls -->
+						<lock-reason :min="stateNeed" class="mt-3" />
 						<div v-if="isFff && extruder" class="text-caption grey--text mt-3">
 							{{ $t('plugins.WorkshopPrinting.printing.extruder_steps', { n: extruder.stepsPerMm }) }}
 						</div>
@@ -304,9 +301,9 @@ const riskColdEnd = () => api('risk.end', { id: 'extrusion_cold' });
 import SideTabs from './SideTabs.vue'
 import { sectionColor } from './section-colors.js' // the color of the open section (top line of the card)
 import { roleMixin } from './role-mixin.js' // what the role sees and may do (vue/_shared)
-import { sideItems, sectionToShow, restoreSection, hiddenIds, NEED, SECTIONS } from './print-sections.js'
+import { sideItems, sectionToShow, lockedSection, restoreSection, hiddenIds, NEED, SECTIONS } from './print-sections.js'
 import LockReason from './LockReason.vue' // vue/_shared36
-import HiddenNote from './HiddenNote.vue' // the quiet line for the sections the role does not see (vue/_shared)
+import LockedCover from './LockedCover.vue' // the cover of a section the role cannot open (vue/_shared36)
 import FilamentPanel from './FilamentPanel.vue'
 import { kindOfTool, loadExtruderKinds } from './extruder-kind.js' // pellets or filament of each tool: the pellet sections only show for a pellet tool
 
@@ -315,7 +312,7 @@ export default {
 	// what the person who left had read or done stays nowhere: the messages and the armed tap go, the files are read again (onSessionChange)
 	sessionData: ['armed', 'msg', 'msgKind', 'modeHasM302'],
 	sessionErrors: ['msg', 'msgKind'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
-	components: { PageHeader, SideTabs, HiddenNote, LockReason, HeadChange: HeadChange, Materiales: materials, Extrusor: extruder, Pid, Pellet, PelletSetup, PrintingStartup: StartupPrint, StartupPanel: StartupPanel, ChartState, BedZones, FffJob, FilamentLoad, FilamentPanel, PcSection },
+	components: { PageHeader, SideTabs, LockedCover, LockReason, HeadChange: HeadChange, Materiales: materials, Extrusor: extruder, Pid, Pellet, PelletSetup, PrintingStartup: StartupPrint, StartupPanel: StartupPanel, ChartState, BedZones, FffJob, FilamentLoad, FilamentPanel, PcSection },
 	data() {
 		let section = restoreSection(null);
 		try {
@@ -389,12 +386,21 @@ export default {
 		needCold() {
 			return NEED.cold;
 		},
+		// the role the controls of the state tab need, for its one reason: operate; with cold extrusion on the page (FFF) the higher one once operate is met
+		stateNeed() {
+			if (!this.canOperate) return NEED.operate;
+			return this.isFff && !this.canAllowCold ? NEED.cold : '';
+		},
 		needConfig() {
 			return NEED.configure;
 		},
-		// every section with its role, for the note about the ones this person does not see
+		// every section with its role
 		allSections() {
 			return SECTIONS;
+		},
+		// the role that opens the open section, or '' when this role may
+		lockedNow() {
+			return lockedSection(this.section, op => this.canDo(op));
 		},
 		canConfig() {
 			return this.atLeast(NEED.configure);

@@ -9,11 +9,18 @@
 
 import { tzFffTempClass, tzFffTempTarget, TZ_FFF_CLASS_COLOR } from './fff-temps.js'
 
-export const MAX_ZONES = 8 // dsf/bed_zones_config.py MAX_ZONES
 export const MAX_LAYOUT = 4 // rows / columns of the map
+export const MAX_ZONES = MAX_LAYOUT * MAX_LAYOUT // what the map can draw (dsf/bed_zones_config.py MAX_ZONES): the ceiling of the page, NOT what a board supports (see zoneLimit)
 export const AMBIENT = 20 // the cold end of the map colors, in C
 const NO_SENSOR_BELOW = -200 // a thermistor that is not connected reads about -273: that is no reading, not a very cold bed (the Status chart cuts at the same value)
 const NO_DATA = '#9e9e9e' // the "off" color of fff-temps.js
+
+// How many zones THIS board supports: its own number of bed heaters (object model limits.bedHeaters, RRF 3.4+), never more than the map draws. A board that does not
+// report it only has the map as the ceiling: there is no fixed number of beds.
+export function zoneLimit(model) {
+	const n = model && model.limits && model.limits.bedHeaters
+	return Number.isInteger(n) && n > 0 ? Math.min(n, MAX_ZONES) : MAX_ZONES
+}
 
 // The default configuration of the service (dsf/bed_zones.py DEFAULTS + bed_zones_config.defaults()): used only until the first answer arrives
 export function emptyConfig() {
@@ -208,8 +215,9 @@ export function boardCheck(detected, config) {
 
 // The Bed heaters assistant of Machine (the plan of the configuration: preview, backup, history) with the beds to define: the Bed zones section never writes heater lines itself.
 // Machine reads ?layout=beds&beds=1,2,3 (vue/WorkshopMachine lib/cross-page.js); null when there is nothing to define.
-export function machineBedsRoute(beds) {
-	const list = (Array.isArray(beds) ? beds : []).filter((n, i, a) => Number.isInteger(n) && n >= 0 && n <= 31 && a.indexOf(n) === i).slice(0, MAX_ZONES)
+export function machineBedsRoute(beds, limit) {
+	const room = Number.isInteger(limit) && limit > 0 ? limit : MAX_ZONES
+	const list = (Array.isArray(beds) ? beds : []).filter((n, i, a) => Number.isInteger(n) && n >= 0 && n <= 31 && a.indexOf(n) === i).slice(0, room)
 	return list.length ? { path: '/Plugins/Machine', query: { layout: 'beds', beds: list.join(',') } } : null
 }
 
@@ -227,7 +235,7 @@ export function fitLayout(count, layout) {
 	return { rows: String(rows), columns: String(columns) }
 }
 
-// The beds the board defines (heat.bedHeaters, live) that no zone covers yet, in bed order, up to the room left under MAX_ZONES. The map only draws the configured zones, so a
+// The beds the board defines (heat.bedHeaters, live) that no zone covers yet, in bed order, up to the room left under the limit of the board (zoneLimit). The map only draws the configured zones, so a
 // bed defined later in Machine is offered here instead of staying invisible.
 export function unassignedBeds(model, config) {
 	const heat = (model && model.heat) || {}
@@ -236,7 +244,7 @@ export function unassignedBeds(model, config) {
 	const have = ((config && config.zones) || []).map(z => z.bed)
 	const found = []
 	slots.forEach((idx, bed) => { if (Number.isInteger(idx) && idx >= 0 && heaters[idx] && have.indexOf(bed) < 0) found.push(bed) })
-	return found.slice(0, Math.max(0, MAX_ZONES - have.length))
+	return found.slice(0, Math.max(0, zoneLimit(model) - have.length))
 }
 
 // The configuration with those beds added as zones (active, no offset) and the map grown to hold them: what the one-tap button of the page saves.
@@ -244,4 +252,16 @@ export function withBeds(config, beds) {
 	const zones = ((config && config.zones) || []).concat(beds.map(bed => ({ bed, active: true, offset: 0 })))
 	const l = fitLayout(zones.length, config && config.layout)
 	return Object.assign({}, config, { zones, layout: { rows: +l.rows, columns: +l.columns } })
+}
+
+// The first step when the board has no bed at all: DEFINE the zone (name, heater, size of the limit) before anything can be set or watched. `detected` = the beds the service
+// found (bedzones.get), `model` = the live object model. needed: true when neither the model nor the service knows a bed heater; beds: what to ask Machine to define (the first
+// configured zone, else bed 0): one zone first, the others follow from the same assistant.
+export function firstDefinition(model, detected, config) {
+	const heat = (model && model.heat) || {}
+	const inModel = (heat.bedHeaters || []).some((idx, bed) => Number.isInteger(idx) && idx >= 0 && !!(heat.heaters || [])[idx] && bed >= 0)
+	const inService = (detected || []).some(d => d && d.heater !== null && d.heater !== undefined)
+	const zones = (config && config.zones) || []
+	const first = zones.length ? zones.map(z => z.bed).filter(Number.isInteger).sort((a, b) => a - b)[0] : 0
+	return { needed: !inModel && !inService, beds: [Number.isInteger(first) ? first : 0] }
 }

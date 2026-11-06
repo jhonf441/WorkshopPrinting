@@ -1545,6 +1545,13 @@
 		"preview_note": "Vista previa: así se verá con los cambios del formulario. Se conservan al pulsar Guardar; Cancelar los descarta. Aún no se usan para calentar.",
 		"machine_note": "La placa no tiene las camas {beds}. Se definen en Machine > Camas calientes: un plan con respaldo que muestra las líneas exactas antes de escribir.",
 		"open_machine": "Abrir en Machine",
+		"define_title": "Define la primera zona de cama",
+		"define_body": "La placa aún no tiene ningún calentador de cama, así que no hay nada que calentar ni mirar. Define primero la zona; después esta página muestra el mapa y los controles.",
+		"define_step_name": "Nombre de la zona (por ejemplo Zona de cama 1).",
+		"define_step_heater": "Calentador: el pin del sensor y la salida del calentador de la placa que usa esta zona.",
+		"define_step_size": "Tamaño: la temperatura más alta que puede alcanzar esta zona (el límite de seguridad que hace cumplir la placa).",
+		"define_btn": "Definir la zona en Machine",
+		"define_blocked": "Definir una zona necesita el plugin Machine y una sesión de técnico: escribe la configuración de la placa con un plan y un respaldo.",
 		"zones_count": "{n} de {max} zonas",
 		"zones_limit": "Por ahora el máximo es de {max} zonas.",
 		"map_scale": "Escala de color: de {min} °C hasta la temperatura máxima de las zonas ({max} °C), que se cambia en Ajustes."

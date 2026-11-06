@@ -8,7 +8,7 @@
 // `min` = the lowest role that sees the section (role-view.js; none = everybody). The roles apply in the service; this only decides what
 // is worth showing. A viewer sees Operate in read-only (the buttons of the pages are disabled for a role below operator).
 
-import { visibleItems, pickAllowed } from './role-view.js'
+import { visibleItems, pickAllowed, lockedItems, lockedNeed } from './role-view.js'
 
 export const SECTIONS = [
 	{ id: 'state', icon: 'mdi-thermometer', label: 'common.status', group: 'printing.group_operate', fff: true },
@@ -60,17 +60,26 @@ export function sectionUsable(section, isFff) {
 
 // The section to show: the wanted one when the role sees it and the mode lets it work; else (not FFF) the head change when the role
 // sees it; else the first the role sees
+// A section above the role stays openable (it shows the cover that says why, AWS rule), so `wanted` wins even when it is locked.
 export function sectionToShow(wanted, isFff, can, hide) {
-	const ok = visibleSections(can, hide);
-	const w = ok.find(s => s.id === wanted);
+	const skip = Array.isArray(hide) ? hide : [];
+	const all = lockedItems(SECTIONS, can).filter(s => skip.indexOf(s.id) < 0);
+	const w = all.find(s => s.id === wanted);
 	if (w && sectionUsable(w, isFff)) return w.id;
-	const usable = ok.find(s => sectionUsable(s, isFff));
-	return usable ? usable.id : (ok.length ? ok[0].id : wanted);
+	const usable = all.find(s => !s.locked && sectionUsable(s, isFff));
+	return usable ? usable.id : (all.length ? all[0].id : wanted);
+}
+
+// the role that opens the section `id`, or '' when the role may open it
+export function lockedSection(id, can) {
+	return lockedNeed(SECTIONS, id, can);
 }
 
 // The items of the side bar; t(key) = the page's translator (key relative to plugins.WorkshopPrinting)
+// ALL the sections that apply to the machine; the ones above the role carry `locked: <role that opens it>` (a lock in the bar, a cover when opened)
 export function sideItems(t, isFff, can, hide) {
-	return visibleSections(can, hide).map(s => ({ id: s.id, icon: s.icon, label: t(s.label), group: t(s.group), disabled: !sectionUsable(s, isFff), hint: sectionUsable(s, isFff) ? undefined : t('printing.needs_fff_mode_hint') }));
+	const skip = Array.isArray(hide) ? hide : [];
+	return lockedItems(SECTIONS, can).filter(s => skip.indexOf(s.id) < 0).map(s => Object.assign({ id: s.id, icon: s.icon, label: t(s.label), group: t(s.group), disabled: !sectionUsable(s, isFff), hint: sectionUsable(s, isFff) ? undefined : t('printing.needs_fff_mode_hint') }, s.locked ? { locked: s.locked } : {}));
 }
 
 // ---- who may do what on this page (one operation of the service table per rule: role-view.js roleAtLeast) ----

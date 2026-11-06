@@ -2,7 +2,7 @@
   "id": "WorkshopPrinting",
   "name": "3D Printing",
   "author": "jhonf441",
-  "version": "2.17.3",
+  "version": "2.17.7",
   "license": "GPL-3.0-or-later",
   "homepage": "https://github.com/jhonf441/WorkshopPrinting",
   "tags": [
@@ -26,12 +26,12 @@
     "sys/workshop/examples/WorkshopPrinting/sys/modefff.g",
     "sys/workshop/examples/WorkshopPrinting/sys/modelaser.g",
     "sys/workshop/examples/WorkshopPrinting/sys/modestate.g",
-    "sys/workshop/macros/bedzones-set.g"
+    "sys/workshop/macros/work/bedzones-set.g"
   ],
   "dwcFiles": [
-    "css/WorkshopPrinting.15856ffc.css",
-    "css/WorkshopPrinting.15856ffc.css.gz",
-    "js/WorkshopPrinting.d1335593.js",
-    "js/WorkshopPrinting.d1335593.js.gz"
+    "css/WorkshopPrinting.a717301f.css",
+    "css/WorkshopPrinting.a717301f.css.gz",
+    "js/WorkshopPrinting.8ef25fa6.js",
+    "js/WorkshopPrinting.8ef25fa6.js.gz"
   ]
 }

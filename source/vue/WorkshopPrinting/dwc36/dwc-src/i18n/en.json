@@ -1545,6 +1545,13 @@
 		"preview_note": "Preview: this is how it will look with the form's changes. Saving keeps them; Cancel drops them. They are not used for heating yet.",
 		"machine_note": "The board does not have beds {beds}. They are defined in Machine > Bed heaters: a plan with a backup that shows the exact lines before writing.",
 		"open_machine": "Open in Machine",
+		"define_title": "Define the first bed zone",
+		"define_body": "The board has no bed heater yet, so there is nothing to heat or watch. Define the zone first; then this page shows the map and the controls.",
+		"define_step_name": "Name of the zone (for example Bed zone 1).",
+		"define_step_heater": "Heater: the sensor pin and the heater output of the board that this zone uses.",
+		"define_step_size": "Size: the highest temperature this zone may reach (the safety limit the board enforces).",
+		"define_btn": "Define the zone in Machine",
+		"define_blocked": "Defining a zone needs the Machine plugin and a technician session: it writes the board configuration with a plan and a backup.",
 		"zones_count": "{n} of {max} zones",
 		"zones_limit": "For now the maximum is {max} zones.",
 		"map_scale": "Color scale: from {min} °C to the maximum temperature of the zones ({max} °C), which is changed in Settings."

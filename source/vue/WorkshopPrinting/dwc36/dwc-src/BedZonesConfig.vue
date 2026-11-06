@@ -65,7 +65,7 @@
 // configuration with the revision it was read at (op bedzones.set): the service validates again and refuses a stale revision. Save is the one filled
 // button; Cancel puts the form back as saved.
 import { api } from './workshop-api.js'
-import { draftOf, configOf, sameConfig, fitLayout, MAX_ZONES } from './bed-zones.js'
+import { draftOf, configOf, sameConfig, fitLayout, zoneLimit, MAX_ZONES } from './bed-zones.js'
 import WfField from './WfField.vue' // vue/_shared36
 import HelpTip from './HelpTip.vue' // vue/_shared36
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared36
@@ -85,9 +85,13 @@ export default {
 		rev: { type: String, required: true }
 	},
 	data() {
-		return { draft: draftOf(this.config), errors: {}, serverErrors: [], failure: null, saving: false, limits: LIMITS, max: MAX_ZONES }
+		return { draft: draftOf(this.config), errors: {}, serverErrors: [], failure: null, saving: false, limits: LIMITS }
 	},
 	computed: {
+		// the zones THIS board supports (its own bed heaters), not a fixed number
+		max() {
+			return this.$store && this.$store.state && this.$store.state.machine ? zoneLimit(this.$store.state.machine.model) : MAX_ZONES
+		},
 		dirty() {
 			return !sameConfig(this.draft, draftOf(this.config))
 		}

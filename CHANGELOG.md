@@ -1,5 +1,21 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.17.7 -- 2026-11-06
+
+- Side bar and session: the bar follows the session, the real icon with a small lock, the needed role under the name; a page follows a sign-in made in another tab
+
+## 2.17.6 -- 2026-11-06
+
+- Roles y permisos: una razon por grupo, rechazos nunca en rojo, controles bloqueados visibles, secciones con candado, permisos con allow/deny
+
+## 2.17.5 -- 2026-11-06
+
+- Macros of sys/workshop/macros are now in folders (axis, zcal, focus, work, guard, laser, probe, system); install together with the service and the SD migration
+
+## 2.17.4 -- 2026-11-06
+
+- Beds: define the first zone first, bed limit from the board
+
 ## 2.17.3 -- 2026-11-06
 
 - Filament extruder panel in Operate: heater, flow, layer fan and hotend fan

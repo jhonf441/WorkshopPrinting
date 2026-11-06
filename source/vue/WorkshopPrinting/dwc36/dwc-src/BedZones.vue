@@ -2,6 +2,20 @@
 	<div class="bz-page">
 		<error-notice v-if="failure" :error="failure" :action="$t('plugins.WorkshopPrinting.bedZones.acting')" retry class="mb-3" @retry="load()" />
 
+		<!-- first step: the board has no bed, so there is nothing to set or watch yet. Define the zone first (name, heater, size of the limit), then the rest of the page appears -->
+		<v-card v-if="loaded && definition.needed" outlined class="pa-4 mb-3 bz-define">
+			<div class="text-subtitle-1 font-weight-medium">{{ $t('plugins.WorkshopPrinting.bedZones.define_title') }}</div>
+			<p class="text-body-2 mt-1 mb-2">{{ $t('plugins.WorkshopPrinting.bedZones.define_body') }}</p>
+			<ol class="text-body-2 mb-3">
+				<li>{{ $t('plugins.WorkshopPrinting.bedZones.define_step_name') }}</li>
+				<li>{{ $t('plugins.WorkshopPrinting.bedZones.define_step_heater') }}</li>
+				<li>{{ $t('plugins.WorkshopPrinting.bedZones.define_step_size') }}</li>
+			</ol>
+			<v-btn v-if="machineActive && canConfigure" color="primary" @click="defineFirst()"><v-icon left>mdi-plus-circle-outline</v-icon>{{ $t('plugins.WorkshopPrinting.bedZones.define_btn') }}</v-btn>
+			<div v-else class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.bedZones.define_blocked') }}</div>
+		</v-card>
+
+		<template v-if="!definition.needed">
 		<div v-if="loaded && !config.enabled" class="wf-note is-warn mb-3" role="note">
 			<v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon>
 			<span>{{ $t('plugins.WorkshopPrinting.bedZones.off_note') }}</span>
@@ -113,7 +127,8 @@
 			</div>
 			<bed-zones-config v-if="loaded" class="mt-3" :config="config" :rev="rev" @saved="saved" @reload="load()" @preview="preview = $event" />
 		</v-card>
-		<lock-reason v-else-if="loaded" :min="needConfigure" class="mt-3" />
+		<lock-reason v-else-if="loaded && canSend" :min="needConfigure" class="mt-3" />
+		</template>
 	</div>
 </template>
 
@@ -126,7 +141,7 @@
 import { api } from './workshop-api.js'
 import { roleMixin } from './role-mixin.js' // vue/_shared36
 import { NEED } from './print-sections.js'
-import { zoneRows, alertKey, zoneSeries, setpointOf, boardCheck, unassignedBeds, withBeds, fmtTemp, emptyConfig, machineBedsRoute } from './bed-zones.js'
+import { zoneRows, alertKey, zoneSeries, setpointOf, boardCheck, unassignedBeds, withBeds, fmtTemp, emptyConfig, machineBedsRoute, zoneLimit, firstDefinition } from './bed-zones.js'
 import BedZoneMap from './BedZoneMap.vue'
 import BedZonesConfig from './BedZonesConfig.vue'
 import { pluginActive } from './workshop-ids.js' // vue/_shared36: Machine is another plugin, nothing about it when it is absent
@@ -169,6 +184,10 @@ export default {
 		},
 		unassigned() {
 			return unassignedBeds(this.model, this.config)
+		},
+		// no bed on the board yet: the page offers to DEFINE the first zone instead of empty set / watch controls
+		definition() {
+			return this.loaded ? firstDefinition(this.model, this.detected, this.config) : { needed: false, beds: [] }
 		},
 		check() {
 			return boardCheck(this.detected, this.config)
@@ -296,8 +315,12 @@ export default {
 				this.busy = null
 			}
 		},
+		defineFirst() {
+			const route = machineBedsRoute(this.definition.beds, zoneLimit(this.model))
+			if (route && this.$router) this.$router.push(route).catch(() => {})
+		},
 		openMachine() {
-			const route = machineBedsRoute(this.check.missing)
+			const route = machineBedsRoute(this.check.missing, zoneLimit(this.model))
 			if (route && this.$router) this.$router.push(route).catch(() => {})
 		},
 		numberOf(bed) {
