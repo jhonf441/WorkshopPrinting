@@ -197,6 +197,13 @@
 					</pc-section>
 					</v-tab-item>
 
+					<!-- ===== Operate: bed zones ===== -->
+					<v-tab-item value="bed">
+						<pc-section icon="mdi-radiator" :title="$t('plugins.WorkshopPrinting.printing.bed_zones')" :lead="$t('plugins.WorkshopPrinting.bedZones.lead')">
+							<bed-zones :series="seriesChart" :samples="samples" :is-fff="isFff" />
+						</pc-section>
+					</v-tab-item>
+
 					<!-- ===== Configure: printer tests (ex Puesta en marcha); the chip of the header stays ===== -->
 					<v-tab-item v-if="canConfig" value="tests">
 						<printing-startup :startup-pending="startupPending" :is-fff="isFff" :heaters="heaters" :tools="tools" :fans="fans" :state="state" @go="goSection($event)" />
@@ -266,6 +273,7 @@ import PageHeader from './PageHeader.vue' // header of every page (vue/_shared)
 import { printModesMixin } from './print-modes-mixin.js' // which modes the machine uses: rows, entry, head change
 import StartupPrint from './PrintingStartup.vue' // the start-up assistant of the printing page (not the shared card, see HeadChange.vue)
 import ChartState from './ChartState.vue'
+import BedZones from './BedZones.vue' // the bed split in zones: map, setpoints, chart and settings (service op bedzones.*)
 import FffJob from './FffJob.vue' // 3D job tab: temperatures, print state, job control and 3D view (moved from the Workbench)
 import FilamentLoad from './FilamentLoad.vue' // load / unload filament (filament tools only)
 import { heaterConfigRows } from './heater-config.js' // the rows of "How it is configured"
@@ -301,7 +309,7 @@ export default {
 	// what the person who left had read or done stays nowhere: the messages and the armed tap go, the files are read again (onSessionChange)
 	sessionData: ['armed', 'msg', 'msgKind', 'modeHasM302'],
 	sessionErrors: ['msg', 'msgKind'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
-	components: { PageHeader, SideTabs, HiddenNote, LockReason, HeadChange: HeadChange, Materiales: materials, Extrusor: extruder, Pid, Pellet, PelletSetup, PrintingStartup: StartupPrint, StartupPanel: StartupPanel, ChartState, FffJob, FilamentLoad, PcSection },
+	components: { PageHeader, SideTabs, HiddenNote, LockReason, HeadChange: HeadChange, Materiales: materials, Extrusor: extruder, Pid, Pellet, PelletSetup, PrintingStartup: StartupPrint, StartupPanel: StartupPanel, ChartState, BedZones, FffJob, FilamentLoad, PcSection },
 	data() {
 		let section = restoreSection(null);
 		try {

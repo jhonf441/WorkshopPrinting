@@ -5,6 +5,7 @@
 
 export const SECTION_COLORS = {
 	state: '#1E88E5',
+	bed: '#C2185B',
 	pellet: '#F4511E',
 	materials: '#AB47BC',
 	filament: '#8D6E63',

@@ -9,7 +9,7 @@
 		<div v-show="open">
 			<canvas
 				v-show="!unavailable" ref="canvas" class="fff-canvas"
-				@pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up"
+				@pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up" @contextmenu.prevent
 			/>
 			<div v-if="unavailable" class="wf-note fff-nocanvas">{{ t('fff.no_canvas') }}</div>
 			<div v-if="!prev && !unavailable" class="d-flex justify-center mt-2">

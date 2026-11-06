@@ -12,6 +12,7 @@ import { visibleItems, pickAllowed } from './role-view.js'
 
 export const SECTIONS = [
 	{ id: 'state', icon: 'mdi-thermometer', label: 'common.status', group: 'printing.group_operate', fff: true },
+	{ id: 'bed', icon: 'mdi-radiator', label: 'printing.bed_zones', group: 'printing.group_operate', fff: true },
 	{ id: 'pellet', icon: 'mdi-grain', label: 'printing.pellet_panel', group: 'printing.group_operate', fff: true },
 	{ id: 'materials', icon: 'mdi-flask-outline', label: 'printing.materials', group: 'printing.group_operate', min: 'operator', fff: true },
 	{ id: 'filament', icon: 'mdi-tray-arrow-down', label: 'printing.filament_load', group: 'printing.group_operate', min: 'operator', fff: true },

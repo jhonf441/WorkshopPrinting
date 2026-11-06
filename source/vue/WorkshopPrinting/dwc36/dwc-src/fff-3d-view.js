@@ -37,8 +37,6 @@ export function fff3dInit(h) {
     h.open = true;
   }
   h.unavailable = false;
-  h.view = { rotX: TZ_FFF3D_VIEWS.iso.rotX, rotZ: TZ_FFF3D_VIEWS.iso.rotZ };
-  h.zoom = 1;
   h.withBed = false;
   h.data = null; // {sec, layers, notice}
   h.keyData = "";
@@ -53,11 +51,23 @@ export function fff3dInit(h) {
   h.heightCv = 0;
   h.enc = null;
   h.encKey = "";
-  h.pointers = {};
-  h.nPointers = 0;
   h.dist0 = 0;
   h.zoom0 = 1;
+  h.lastPath = null;
+  fff3dResetView(h);
   return h;
+}
+
+// The camera and the gestures back to how a view starts: isometric, no zoom, no pan, no finger down. Used when the view is made and when another file is
+// shown: before, a zoom, a turn or a finger lost (a pointerup that never came) of the previous file stayed, and the new one opened "wrong".
+export function fff3dResetView(h) {
+  h.view = { rotX: TZ_FFF3D_VIEWS.iso.rotX, rotZ: TZ_FFF3D_VIEWS.iso.rotZ };
+  h.zoom = 1;
+  h.pan = { x: 0, y: 0 };
+  h.pointers = {};
+  h.nPointers = 0;
+  h.dragging = false;
+  h.encKey = "";
 }
 
 export function fff3dSetOpen(h, open) {
@@ -75,6 +85,7 @@ export function fff3dSetView(h, name) {
   if (!v) return;
   h.view = { rotX: v.rotX, rotZ: v.rotZ };
   h.zoom = 1;
+  h.pan = { x: 0, y: 0 };
   fff3dRequest(h);
 }
 
@@ -92,9 +103,15 @@ export function fff3dDestroy(h) {
 }
 
 // ---------- the data of the job ----------
+// A preview with printed layers. The service reads every file as an FFF job (FffJob.vue asks mode FFF whatever the machine mode), so a laser or CNC file
+// comes back with mode FFF and 0 layers: there is nothing to draw, and the file must not be downloaded to count layers (up to 25 MB).
+function printable(p) {
+  return !!p && p.mode === "FFF" && ((p.stats && p.stats.layers) || 0) > 0;
+}
+
 function keyJob(h) {
   var p = h.prev();
-  return p && p.mode === "FFF" ? [h.path(), p.vertices, p.vertices_total, (p.stats && p.stats.layers) || 0].join("|") : "";
+  return printable(p) ? [h.path(), p.vertices, p.vertices_total, (p.stats && p.stats.layers) || 0].join("|") : "";
 }
 
 function armData(h, zs, layers, notice) {
@@ -160,6 +177,8 @@ function readFile(h, myToken) {
 // called when the job shown changes (and when the card is opened)
 export function fff3dUpdate(h) {
   var k = keyJob(h);
+  var shown = h.path();
+  if (shown !== h.lastPath) { h.lastPath = shown; fff3dResetView(h); } // another file: the view starts again
   if (k !== h.keyData) {
     h.keyData = k;
     h.token++;
@@ -168,7 +187,8 @@ export function fff3dUpdate(h) {
   }
   if (!h.open) return;
   if (!k) {
-    h.setInfo(h.prev() ? h.t("fff.only_fff") : h.t("fff.no_job"));
+    var p0 = h.prev();
+    h.setInfo(!p0 ? h.t("fff.no_job") : p0.mode !== "FFF" ? h.t("fff.only_fff") : h.t("fff.nothing")); // a laser / CNC file: no layers to draw
     drawEmpty(h);
     return;
   }
@@ -200,7 +220,7 @@ export function fff3dDrawEmpty(h) {
   var fit = tzFff3dFit(box, h.view.rotX, h.view.rotZ, w, hh, 34, h.zoom);
   function pt(x, y) {
     var r = tzFff3dProject({ x: x, y: y, z: 0 }, h.view.rotX, h.view.rotZ, fit.scale);
-    return [r.x + fit.ox, r.y + fit.oy];
+    return [r.x + fit.ox + h.pan.x, r.y + fit.oy + h.pan.y];
   }
   function line(a, b) { cv.moveTo(a[0], a[1]); cv.lineTo(b[0], b[1]); }
   var i, step = 50, x, y;
@@ -222,7 +242,8 @@ export function fff3dDrawEmpty(h) {
   cv.textBaseline = "middle";
   var mid = pt((bed.xmin + bed.xmax) / 2, (bed.ymin + bed.ymax) / 2);
   cv.font = "600 14px sans-serif";
-  var title = h.prev && h.prev() && h.prev().mode !== "FFF" ? h.t("fff.only_fff") : h.reading || h.t("fff.empty_title");
+  var p1 = h.prev && h.prev();
+  var title = p1 && p1.mode !== "FFF" ? h.t("fff.only_fff") : p1 && !printable(p1) ? h.t("fff.nothing") : h.reading || h.t("fff.empty_title");
   cv.fillText(title, w / 2, Math.min(hh - 30, mid[1]));
   cv.font = "12px sans-serif";
   cv.fillText(h.t("fff.bed_dims", { x: Math.round(bed.xmax - bed.xmin), y: Math.round(bed.ymax - bed.ymin) }), w / 2, hh - 12);
@@ -272,7 +293,7 @@ function box3d(h) {
 function floor(h, cv, b, zf, color, dash) {
   var q = [[b.xmin, b.ymin], [b.xmax, b.ymin], [b.xmax, b.ymax], [b.xmin, b.ymax], [b.xmin, b.ymin]].map(function (p) {
     var r = tzFff3dProject({ x: p[0], y: p[1], z: zf }, h.view.rotX, h.view.rotZ, h.enc.scale);
-    return [r.x + h.enc.ox, r.y + h.enc.oy];
+    return [r.x + h.enc.ox + h.pan.x, r.y + h.enc.oy + h.pan.y];
   });
   cv.beginPath();
   cv.strokeStyle = color;
@@ -354,7 +375,7 @@ export function fff3dPaint(h) {
     h.enc = tzFff3dFit(c3.box, h.view.rotX, h.view.rotZ, h.widthCv, h.heightCv, 12, h.zoom);
   }
   var m = tzFff3dMatrix(h.view.rotX, h.view.rotZ, h.enc.scale);
-  tzFff3dBatch(sec.pts, sec.n, m, h.enc.ox, h.enc.oy, h.out);
+  tzFff3dBatch(sec.pts, sec.n, m, h.enc.ox + h.pan.x, h.enc.oy + h.pan.y, h.out);
   if (c3.bed) floor(h, cv, c3.bed, sec.box.zmin, "rgba(255,255,255,0.35)", [4, 4]);
   floor(h, cv, sec.box, sec.box.zmin, "rgba(255,255,255,0.18)", [2, 3]);
 
@@ -377,15 +398,42 @@ export function fff3dPaint(h) {
   h.setInfo(txt);
 }
 
-// ---------- gestures: one finger or the mouse turns, the wheel or two fingers zoom ----------
+// ---------- gestures: one finger or the left button turns; the wheel or a pinch zooms; the right button, Shift or two fingers move the view ----
+// How hard they feel (PR-1, 2026-11-05: turning, zooming and moving felt aggressive):
+//   - turning is proportional to the canvas, not to the pixel: dragging across the whole canvas turns the model half a turn, on a phone or on a wide screen
+//   - the wheel zooms by the amount that came (a mouse notch is ~100 units, a trackpad sends many small ones, a pinch comes as a wheel with ctrlKey and
+//     small numbers), so one notch is ~12 % and a trackpad gesture is smooth instead of 12 % per event
+//   - the camera has limits: zoom 0.5 to 10, never under the bed, the view cannot be pushed out of the canvas
+export var TZ_FFF3D_TURN = Math.PI; // radians for a drag across the whole canvas width
+export var TZ_FFF3D_WHEEL = 0.0011; // zoom per wheel unit (ln): 100 units (a mouse notch) = x1.116
+export var TZ_FFF3D_PINCH = 0.008; // the same for a trackpad pinch (wheel with ctrlKey)
+export var TZ_FFF3D_WHEEL_MAX = 120; // units counted for one event: a fast flick does not jump
+
 function limit(h) {
   h.view.rotX = Math.max(0.05, Math.min(Math.PI / 2, h.view.rotX));
   h.zoom = Math.max(0.5, Math.min(10, h.zoom));
+  var w = h.widthCv || 360, hh = h.heightCv || 240;
+  h.pan.x = Math.max(-w, Math.min(w, h.pan.x));
+  h.pan.y = Math.max(-hh, Math.min(hh, h.pan.y));
 }
 
 function distance(h) {
   var ids = Object.keys(h.pointers);
   return Math.hypot(h.pointers[ids[0]].x - h.pointers[ids[1]].x, h.pointers[ids[0]].y - h.pointers[ids[1]].y) || 1;
+}
+
+function middle(h) {
+  var ids = Object.keys(h.pointers);
+  return { x: (h.pointers[ids[0]].x + h.pointers[ids[1]].x) / 2, y: (h.pointers[ids[0]].y + h.pointers[ids[1]].y) / 2 };
+}
+
+// the factor one wheel event multiplies the zoom by (pure: tests call it)
+export function fff3dWheelFactor(ev) {
+  var dy = Number(ev.deltaY) || 0;
+  if (ev.deltaMode === 1) dy *= 16; // lines
+  else if (ev.deltaMode === 2) dy *= 100; // pages
+  dy = Math.max(-TZ_FFF3D_WHEEL_MAX, Math.min(TZ_FFF3D_WHEEL_MAX, dy));
+  return Math.exp(-dy * (ev.ctrlKey ? TZ_FFF3D_PINCH : TZ_FFF3D_WHEEL));
 }
 
 export function fff3dPointerDown(h, ev) {
@@ -395,25 +443,36 @@ export function fff3dPointerDown(h, ev) {
     /* no capture: the gesture still works inside the canvas */
   }
   if (!h.pointers[ev.pointerId]) h.nPointers++;
-  h.pointers[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+  // the right button or a Shift press moves the view instead of turning it
+  h.pointers[ev.pointerId] = { x: ev.clientX, y: ev.clientY, pan: ev.button === 2 || !!ev.shiftKey };
   h.dragging = true;
   if (h.nPointers === 2) {
     h.dist0 = distance(h);
     h.zoom0 = h.zoom;
   }
-  h.canvas.style.cursor = "grabbing";
+  h.canvas.style.cursor = h.pointers[ev.pointerId].pan ? "move" : "grabbing";
 }
 
 export function fff3dPointerMove(h, ev) {
   var p = h.pointers[ev.pointerId];
   if (!p) return;
   if (h.nPointers >= 2) {
+    var m0 = middle(h);
     p.x = ev.clientX;
     p.y = ev.clientY;
+    var m1 = middle(h);
     h.zoom = h.zoom0 * (distance(h) / h.dist0);
+    h.pan.x += m1.x - m0.x; // two fingers also move the view
+    h.pan.y += m1.y - m0.y;
+  } else if (p.pan) {
+    h.pan.x += ev.clientX - p.x;
+    h.pan.y += ev.clientY - p.y;
+    p.x = ev.clientX;
+    p.y = ev.clientY;
   } else {
-    h.view.rotZ -= (ev.clientX - p.x) * 0.01;
-    h.view.rotX += (ev.clientY - p.y) * 0.01;
+    var k = TZ_FFF3D_TURN / Math.max(200, h.widthCv || 360);
+    h.view.rotZ -= (ev.clientX - p.x) * k;
+    h.view.rotX += (ev.clientY - p.y) * k;
     p.x = ev.clientX;
     p.y = ev.clientY;
   }
@@ -428,6 +487,7 @@ export function fff3dRelease(h, ev) {
   }
   if (h.nPointers <= 0) {
     h.nPointers = 0;
+    h.pointers = {}; // a pointer that never got its pointerup must not stay "down" for the next gesture
     h.dragging = false;
     h.canvas.style.cursor = "grab";
     fff3dRequest(h); // once more at full quality
@@ -436,7 +496,7 @@ export function fff3dRelease(h, ev) {
 
 export function fff3dWheel(h, ev) {
   ev.preventDefault();
-  h.zoom *= ev.deltaY < 0 ? 1.12 : 1 / 1.12;
+  h.zoom *= fff3dWheelFactor(ev);
   limit(h);
   fff3dRequest(h);
 }

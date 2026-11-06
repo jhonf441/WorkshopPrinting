@@ -1,5 +1,25 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.17.2 -- 2026-11-05
+
+- QA batch: 3D view resets per file, draws the bed for a file with no layers
+
+## 2.17.1 -- 2026-11-05
+
+- Bed zones: offers the beds the board defines, live preview of the form, one bed is one big centered square
+
+## 2.17.0 -- 2026-11-05
+
+- Bed zones: the beds the board lacks are defined in Machine, the map grows with the zones (limit of eight, with a counter) and the color scale is explained
+
+## 2.16.1 -- 2026-11-05
+
+- Bed zones: a sensor that is not connected shows as no reading, not as a freezing bed
+
+## 2.16.0 -- 2026-11-05
+
+- Bed zones section: map, setpoints per zone, settings, bed assistant and backup macro (needs service 2.23.0)
+
 ## 2.15.29 -- 2026-11-05
 
 - Session state, refusals and notices unified; errors kept as objects; 403 names the action
