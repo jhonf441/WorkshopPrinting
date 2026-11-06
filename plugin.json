@@ -10,11 +10,28 @@
     "3d-printing",
     "pellet"
   ],
-  "dwcVersion": "3.7",
+  "dwcVersion": "3.6",
   "dwcDependencies": [
     "WorkshopService"
   ],
   "sbcRequired": true,
-  "sbcDsfVersion": "3",
-  "data": {}
+  "sbcDsfVersion": "3.6",
+  "data": {},
+  "sdFiles": [
+    "sys/workshop/examples/WorkshopPrinting/macros/mode/selectcnc.g",
+    "sys/workshop/examples/WorkshopPrinting/macros/mode/selectfff.g",
+    "sys/workshop/examples/WorkshopPrinting/macros/mode/selectlaser.g",
+    "sys/workshop/examples/WorkshopPrinting/sys/automodeselect.g",
+    "sys/workshop/examples/WorkshopPrinting/sys/modecnc.g",
+    "sys/workshop/examples/WorkshopPrinting/sys/modefff.g",
+    "sys/workshop/examples/WorkshopPrinting/sys/modelaser.g",
+    "sys/workshop/examples/WorkshopPrinting/sys/modestate.g",
+    "sys/workshop/macros/bedzones-set.g"
+  ],
+  "dwcFiles": [
+    "css/WorkshopPrinting.15856ffc.css",
+    "css/WorkshopPrinting.15856ffc.css.gz",
+    "js/WorkshopPrinting.d1335593.js",
+    "js/WorkshopPrinting.d1335593.js.gz"
+  ]
 }
