@@ -1,5 +1,13 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.19.0 -- 2026-11-06
+
+- Bed zones: edit on the map page, align, distribute and make equal, no automatic layout
+
+## 2.18.0 -- 2026-11-06
+
+- Bed zones with real geometry (auto and manual layout) and pellet temperature by layer
+
 ## 2.17.8 -- 2026-11-06
 
 - Refusals: the sign-in chip and only the note nearest to the touch blink; a reason fits its text so the blink rings the words

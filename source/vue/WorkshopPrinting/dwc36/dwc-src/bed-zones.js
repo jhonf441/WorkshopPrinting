@@ -7,6 +7,7 @@
 // this file only decides what to show. Temperatures use the colors and the 3 degree tolerance of fff-temps.js (the state colors of the page), so a
 // zone reads the same here and in the status cards.
 
+import { geometryProblems } from './bed-zones-layout.js'
 import { tzFffTempClass, tzFffTempTarget, TZ_FFF_CLASS_COLOR } from './fff-temps.js'
 
 export const MAX_LAYOUT = 4 // rows / columns of the map
@@ -35,7 +36,7 @@ export function emptyConfig() {
 const finite = v => typeof v === 'number' && isFinite(v)
 
 // One row per configured zone, in the order of the configuration:
-//   {n (1..), bed, heater|null, active, offset, current|null, target, state, cls, color, fault, missing, noReading, over, lagging, alert}
+//   {n (1..), bed, heater|null, active, offset, rect|null (real geometry), current|null, target, state, cls, color, fault, missing, noReading, over, lagging, alert}
 // missing: the board has no heater for that bed (heat.bedHeaters). noReading: the heater is there but its sensor gives no usable temperature (disconnected, about -273): current is
 // null, so the map shows "--" and not a freezing bed. over: warmer than target + tolerance. lagging: more than the tolerance below its
 // target while every other zone with a target is within it (the group arrived, this one did not). alert: fault, missing, noReading, over or lagging.
@@ -55,6 +56,7 @@ export function zoneRows(model, config) {
 		const cls = missing ? 'off' : tzFffTempClass(current, target, state)
 		return {
 			n: i + 1, bed: z.bed, heater: missing ? null : idx, active: !!z.active, offset: +z.offset || 0,
+			rect: z.rect || null,
 			current, target, state, cls, color: TZ_FFF_CLASS_COLOR[cls],
 			fault: cls === 'fault', missing, noReading: !missing && current === null,
 			over: target > 0 && current !== null && current > target + tol,
@@ -157,9 +159,10 @@ export function toNumber(v) {
 // Form draft: numbers as text so a half-typed value is not lost
 export function draftOf(config) {
 	const c = JSON.parse(JSON.stringify(config || emptyConfig()))
-	c.zones = c.zones.map(z => ({ bed: String(z.bed), active: !!z.active, offset: String(z.offset) }))
+	c.zones = c.zones.map(z => Object.assign({ bed: String(z.bed), active: !!z.active, offset: String(z.offset) }, z.rect ? { rect: Object.assign({}, z.rect) } : {}))
 	;['max_temp', 'max_offset', 'tolerance', 'timeout_s'].forEach(k => { c[k] = String(c[k]) })
 	c.layout = { rows: String(c.layout.rows), columns: String(c.layout.columns) }
+	if (c.geometry) c.geometry = { bed: c.geometry.bed } // an older save may carry mode / gap / align / mirror / size: ignored, they are gone at the next save
 	return c
 }
 
@@ -181,6 +184,7 @@ export function configOf(draft) {
 		active: !!z.active,
 		offset: num('zones[' + i + '].offset', z.offset, -30, 30)
 	}))
+	zones.forEach((z, i) => { if (draft.zones[i].rect && draft.geometry) z.rect = Object.assign({}, draft.zones[i].rect) }) // only with a geometry (the service refuses a rect alone)
 	const beds = zones.map(z => z.bed).filter(b => b !== null)
 	zones.forEach((z, i) => { if (z.bed !== null && beds.indexOf(z.bed) !== beds.lastIndexOf(z.bed)) errors['zones[' + i + '].bed'] = 'err_repeated' })
 	if (!zones.length) errors.zones = 'err_no_zones'
@@ -191,6 +195,10 @@ export function configOf(draft) {
 		tolerance: num('tolerance', draft.tolerance, 0.5, 20),
 		timeout_s: num('timeout_s', draft.timeout_s, 1, 3600),
 		layout: { rows: whole('layout', draft.layout.rows, 1, MAX_LAYOUT), columns: whole('layout', draft.layout.columns, 1, MAX_LAYOUT) }
+	}
+	if (draft.geometry) {
+		out.geometry = { bed: JSON.parse(JSON.stringify(draft.geometry.bed)) }
+		if (geometryProblems(out.geometry, zones).length) errors.geometry = 'zones_layout_err_geometry'
 	}
 	if (!errors.layout && zones.length > out.layout.rows * out.layout.columns) errors.layout = 'err_layout_small'
 	if (!errors.max_offset && zones.some(z => z.offset !== null && Math.abs(z.offset) > out.max_offset)) errors.max_offset = 'err_offset_over'

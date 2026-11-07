@@ -15,7 +15,7 @@
 				<template #help><help-tip v-bind="help('offset')" /></template>
 				<v-text-field :id="'bz-off-' + i" v-model="z.offset" dense outlined hide-details suffix="°C" inputmode="decimal" :disabled="saving" :aria-label="$t('plugins.WorkshopPrinting.bedZones.f_offset')" />
 			</wf-field>
-			<v-btn icon small :disabled="saving || draft.zones.length <= 1" :aria-label="$t('plugins.WorkshopPrinting.bedZones.remove_zone')" :title="$t('plugins.WorkshopPrinting.bedZones.remove_zone')" @click="draft.zones.splice(i, 1)">
+			<v-btn icon small :disabled="saving || draft.zones.length <= 1" :aria-label="$t('plugins.WorkshopPrinting.bedZones.remove_zone')" :title="$t('plugins.WorkshopPrinting.bedZones.remove_zone')" @click="removeZone(i)">
 				<v-icon small>mdi-delete-outline</v-icon>
 			</v-btn>
 		</div>
@@ -26,6 +26,8 @@
 			</v-btn>
 			<span class="text-caption" :class="{ 'warning--text': draft.zones.length >= max }">{{ draft.zones.length >= max ? $t('plugins.WorkshopPrinting.bedZones.zones_limit', { max: max }) : $t('plugins.WorkshopPrinting.bedZones.zones_count', { n: draft.zones.length, max: max }) }}</span>
 		</div>
+
+		<div v-if="fieldError('geometry')" class="wf-field-msg is-error">{{ fieldError('geometry') }}</div>
 
 		<div class="text-subtitle-2 mt-4 mb-1">{{ $t('plugins.WorkshopPrinting.bedZones.layout_title') }}</div>
 		<div class="bz-grid">
@@ -61,11 +63,12 @@
 <script>
 'use strict'
 
-// Settings of the bed zones (technician): on / off, the zones (bed number, active, offset), the layout of the map and the limits. It saves the whole
+// Settings of the bed zones (technician): on / off, the zones (bed number, active, offset), the layout of the map and the limits (the geometry of the bed is edited on the map itself, in BedZones.vue). It saves the whole
 // configuration with the revision it was read at (op bedzones.set): the service validates again and refuses a stale revision. Save is the one filled
 // button; Cancel puts the form back as saved.
 import { api } from './workshop-api.js'
 import { draftOf, configOf, sameConfig, fitLayout, zoneLimit, MAX_ZONES } from './bed-zones.js'
+import { placeMissing } from './bed-zones-drag.js'
 import WfField from './WfField.vue' // vue/_shared36
 import HelpTip from './HelpTip.vue' // vue/_shared36
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared36
@@ -127,6 +130,18 @@ export default {
 			while (used.indexOf(bed) >= 0) bed++
 			this.draft.zones.push({ bed: String(bed), active: true, offset: '0' })
 			this.draft.layout = fitLayout(this.draft.zones.length, this.draft.layout) // the map grows with the zones: the settings never refuse a new zone for lack of cells
+			this.reflowDraft()
+		},
+		removeZone(i) {
+			this.draft.zones.splice(i, 1)
+			this.reflowDraft()
+		},
+		// with a geometry, a zone added here gets a free spot (the others stay where the user put them); the geometry itself is edited on the map
+		reflowDraft() {
+			if (!this.draft.geometry) return
+			placeMissing(this.draft.zones, this.draft.geometry.bed).zones.forEach((z, i) => {
+				if (z.rect && !this.draft.zones[i].rect) this.$set(this.draft.zones[i], 'rect', z.rect)
+			})
 		},
 		reset() {
 			this.draft = draftOf(this.config)

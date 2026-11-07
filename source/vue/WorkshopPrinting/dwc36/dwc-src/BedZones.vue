@@ -68,16 +68,32 @@
 		</v-card>
 
 		<v-row dense>
-			<v-col cols="12" md="5">
+			<v-col cols="12" :md="edit ? 12 : 5">
 				<v-card outlined class="pa-3 fill-height">
-					<bed-zone-map :rows="rows" :layout="shown.layout" :max-temp="shown.max_temp" :selected="selected" @select="selected = selected === $event ? null : $event" />
+					<!-- the geometry is edited HERE, on the map that shows the temperatures: Edit turns the map and the table into the editor (technician) -->
+					<div v-if="canConfigure && !edit" class="d-flex align-center flex-wrap mb-2" style="gap:8px">
+						<v-btn small outlined class="bz-edit-btn" :disabled="!!preview" @click="startEditing()">
+							<v-icon small left>mdi-pencil</v-icon>{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_edit') }}
+						</v-btn>
+						<span v-if="preview" class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_edit_blocked') }}</span>
+					</div>
+					<div :class="{ 'bz-edit-body': edit }">
+						<bed-zone-map
+							:rows="rows" :layout="shown.layout" :geometry="shown.geometry || null" :max-temp="shown.max_temp" :selected="selected" :editable="!!edit && !!shown.geometry"
+							:selection="edit ? edit.selection : []" :reference="edit ? edit.reference : null" :step="edit && edit.snap ? 5 : 0"
+							@select="selected = selected === $event ? null : $event" @pick="onAct({ type: 'pick', index: $event.index, multi: $event.multi })" @clear="onAct({ type: 'clear' })"
+							@begin="onAct({ type: 'begin' })" @rect="onAct({ type: 'rect', index: $event.index, rect: $event.rect })"
+						/>
+						<bed-zone-editor v-if="edit" :edit="edit" :problems="editIssues" :max="zonesMax" :model="model" :dirty="editDirty" :saving="editSaving" :server-errors="editErrors" @act="onAct" @save="saveEdit()" @cancel="stopEditing()" />
+					</div>
 				</v-card>
 			</v-col>
-			<v-col cols="12" md="7">
+			<v-col cols="12" :md="edit ? 12 : 7">
 				<v-card outlined class="pa-3 fill-height">
 					<v-simple-table dense class="bz-table">
 						<thead>
 							<tr>
+								<th v-if="edit" class="bz-pick" :aria-label="$t('plugins.WorkshopPrinting.bedZones.zones_layout_col_pick')" />
 								<th>{{ $t('plugins.WorkshopPrinting.bedZones.col_zone') }}</th>
 								<th class="text-right">{{ $t('plugins.WorkshopPrinting.bedZones.col_now') }}</th>
 								<th class="text-right">{{ $t('plugins.WorkshopPrinting.bedZones.col_target') }}</th>
@@ -86,7 +102,10 @@
 							</tr>
 						</thead>
 						<tbody>
-							<tr v-for="r in rows" :key="r.bed" :class="{ 'bz-selected': selected === r.bed, 'bz-inactive': !r.active }" @click="selected = selected === r.bed ? null : r.bed">
+							<tr v-for="r in rows" :key="r.bed" :class="{ 'bz-selected': isRowSelected(r), 'bz-inactive': !r.active }" @click="clickRow(r)">
+								<td v-if="edit" class="bz-pick" @click.stop>
+									<v-checkbox dense hide-details class="mt-0 pt-0" :input-value="edit.selection.indexOf(r.n - 1) >= 0" :aria-label="$t('plugins.WorkshopPrinting.bedZones.zones_layout_pick_zone', { n: r.n })" @change="onAct({ type: 'pick', index: r.n - 1, multi: true })" />
+								</td>
 								<td>
 									{{ $t('plugins.WorkshopPrinting.bedZones.zone_n', { n: r.n }) }}
 									<span class="grey--text text-caption">P{{ r.bed }}<template v-if="r.offset"> · {{ r.offset > 0 ? '+' : '' }}{{ r.offset }} °C</template></span>
@@ -120,7 +139,7 @@
 		</v-card>
 
 		<!-- settings: only a technician (the limits are the safety of the bed) -->
-		<v-card v-if="canConfigure" outlined class="pa-3 mt-3">
+		<v-card v-if="canConfigure && !edit" outlined class="pa-3 mt-3">
 			<div class="d-flex align-center" style="gap:4px">
 				<div class="text-subtitle-1 font-weight-medium">{{ $t('plugins.WorkshopPrinting.bedZones.settings_title') }}</div>
 				<help-tip :title="$t('plugins.WorkshopPrinting.bedZones.settings_title')" :what="$t('plugins.WorkshopPrinting.bedZones.help.settings_what')" :why="$t('plugins.WorkshopPrinting.bedZones.help.settings_why')" :if-missing="$t('plugins.WorkshopPrinting.bedZones.help.settings_miss')" :how="$t('plugins.WorkshopPrinting.bedZones.help.settings_how')" />
@@ -141,9 +160,11 @@
 import { api } from './workshop-api.js'
 import { roleMixin } from './role-mixin.js' // vue/_shared36
 import { NEED } from './print-sections.js'
+import { reduce, startEdit, editProblems, editDirty } from './bed-zones-edit.js'
 import { zoneRows, alertKey, zoneSeries, setpointOf, boardCheck, unassignedBeds, withBeds, fmtTemp, emptyConfig, machineBedsRoute, zoneLimit, firstDefinition } from './bed-zones.js'
 import BedZoneMap from './BedZoneMap.vue'
 import BedZonesConfig from './BedZonesConfig.vue'
+import BedZoneEditor from './BedZoneEditor.vue'
 import { pluginActive } from './workshop-ids.js' // vue/_shared36: Machine is another plugin, nothing about it when it is absent
 import ChartState from './ChartState.vue'
 import WfField from './WfField.vue' // vue/_shared36
@@ -154,9 +175,9 @@ import LockReason from './LockReason.vue' // vue/_shared36
 export default {
 	mixins: [roleMixin],
 	// what the person who left read, did or was refused stays nowhere (role-mixin.js)
-	sessionData: ['armed', 'msg', 'msgKind'],
+	sessionData: ['armed', 'msg', 'msgKind', 'edit', 'editErrors'],
 	sessionErrors: ['failure', 'msg', 'msgKind'],
-	components: { BedZoneMap, BedZonesConfig, ChartState, WfField, HelpTip, ErrorNotice, LockReason },
+	components: { BedZoneMap, BedZoneEditor, BedZonesConfig, ChartState, WfField, HelpTip, ErrorNotice, LockReason },
 	props: {
 		series: { type: Array, default: () => [] }, // seriesChart of Print.vue (one per heater, the color follows the heater)
 		samples: { type: Array, default: () => [] }, // the 10 minute history of Print.vue
@@ -165,7 +186,7 @@ export default {
 	data() {
 		return {
 			loaded: false, config: emptyConfig(), preview: null, rev: '0', problems: [], detected: [], failure: null,
-			selected: null, globalText: '60', zoneText: {}, armed: null, armedTimer: null, busy: null, msg: null, msgKind: 'info'
+			edit: null, editSaving: false, editErrors: [], selected: null, globalText: '60', zoneText: {}, armed: null, armedTimer: null, busy: null, msg: null, msgKind: 'info'
 		}
 	},
 	computed: {
@@ -174,7 +195,17 @@ export default {
 		},
 		// what the page shows: the form being edited (valid) before it is saved, else the saved configuration
 		shown() {
-			return this.preview || this.config
+			return this.edit ? this.edit.config : this.preview || this.config
+		},
+		editIssues() {
+			return this.edit ? editProblems(this.edit) : []
+		},
+		editDirty() {
+			return !!this.edit && editDirty(this.edit, this.config)
+		},
+		// the zones THIS board supports (its own bed heaters), not a fixed number
+		zonesMax() {
+			return zoneLimit(this.model)
 		},
 		rows() {
 			return zoneRows(this.model, this.shown)
@@ -323,6 +354,45 @@ export default {
 			const route = machineBedsRoute(this.check.missing, zoneLimit(this.model))
 			if (route && this.$router) this.$router.push(route).catch(() => {})
 		},
+		isRowSelected(r) {
+			return this.edit ? this.edit.selection.indexOf(r.n - 1) >= 0 : this.selected === r.bed
+		},
+		clickRow(r) {
+			if (this.edit) this.onAct({ type: 'pick', index: r.n - 1, multi: false })
+			else this.selected = this.selected === r.bed ? null : r.bed
+		},
+		// ---- editing the geometry (the state and its steps live in bed-zones-edit.js) ----
+		startEditing() {
+			if (this.preview || this.edit) return
+			this.editErrors = []
+			this.edit = startEdit(this.config, this.model)
+		},
+		stopEditing() {
+			this.edit = null
+			this.editErrors = []
+		},
+		onAct(action) {
+			if (this.edit && !this.editSaving) this.edit = reduce(this.edit, action, { max: this.zonesMax, model: this.model })
+		},
+		// the same save as the settings form: the whole configuration with the revision it was read at; the service validates again
+		async saveEdit() {
+			if (!this.edit || this.editIssues.length || this.editSaving) return
+			this.editSaving = true
+			this.editErrors = []
+			try {
+				const out = await api('bedzones.set', { config: this.edit.config, base_rev: this.rev })
+				this.edit = null
+				this.saved(out)
+			} catch (e) {
+				if (e && e.code === 'cancelled') return
+				const list = e && e.body && e.body.error && e.body.error.errors
+				if (Array.isArray(list)) this.editErrors = list.map(x => x.message)
+				else this.failure = e
+				if (e && e.code === 'conflict') this.load()
+			} finally {
+				this.editSaving = false
+			}
+		},
 		numberOf(bed) {
 			const r = this.rows.find(x => x.bed === bed)
 			return r ? r.n : bed
@@ -343,4 +413,10 @@ export default {
 .bz-num { font-family: var(--tp-font-mono, monospace); font-size: 12px; white-space: nowrap; }
 .bz-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
 .bz-zone-field { max-width: 96px; }
+.bz-pick { width: 44px; padding-right: 0 !important; }
+.bz-edit-btn.v-btn { min-height: 44px; }
+.bz-edit-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 719px) {
+	.bz-edit-body { grid-template-columns: minmax(0, 1fr); }
+}
 </style>
