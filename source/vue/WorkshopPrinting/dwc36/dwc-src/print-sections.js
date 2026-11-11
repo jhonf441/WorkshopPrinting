@@ -1,28 +1,39 @@
 'use strict'
 
 // The sections of the 3D printing page (side bar, vue/_shared/SideTabs.vue). Pure (no Vue): test/sections.test.js.
-// Two groups (F3-P, 2026-10-21): OPERATE (what a person does while printing: state, material preheat, the pellet panel, the 3D job)
-// and CONFIGURE (what changes the machine's configuration: printer tests, head change, pellet zones / feeding / outputs / sensors,
-// extruder, PID). label / group: keys relative to plugins.WorkshopPrinting, translated when the bar is drawn.
+// Three groups, in this order: OPERATE (what a person does while printing: state, 3D job, filament load, pellet / filament panels, the
+// live bed zones), PREPARE (getting a job ready: the G-code library, the material applied to a file, the material table) and CONFIGURE
+// (what changes the machine's configuration: printer tests, head change, pellet zones, bed zone setup, extruder, PID).
+// label / group: keys relative to plugins.WorkshopPrinting, translated when the bar is drawn.
 //
 // `min` = the lowest role that sees the section (role-view.js; none = everybody). The roles apply in the service; this only decides what
 // is worth showing. A viewer sees Operate in read-only (the buttons of the pages are disabled for a role below operator).
 
 import { visibleItems, pickAllowed, lockedItems, lockedNeed } from './role-view.js'
 
+export const GROUP_OPERATE = 'printing.group_operate';
+export const GROUP_PREPARE = 'printing.group_prepare';
+export const GROUP_CONFIGURE = 'printing.group_configure';
+
 export const SECTIONS = [
-	{ id: 'state', icon: 'mdi-thermometer', label: 'common.status', group: 'printing.group_operate', fff: true },
-	{ id: 'bed', icon: 'mdi-radiator', label: 'printing.bed_zones', group: 'printing.group_operate', fff: true },
-	{ id: 'pellet', icon: 'mdi-grain', label: 'printing.pellet_panel', group: 'printing.group_operate', fff: true },
-	{ id: 'hotend', icon: 'mdi-printer-3d-nozzle', label: 'printing.filament_panel', group: 'printing.group_operate', fff: true },
-	{ id: 'materials', icon: 'mdi-flask-outline', label: 'printing.materials', group: 'printing.group_operate', min: 'operator', fff: true },
-	{ id: 'filament', icon: 'mdi-tray-arrow-down', label: 'printing.filament_load', group: 'printing.group_operate', min: 'operator', fff: true },
-	{ id: 'job', icon: 'mdi-cube-outline', label: 'fff.tab', group: 'printing.group_operate', fff: true },
-	{ id: 'tests', icon: 'mdi-clipboard-check-outline', label: 'printing.printer_tests', group: 'printing.group_configure', min: 'technician', fff: true },
-	{ id: 'head', icon: 'mdi-swap-horizontal', label: 'printing.head_change', group: 'printing.group_configure', min: 'technician', fff: false },
-	{ id: 'zones', icon: 'mdi-cog-outline', label: 'printing.pellet_and_zones', group: 'printing.group_configure', min: 'technician', fff: true },
-	{ id: 'extruder', icon: 'mdi-scale-balance', label: 'printing.extruder', group: 'printing.group_configure', min: 'technician', fff: true },
-	{ id: 'pid', icon: 'mdi-chart-bell-curve', label: 'common.pid', group: 'printing.group_configure', min: 'technician', fff: true }
+	// OPERATE: what a person does while printing
+	{ id: 'state', icon: 'mdi-thermometer', label: 'common.status', group: GROUP_OPERATE, fff: true },
+	{ id: 'job', icon: 'mdi-cube-outline', label: 'fff.tab', group: GROUP_OPERATE, fff: true },
+	{ id: 'filament', icon: 'mdi-tray-arrow-down', label: 'printing.filament_load', group: GROUP_OPERATE, min: 'operator', fff: true },
+	{ id: 'pellet', icon: 'mdi-grain', label: 'printing.pellet_panel', group: GROUP_OPERATE, fff: true },
+	{ id: 'hotend', icon: 'mdi-printer-3d-nozzle', label: 'printing.filament_panel', group: GROUP_OPERATE, fff: true },
+	{ id: 'bed', icon: 'mdi-radiator', label: 'printing.bed_zones_live', group: GROUP_OPERATE, fff: true },
+	// PREPARE: getting a job ready (the file, the material applied to it, the material table)
+	{ id: 'library', icon: 'mdi-bookshelf', label: 'printing.gcode_library', group: GROUP_PREPARE, fff: true },
+	{ id: 'layers', icon: 'mdi-layers-triple-outline', label: 'printing.layers_section', group: GROUP_PREPARE, fff: true },
+	{ id: 'materials', icon: 'mdi-flask-outline', label: 'printing.materials', group: GROUP_PREPARE, min: 'operator', fff: true },
+	// CONFIGURE: what changes the machine's configuration (technician)
+	{ id: 'tests', icon: 'mdi-clipboard-check-outline', label: 'printing.printer_tests', group: GROUP_CONFIGURE, min: 'technician', fff: true },
+	{ id: 'head', icon: 'mdi-swap-horizontal', label: 'printing.head_change', group: GROUP_CONFIGURE, min: 'technician', fff: false },
+	{ id: 'zones', icon: 'mdi-cog-outline', label: 'printing.pellet_and_zones', group: GROUP_CONFIGURE, min: 'technician', fff: true },
+	{ id: 'bedsetup', icon: 'mdi-tune-variant', label: 'printing.bed_zones_setup', group: GROUP_CONFIGURE, min: 'technician', fff: true },
+	{ id: 'extruder', icon: 'mdi-scale-balance', label: 'printing.extruder', group: GROUP_CONFIGURE, min: 'technician', fff: true },
+	{ id: 'pid', icon: 'mdi-chart-bell-curve', label: 'common.pid', group: GROUP_CONFIGURE, min: 'technician', fff: true }
 ];
 
 // ids of the sections that do not apply to this machine: the head change on a machine that uses one mode only, the pellet sections
@@ -47,7 +58,7 @@ export function allowedSection(wanted, can) {
 	return pickAllowed(SECTIONS, wanted, can);
 }
 
-// The section saved in the browser (its id), or the first one
+// The section saved in the browser (its id), or the first one (an id that no longer exists, from an older version, falls back too)
 export function restoreSection(stored) {
 	const s = stored == null ? '' : String(stored);
 	return SECTIONS.some(x => x.id === s) ? s : SECTIONS[0].id;
@@ -60,7 +71,7 @@ export function sectionUsable(section, isFff) {
 
 // The section to show: the wanted one when the role sees it and the mode lets it work; else (not FFF) the head change when the role
 // sees it; else the first the role sees
-// A section above the role stays openable (it shows the cover that says why, AWS rule), so `wanted` wins even when it is locked.
+// A section above the role stays openable (it shows the cover that says why, locked-in-place rule), so `wanted` wins even when it is locked.
 export function sectionToShow(wanted, isFff, can, hide) {
 	const skip = Array.isArray(hide) ? hide : [];
 	const all = lockedItems(SECTIONS, can).filter(s => skip.indexOf(s.id) < 0);

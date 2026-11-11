@@ -136,8 +136,9 @@
 
 				<error-notice v-if="failure" :error="failure" class="mt-3" />
 				<v-alert v-if="msg" dense text :type="msgKind" class="mt-3 mb-0">{{ msg }}</v-alert>
-				<!-- temperature of the zones by layer during a job (the service applies it; this card edits the profile and turns it on) -->
-				<pellet-layers :tool="currentTool" class="mt-4" />
+				<!-- the temperatures by material (and by layer) live in Materials now: one profile per plastic -->
+				<div class="wf-note mt-4" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ $t('plugins.WorkshopPrinting.pellet.materials_link') }}</span></div>
+				<v-btn x-small outlined class="mt-2" @click="$emit('goto', { section: 'materials' })"><v-icon x-small left>mdi-flask-outline</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.materials_link_open') }}</v-btn>
 				<div v-if="canConfig" class="mt-4">
 					<v-btn x-small outlined @click="$emit('goto', { section: 'zones' })"><v-icon x-small left>mdi-cog-outline</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.open_setup') }}</v-btn>
 				</div>
@@ -160,7 +161,6 @@ import { coolCode } from './tool-codes.js' // heat, cool and extrusion codes: on
 import { rememberForNozzle, persistAdvance } from './nozzle-store.js'
 import PelletHmi from './PelletHmi.vue'
 import PelletFeed from './PelletFeed.vue'
-import PelletLayers from './PelletLayers.vue'
 import { normalize as normFeed, hopperState } from './pellet-feed.js'
 import { machineFree } from './machine-free.js' // job (file, paused or live) and machine state (vue/_shared)
 import { ts } from './shared-t.js'
@@ -175,7 +175,7 @@ export default {
 	mixins: [roleMixin],
 	sessionData: ['msg', 'msgKind', 'failure', 'armed'], // what the person who left did or was refused stays nowhere (ESTANDAR 3)
 	sessionErrors: ['msg', 'msgKind', 'failure'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
-	components: { HelpGuide, PelletHmi, PelletFeed, PelletLayers, ErrorNotice, PcSection, LockReason },
+	components: { HelpGuide, PelletHmi, PelletFeed, ErrorNotice, PcSection, LockReason },
 	props: {
 		isFff: { type: Boolean, default: false },
 		currentTool: { type: Object, default: null },

@@ -8,7 +8,7 @@
 
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { modeStartupRows, callsAutoModeSelect, modesState, usesSeveralModes, usesExtraModes, enabledList, withMode, MODE_NAMES } from './machine-modes.js';
+import { modeStartupRows, callsAutoModeSelect, findUnmigrated, BOOT_HOOK_FILE, modesState, usesSeveralModes, usesExtraModes, enabledList, withMode, MODE_NAMES } from './machine-modes.js';
 import { loadModes, saveModes } from './machine-modes-store.js';
 import { pluginActive } from './workshop-ids.js';
 import { readText } from './util.js';
@@ -16,6 +16,7 @@ import { readText } from './util.js';
 export function usePrintModes() {
 	const modesInfo = ref(null);
 	const bootCalls = ref(null);
+	const unmigrated = ref([]);
 	const router = useRouter();
 
 	const modeState = computed(() => (modesInfo.value ? modesInfo.value.state : null));
@@ -27,7 +28,7 @@ export function usePrintModes() {
 	// nothing before the answer is read: no false red while it loads
 	const rowsStartup = computed(() => {
 		if (!modesInfo.value) return [];
-		return modeStartupRows(modesInfo.value.state, modesInfo.value.detected, bootCalls.value, answerModes);
+		return modeStartupRows(modesInfo.value.state, modesInfo.value.detected, bootCalls.value, answerModes, unmigrated.value);
 	});
 
 	async function setModes(answer) {
@@ -58,7 +59,15 @@ export function usePrintModes() {
 	// the card re-reads what the page owns each time it refreshes: config.g (does it call the saved mode?) and the modes answer
 	async function recheckModes() {
 		try {
-			bootCalls.value = callsAutoModeSelect(await readText('0:/sys/config.g'));
+			const config = await readText('0:/sys/config.g');
+			let bootText = null;
+			try {
+				bootText = await readText('0:/' + BOOT_HOOK_FILE);
+			} catch (e) {
+				/* missing: the block then does not count */
+			}
+			bootCalls.value = callsAutoModeSelect(config, bootText);
+			unmigrated.value = await findUnmigrated(readText);
 		} catch (e) {
 			/* not read: no row for it */
 		}

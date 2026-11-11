@@ -15,6 +15,7 @@
 				<v-btn small outlined :loading="loadingList" @click="loadList()"><v-icon small left>mdi-refresh</v-icon>{{ t('fff.refresh') }}</v-btn>
 				<v-btn small color="primary" :disabled="!file || !atLeast('operator')" :loading="reading" @click="read()"><v-icon small left>mdi-cube-outline</v-icon>{{ t('fff.load') }}</v-btn>
 			</div>
+			<gcode-info-card v-if="file && file !== jobFile" :file="file" class="mt-3" />
 			<lock-reason v-if="!refusal" min="operator" class="mt-2" />
 			<session-notice v-if="refusal" :kind="refusal" needed="operator" class="mt-2" />
 			<v-alert v-if="msg" dense text :type="msgKind" class="mt-2 mb-0">{{ msg }}</v-alert>
@@ -41,6 +42,7 @@ import { api } from './workshop-api.js'
 import FffJobStatus from './FffJobStatus.vue'
 import JobControl from './JobControl.vue' // pause / resume / cancel, Z baby-stepping, speed and flow factors
 import Fff3dView from './Fff3dView.vue'
+import GcodeInfoCard from './GcodeInfoCard.vue' // the library's card of the chosen file (nothing when it is not in the library)
 import { fffListGcodes, fffJobFile, fffLayerShown, fffPrinting } from './fff-job.js'
 import { roleMixin } from './role-mixin.js' // what the role may do (vue/_shared)
 import { refusalKind } from './session-refusal.js' // the cause of a refusal: session | role
@@ -52,7 +54,7 @@ export default {
 	mixins: [roleMixin],
 	sessionData: ['prev', 'prevPath', 'layerSel', 'msg', 'msgKind', 'refusal'], // the 3D preview came from the service with the old session (ESTANDAR 3)
 	sessionErrors: ['msg', 'msgKind', 'refusal'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
-	components: { LockReason, SessionNotice, FffJobStatus, JobControl, Fff3dView, PcSection },
+	components: { LockReason, SessionNotice, FffJobStatus, JobControl, Fff3dView, GcodeInfoCard, PcSection },
 	props: {
 		isFff: { type: Boolean, default: false }
 	},

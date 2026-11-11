@@ -2,7 +2,7 @@
 	<div>
 		<help-guide :title="$t('plugins.WorkshopPrinting.common.how_it_works')">
 			<div><b>{{ $t('plugins.WorkshopPrinting.extruderConfig.extruder_configuration_what_the_board_reads') }}</b><div class="mt-1">
-			{{ $t('plugins.WorkshopPrinting.extruderConfig.each_zone_is_a_heater_with') }} <b>{{ $t('plugins.WorkshopPrinting.common.save') }}</b> {{ $t('plugins.WorkshopPrinting.extruderConfig.writes') }} <code>sys/modefff.g</code> {{ $t('plugins.WorkshopPrinting.extruderConfig.directly_with_a_backup_copy_then') }}
+			{{ $t('plugins.WorkshopPrinting.extruderConfig.each_zone_is_a_heater_with') }} <b>{{ $t('plugins.WorkshopPrinting.common.save') }}</b> {{ $t('plugins.WorkshopPrinting.extruderConfig.writes') }} <code>{{ modeFileLabel }}</code> {{ $t('plugins.WorkshopPrinting.extruderConfig.directly_with_a_backup_copy_then') }}
 			</div></div>
 		</help-guide>
 		<div v-if="loading" class="text-body-2 grey--text mt-2">{{ $t('plugins.WorkshopPrinting.extruderConfig.reading_modefff_g') }}</div>
@@ -178,7 +178,8 @@ import { kinds, labelKind, SENSOR_TEXT, actions, conditions } from './extruder-c
 'use strict'
 
 import { mapActions } from 'vuex'
-import { readText, writeText, MODE_FILE, isError, note } from './util.js'
+import { MODE_FILES } from './machine-modes.js'
+import { readText, writeText, MODE_FILE, modeFilePath, isError, note } from './util.js'
 import { isFriendly } from './print-errors.js'
 import { roleMixin } from './role-mixin.js' // what the role may do (vue/_shared)
 import HelpGuide from './HelpGuide.vue' // vue/_shared36
@@ -202,7 +203,7 @@ export default {
 		tool: { type: Object, default: null }
 	},
 	data() {
-		return { text: null, textConfig: '', othersModes: {}, viewPins: false, msgPin: '', zones: [], loading: true, errReading: null, openZones: {}, saving: false, reloadPending: false };
+		return { modeFileLabel: MODE_FILES.fff, text: null, textConfig: '', othersModes: {}, viewPins: false, msgPin: '', zones: [], loading: true, errReading: null, openZones: {}, saving: false, reloadPending: false };
 	},
 	computed: {
 		// saving writes modefff.g: a technician's (the reason sits under the buttons)
@@ -580,7 +581,7 @@ export default {
 				this.text = await readText(MODE_FILE);
 				this.textConfig = await readText('0:/sys/config.g').catch(() => '');
 				const om = {};
-				for (const f of ['modelaser.g', 'modecnc.g']) om[f] = await readText('0:/sys/' + f).catch(() => '');
+				for (const f of ['modelaser.g', 'modecnc.g']) om[f] = await readText(modeFilePath(f)).catch(() => '');
 				this.othersModes = om;
 				this.zones = this.zonesOfFile();
 				if (!this.zones.length) this.errReading = i18n.t('plugins.WorkshopPrinting.extruderConfig.couldn_t_find_the_tool_zones');

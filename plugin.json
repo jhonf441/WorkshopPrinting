@@ -2,7 +2,7 @@
   "id": "WorkshopPrinting",
   "name": "3D Printing",
   "author": "jhonf441",
-  "version": "2.19.0",
+  "version": "2.31.0",
   "license": "GPL-3.0-or-later",
   "homepage": "https://github.com/jhonf441/WorkshopPrinting",
   "tags": [
@@ -21,17 +21,21 @@
     "sys/workshop/examples/WorkshopPrinting/macros/mode/selectcnc.g",
     "sys/workshop/examples/WorkshopPrinting/macros/mode/selectfff.g",
     "sys/workshop/examples/WorkshopPrinting/macros/mode/selectlaser.g",
-    "sys/workshop/examples/WorkshopPrinting/sys/automodeselect.g",
-    "sys/workshop/examples/WorkshopPrinting/sys/modecnc.g",
-    "sys/workshop/examples/WorkshopPrinting/sys/modefff.g",
-    "sys/workshop/examples/WorkshopPrinting/sys/modelaser.g",
-    "sys/workshop/examples/WorkshopPrinting/sys/modestate.g",
+    "sys/workshop/examples/WorkshopPrinting/sys/workshop/data/modestate.g",
+    "sys/workshop/examples/WorkshopPrinting/sys/workshop/modes/automodeselect.g",
+    "sys/workshop/examples/WorkshopPrinting/sys/workshop/modes/modecnc.g",
+    "sys/workshop/examples/WorkshopPrinting/sys/workshop/modes/modefff.g",
+    "sys/workshop/examples/WorkshopPrinting/sys/workshop/modes/modelaser.g",
+    "sys/workshop/hooks/boot.g",
     "sys/workshop/macros/work/bedzones-set.g"
   ],
+  "dsfFiles": [
+    "permissions.json"
+  ],
   "dwcFiles": [
-    "css/WorkshopPrinting.13342dfd.css",
-    "css/WorkshopPrinting.13342dfd.css.gz",
-    "js/WorkshopPrinting.0c5cce55.js",
-    "js/WorkshopPrinting.0c5cce55.js.gz"
+    "css/WorkshopPrinting.e2e3730d.css",
+    "css/WorkshopPrinting.e2e3730d.css.gz",
+    "js/WorkshopPrinting.db308ff7.js",
+    "js/WorkshopPrinting.db308ff7.js.gz"
   ]
 }

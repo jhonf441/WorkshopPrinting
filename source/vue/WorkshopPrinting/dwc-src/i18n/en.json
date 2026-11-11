@@ -281,7 +281,7 @@
 	},
 	"extruder": {
 		"could_not_apply": "Could not apply: ",
-		"save_changes_the_m92_e_line": "Save changes the M92 E line in sys/modefff.g and keeps a .bak copy first. Repeat the test afterwards to confirm.",
+		"save_changes_the_m92_e_line": "Save changes the M92 E line in sys/workshop/modes/modefff.g and keeps a .bak copy first. Repeat the test afterwards to confirm.",
 		"apply_now_until_the_mode_changes": "Apply now (until the mode changes)",
 		"very_different_from_expected_check_the": "Very different from expected: check the weight, the diameter and that you collected everything before changing anything.",
 		"pick_the_material_and_type_the": "Pick the material and type the weight to calculate.",
@@ -778,7 +778,7 @@
 		"the_machine_has_to_be_idle": "The machine has to be idle.",
 		"the_new_models_are_already_in": "The new models are already in use until the mode changes. Save replaces the M307 line of each zone in modefff.g, all at once (with a .bak copy).",
 		"save_all_to_modefff_g": "Save all to modefff.g",
-		"new_lines_for_sys_modefff_g": "New lines for sys/modefff.g",
+		"new_lines_for_sys_modefff_g": "New lines for sys/workshop/modes/modefff.g",
 		"to_stop_cancel_turns_the_zones": "To stop: Cancel (turns the zones off), or the Emergency Stop.",
 		"cancel": "Cancel",
 		"tap_again_it_will_heat": "Tap again: it will heat",
@@ -804,7 +804,7 @@
 		"above_machine_limit": "Above the machine limit ({max} °C).",
 		"tuning_in_progress": "Tuning {name}: {c} °C. You can change page; the result is read when you come back.",
 		"current_model_of": "Current model of {name}",
-		"line_for_modefff": "Line for sys/modefff.g:",
+		"line_for_modefff": "Line for sys/workshop/modes/modefff.g:",
 		"now_in_the_file": "Now in the file:",
 		"not_read": "(not read)",
 		"limit_n": "limit {n}",
@@ -1068,7 +1068,7 @@
 		"the_thermistor_reads_nothing_open_circuit": "The thermistor reads nothing (open circuit): is the head or the bed connected? Check the cable and the connector.",
 		"http_reading": "HTTP {status} reading {path}",
 		"http_writing": "HTTP {status} writing {path}",
-		"line_not_found": "Could not find a \"{start}...\" line in sys/modefff.g",
+		"line_not_found": "Could not find a \"{start}...\" line in sys/workshop/modes/modefff.g",
 		"sensor_reports": "The sensor reports \"{state}\"."
 	},
 	"startup": {

@@ -4,4 +4,4 @@
 ; It is run by the "Head change" tab of Printing. Edit it for your machine.
 ;
 ; M453                       ; select CNC mode (see the RepRapFirmware documentation of M453 for the spindle pins)
-; M98 P"0:/sys/modecnc.g"    ; your own CNC settings, if you have that file
+; M98 P"0:/sys/workshop/modes/modecnc.g"    ; your own CNC settings, if you have that file

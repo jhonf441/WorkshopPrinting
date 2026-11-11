@@ -3,7 +3,7 @@
 		<error-notice v-if="failure" :error="failure" :action="$t('plugins.WorkshopPrinting.bedZones.acting')" retry class="mb-3" @retry="load()" />
 
 		<!-- first step: the board has no bed, so there is nothing to set or watch yet. Define the zone first (name, heater, size of the limit), then the rest of the page appears -->
-		<v-card v-if="loaded && definition.needed" outlined class="pa-4 mb-3 bz-define">
+		<v-card v-if="showSetup && loaded && definition.needed" outlined class="pa-4 mb-3 bz-define">
 			<div class="text-subtitle-1 font-weight-medium">{{ $t('plugins.WorkshopPrinting.bedZones.define_title') }}</div>
 			<p class="text-body-2 mt-1 mb-2">{{ $t('plugins.WorkshopPrinting.bedZones.define_body') }}</p>
 			<ol class="text-body-2 mb-3">
@@ -14,6 +14,13 @@
 			<v-btn v-if="machineActive && canConfigure" color="primary" @click="defineFirst()"><v-icon left>mdi-plus-circle-outline</v-icon>{{ $t('plugins.WorkshopPrinting.bedZones.define_btn') }}</v-btn>
 			<div v-else class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.bedZones.define_blocked') }}</div>
 		</v-card>
+
+		<!-- live part: the zones are defined in the setup section -->
+		<div v-if="!showSetup && loaded && definition.needed" class="wf-note mb-3" role="note">
+			<v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon>
+			<span>{{ $t('plugins.WorkshopPrinting.bedZones.live_define_note') }}</span>
+			<v-btn v-if="canConfigure" small color="primary" class="ml-3" @click="$emit('goto', { section: 'bedsetup' })">{{ $t('plugins.WorkshopPrinting.bedZones.live_define_go') }}</v-btn>
+		</div>
 
 		<template v-if="!definition.needed">
 		<div v-if="loaded && !config.enabled" class="wf-note is-warn mb-3" role="note">
@@ -30,25 +37,25 @@
 		</div>
 
 		<!-- the beds the board does not define are defined in Machine (its plan: exact lines, backup, history); this page writes no heater line -->
-		<v-card v-if="loaded && check.missing.length && machineActive && canConfigure" outlined class="pa-3 mb-3">
+		<v-card v-if="showSetup && loaded && check.missing.length && machineActive && canConfigure" outlined class="pa-3 mb-3">
 			<div class="text-body-2">{{ $t('plugins.WorkshopPrinting.bedZones.machine_note', { beds: check.missing.join(', ') }) }}</div>
 			<v-btn small color="primary" class="mt-2" @click="openMachine()"><v-icon small left>mdi-open-in-new</v-icon>{{ $t('plugins.WorkshopPrinting.bedZones.open_machine') }}</v-btn>
 		</v-card>
 
-		<div v-if="preview" class="wf-note mb-3" role="note">
+		<div v-if="showSetup && preview" class="wf-note mb-3" role="note">
 			<v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-eye-outline</v-icon>
 			<span>{{ $t('plugins.WorkshopPrinting.bedZones.preview_note') }}</span>
 		</div>
 
 		<!-- a bed the board defines that no zone covers: offered here (one tap), not left invisible -->
-		<div v-if="loaded && unassigned.length" class="wf-note mb-3" role="note">
+		<div v-if="showSetup && loaded && unassigned.length" class="wf-note mb-3" role="note">
 			<v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon>
 			<span>{{ $t('plugins.WorkshopPrinting.bedZones.unassigned_note', { beds: unassigned.join(', ') }) }}</span>
 			<v-btn v-if="canConfigure" small color="primary" class="ml-3" :loading="busy === 'adopt'" @click="adoptBeds()">{{ $t('plugins.WorkshopPrinting.bedZones.unassigned_add') }}</v-btn>
 		</div>
 
 		<!-- setpoint of the whole bed: heating is level 2, so the button is armed with a second tap (DESIGN.md 5) -->
-		<v-card outlined class="pa-3 mb-3">
+		<v-card v-if="showLive" outlined class="pa-3 mb-3">
 			<div class="d-flex align-end flex-wrap" style="gap:12px">
 				<wf-field id="bz-global" :label="$t('plugins.WorkshopPrinting.bedZones.global_setpoint')" :message="globalError" level="error">
 					<template #help><help-tip :title="$t('plugins.WorkshopPrinting.bedZones.global_setpoint')" :what="$t('plugins.WorkshopPrinting.bedZones.help.global_what')" :why="$t('plugins.WorkshopPrinting.bedZones.help.global_why')" :if-missing="$t('plugins.WorkshopPrinting.bedZones.help.global_miss')" :how="$t('plugins.WorkshopPrinting.bedZones.help.global_how')" /></template>
@@ -68,10 +75,10 @@
 		</v-card>
 
 		<v-row dense>
-			<v-col cols="12" :md="edit ? 12 : 5">
+			<v-col cols="12" :md="edit ? 12 : (showSetup ? 6 : 5)">
 				<v-card outlined class="pa-3 fill-height">
-					<!-- the geometry is edited HERE, on the map that shows the temperatures: Edit turns the map and the table into the editor (technician) -->
-					<div v-if="canConfigure && !edit" class="d-flex align-center flex-wrap mb-2" style="gap:8px">
+					<!-- the geometry is edited HERE (setup part), on the map that shows the temperatures: Edit turns the map and the table into the editor (technician) -->
+					<div v-if="showSetup && canConfigure && !edit" class="d-flex align-center flex-wrap mb-2" style="gap:8px">
 						<v-btn small outlined class="bz-edit-btn" :disabled="!!preview" @click="startEditing()">
 							<v-icon small left>mdi-pencil</v-icon>{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_edit') }}
 						</v-btn>
@@ -80,15 +87,15 @@
 					<div :class="{ 'bz-edit-body': edit }">
 						<bed-zone-map
 							:rows="rows" :layout="shown.layout" :geometry="shown.geometry || null" :max-temp="shown.max_temp" :selected="selected" :editable="!!edit && !!shown.geometry"
-							:selection="edit ? edit.selection : []" :reference="edit ? edit.reference : null" :step="edit && edit.snap ? 5 : 0"
+							:selection="edit ? edit.selection : []" :reference="edit ? edit.reference : null" :step="edit && edit.snap ? 5 : 0" :guides="!edit || edit.guides !== false" :ghosts="ghosts"
 							@select="selected = selected === $event ? null : $event" @pick="onAct({ type: 'pick', index: $event.index, multi: $event.multi })" @clear="onAct({ type: 'clear' })"
 							@begin="onAct({ type: 'begin' })" @rect="onAct({ type: 'rect', index: $event.index, rect: $event.rect })"
 						/>
-						<bed-zone-editor v-if="edit" :edit="edit" :problems="editIssues" :max="zonesMax" :model="model" :dirty="editDirty" :saving="editSaving" :server-errors="editErrors" @act="onAct" @save="saveEdit()" @cancel="stopEditing()" />
+						<bed-zone-editor v-if="showSetup && edit" :edit="edit" :problems="editIssues" :max="zonesMax" :model="model" :dirty="editDirty" :saving="editSaving" :server-errors="editErrors" :plan="arrange" @act="onAct" @save="saveEdit()" @cancel="stopEditing()" />
 					</div>
 				</v-card>
 			</v-col>
-			<v-col cols="12" :md="edit ? 12 : 7">
+			<v-col v-if="showLive || edit" cols="12" :md="edit ? 12 : 7">
 				<v-card outlined class="pa-3 fill-height">
 					<v-simple-table dense class="bz-table">
 						<thead>
@@ -133,20 +140,26 @@
 			</v-col>
 		</v-row>
 
-		<v-card v-if="chartSeries.length" outlined class="pa-3 mt-3">
+		<v-card v-if="showLive && chartSeries.length" outlined class="pa-3 mt-3">
 			<div class="text-subtitle-2 mb-1">{{ $t('plugins.WorkshopPrinting.bedZones.chart_title') }}</div>
 			<chart-state :series="chartSeries" :samples="samples" />
 		</v-card>
 
+		<!-- what the geometry says: the power estimate and the insulation test (both read only; every input is optional) -->
+		<v-row v-if="showSetup && loaded && shown.geometry && !edit" dense class="mt-3">
+			<v-col cols="12" md="6"><v-card outlined class="pa-3 fill-height"><bed-zone-power :rows="rows" :inputs="powerInputs" @change="setPower" /></v-card></v-col>
+			<v-col cols="12" md="6"><v-card outlined class="pa-3 fill-height"><bed-zone-insulation :rows="rows" :inputs="powerInputs" :runs="runs" @runs="setRuns" /></v-card></v-col>
+		</v-row>
+
 		<!-- settings: only a technician (the limits are the safety of the bed) -->
-		<v-card v-if="canConfigure && !edit" outlined class="pa-3 mt-3">
+		<v-card v-if="showSetup && canConfigure && !edit" outlined class="pa-3 mt-3">
 			<div class="d-flex align-center" style="gap:4px">
 				<div class="text-subtitle-1 font-weight-medium">{{ $t('plugins.WorkshopPrinting.bedZones.settings_title') }}</div>
 				<help-tip :title="$t('plugins.WorkshopPrinting.bedZones.settings_title')" :what="$t('plugins.WorkshopPrinting.bedZones.help.settings_what')" :why="$t('plugins.WorkshopPrinting.bedZones.help.settings_why')" :if-missing="$t('plugins.WorkshopPrinting.bedZones.help.settings_miss')" :how="$t('plugins.WorkshopPrinting.bedZones.help.settings_how')" />
 			</div>
 			<bed-zones-config v-if="loaded" class="mt-3" :config="config" :rev="rev" @saved="saved" @reload="load()" @preview="preview = $event" />
 		</v-card>
-		<lock-reason v-else-if="loaded && canSend" :min="needConfigure" class="mt-3" />
+		<lock-reason v-else-if="showSetup && loaded && canSend" :min="needConfigure" class="mt-3" />
 		</template>
 	</div>
 </template>
@@ -160,11 +173,13 @@
 import { api } from './workshop-api.js'
 import { roleMixin } from './role-mixin.js' // vue/_shared36
 import { NEED } from './print-sections.js'
-import { reduce, startEdit, editProblems, editDirty } from './bed-zones-edit.js'
+import { reduce, startEdit, editProblems, editDirty, arrangePlan } from './bed-zones-edit.js'
 import { zoneRows, alertKey, zoneSeries, setpointOf, boardCheck, unassignedBeds, withBeds, fmtTemp, emptyConfig, machineBedsRoute, zoneLimit, firstDefinition } from './bed-zones.js'
 import BedZoneMap from './BedZoneMap.vue'
 import BedZonesConfig from './BedZonesConfig.vue'
 import BedZoneEditor from './BedZoneEditor.vue'
+import BedZonePower from './BedZonePower.vue'
+import BedZoneInsulation from './BedZoneInsulation.vue'
 import { pluginActive } from './workshop-ids.js' // vue/_shared36: Machine is another plugin, nothing about it when it is absent
 import ChartState from './ChartState.vue'
 import WfField from './WfField.vue' // vue/_shared36
@@ -172,24 +187,53 @@ import HelpTip from './HelpTip.vue' // vue/_shared36
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared36
 import LockReason from './LockReason.vue' // vue/_shared36
 
+const POWER_KEY = 'workshop.bedzones.power' // what the first version kept in the browser: uploaded to the service once, then removed
+const RUNS_KEY = 'workshop.bedzones.insulation'
+const POWER_FIELDS = ['ambient', 'target', 'thickness', 'material', 'density', 'cp', 'power', 'minutes', 'cover']
+
+const emptyPower = () => ({ ambient: '', target: '', thickness: '', material: '', density: '', cp: '', power: '', minutes: '', cover: false })
+// the inputs as the form holds them (text, '' = not given) from what the service keeps (numbers / null)
+const textOf = v => (v === null || v === undefined ? '' : String(v))
+
+// What the first version of the cards kept in this browser, or null when there is nothing
+function oldBrowserData() {
+	try {
+		const power = JSON.parse(window.localStorage.getItem(POWER_KEY) || 'null')
+		const runs = JSON.parse(window.localStorage.getItem(RUNS_KEY) || 'null')
+		return power || runs ? { inputs: Object.assign(emptyPower(), power || {}), runs: { before: (runs && runs.before) || null, after: (runs && runs.after) || null } } : null
+	} catch (e) {
+		return null
+	}
+}
+
 export default {
 	mixins: [roleMixin],
 	// what the person who left read, did or was refused stays nowhere (role-mixin.js)
 	sessionData: ['armed', 'msg', 'msgKind', 'edit', 'editErrors'],
 	sessionErrors: ['failure', 'msg', 'msgKind'],
-	components: { BedZoneMap, BedZoneEditor, BedZonesConfig, ChartState, WfField, HelpTip, ErrorNotice, LockReason },
+	components: { BedZoneMap, BedZoneEditor, BedZonePower, BedZoneInsulation, BedZonesConfig, ChartState, WfField, HelpTip, ErrorNotice, LockReason },
 	props: {
 		series: { type: Array, default: () => [] }, // seriesChart of Print.vue (one per heater, the color follows the heater)
 		samples: { type: Array, default: () => [] }, // the 10 minute history of Print.vue
-		isFff: { type: Boolean, default: true }
+		isFff: { type: Boolean, default: true },
+		// which part of the page to show (the printing page mounts it twice): 'live' = the map, the setpoints, the zone table and the chart (what
+		// is done while printing); 'setup' = the layout editor on the map, the power estimate, the insulation test and the settings (a technician);
+		// anything else = the whole page
+		part: { type: String, default: 'all' }
 	},
 	data() {
 		return {
 			loaded: false, config: emptyConfig(), preview: null, rev: '0', problems: [], detected: [], failure: null,
-			edit: null, editSaving: false, editErrors: [], selected: null, globalText: '60', zoneText: {}, armed: null, armedTimer: null, busy: null, msg: null, msgKind: 'info'
+			powerInputs: emptyPower(), runs: { before: null, after: null }, estRev: '0', edit: null, editSaving: false, editErrors: [], selected: null, globalText: '60', zoneText: {}, armed: null, armedTimer: null, busy: null, msg: null, msgKind: 'info'
 		}
 	},
 	computed: {
+		showLive() {
+			return this.part !== 'setup'
+		},
+		showSetup() {
+			return this.part !== 'live'
+		},
 		model() {
 			return this.$store.state.machine.model
 		},
@@ -199,6 +243,13 @@ export default {
 		},
 		editIssues() {
 			return this.edit ? editProblems(this.edit) : []
+		},
+		// the tidy-up preview: what it would do now (the panel lists it) and where each zone would go (the map draws it); [] when there is nothing to show
+		arrange() {
+			return this.edit ? arrangePlan(this.edit) : null
+		},
+		ghosts() {
+			return this.arrange && this.arrange.fits && this.arrange.changed ? this.arrange.rects : []
 		},
 		editDirty() {
 			return !!this.edit && editDirty(this.edit, this.config)
@@ -253,6 +304,7 @@ export default {
 	},
 	mounted() {
 		this.load()
+		this.loadEstimates()
 	},
 	beforeDestroy() {
 		clearTimeout(this.armedTimer)
@@ -261,6 +313,7 @@ export default {
 		fmt: fmtTemp,
 		onSessionChange() {
 			this.load()
+			this.loadEstimates()
 		},
 		zoneValue(bed) {
 			return setpointOf(this.zoneText[bed], this.config.max_temp)
@@ -392,6 +445,45 @@ export default {
 			} finally {
 				this.editSaving = false
 			}
+		},
+		// the optional data of the power card and the insulation runs live in the service (bedestimates.*): one value for every screen. Whoever may not write
+		// (below technician) still sees and uses what is saved; what that person types lasts until the page closes.
+		async loadEstimates() {
+			try {
+				const g = await api('bedestimates.get', {}, { quiet: true })
+				this.estRev = g.rev
+				const old = g.rev === '0' ? oldBrowserData() : null
+				if (old) {
+					this.powerInputs = old.inputs
+					this.runs = old.runs
+					if (this.canDo('bedestimates.set') && await this.saveEstimates()) this.forgetBrowserData()
+					return
+				}
+				this.powerInputs = Object.assign(emptyPower(), ...POWER_FIELDS.map(k => ({ [k]: k === 'cover' ? !!g.inputs[k] : textOf(g.inputs[k]) })))
+				this.runs = { before: g.insulation.before || null, after: g.insulation.after || null }
+			} catch (e) { /* the service does not answer (or has no such data yet): the cards work with what is typed */ }
+		},
+		forgetBrowserData() {
+			try { window.localStorage.removeItem(POWER_KEY); window.localStorage.removeItem(RUNS_KEY) } catch (e) { /* nothing kept */ }
+		},
+		async saveEstimates() {
+			if (!this.canDo('bedestimates.set')) return false
+			try {
+				const out = await api('bedestimates.set', { inputs: this.powerInputs, insulation: this.runs }, { quiet: true })
+				this.estRev = out.rev
+				return true
+			} catch (e) {
+				return false
+			}
+		},
+		setPower(e) {
+			if (POWER_FIELDS.indexOf(e.key) < 0) return
+			this.powerInputs = Object.assign({}, this.powerInputs, { [e.key]: e.value })
+			this.saveEstimates()
+		},
+		setRuns(runs) {
+			this.runs = runs
+			this.saveEstimates()
 		},
 		numberOf(bed) {
 			const r = this.rows.find(x => x.bed === bed)

@@ -6,14 +6,14 @@
 //   * the head change section exists only when the machine switches between modes;
 //   * the entry that sends to Machine > Machine modes (when that plugin is there) or the switches themselves (when it is not).
 
-import { modeStartupRows, callsAutoModeSelect, modesState, usesSeveralModes, usesExtraModes, enabledList, withMode, MODE_NAMES } from './machine-modes.js';
+import { modeStartupRows, callsAutoModeSelect, findUnmigrated, BOOT_HOOK_FILE, modesState, usesSeveralModes, usesExtraModes, enabledList, withMode, MODE_NAMES } from './machine-modes.js';
 import { loadModes, saveModes } from './machine-modes-store.js';
 import { pluginActive } from './workshop-ids.js';
 import { readText } from './util.js';
 
 export const printModesMixin = {
 	data() {
-		return { modesInfo: null, bootCalls: null };
+		return { modesInfo: null, bootCalls: null, unmigrated: [] };
 	},
 	computed: {
 		modeState() {
@@ -34,7 +34,7 @@ export const printModesMixin = {
 		},
 		rowsStartup() {
 			if (!this.modesInfo) return [];
-			return modeStartupRows(this.modesInfo.state, this.modesInfo.detected, this.bootCalls, this.answerModes);
+			return modeStartupRows(this.modesInfo.state, this.modesInfo.detected, this.bootCalls, this.answerModes, this.unmigrated);
 		},
 		// the sections, as the side bar (SideTabs): Operate and Configure, only the ones the role sees (print-sections.js)
 	},
@@ -67,7 +67,15 @@ export const printModesMixin = {
 		// the card re-reads what the page owns each time it refreshes: config.g (it calls the saved mode?) and the modes answer
 		async recheckModes() {
 			try {
-				this.bootCalls = callsAutoModeSelect(await readText('0:/sys/config.g'));
+				const config = await readText('0:/sys/config.g');
+				let bootText = null;
+				try {
+					bootText = await readText('0:/' + BOOT_HOOK_FILE);
+				} catch (e) {
+					/* missing: the block then does not count */
+				}
+				this.bootCalls = callsAutoModeSelect(config, bootText);
+				this.unmigrated = await findUnmigrated(readText);
 			} catch (e) {
 				/* not read: no row for it */
 			}

@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "plugin": "WorkshopPrinting",
+  "namespace": "printing",
+  "prefixes": [
+    "bedcal",
+    "bedestimates",
+    "bedzones",
+    "gcodelib",
+    "jobs",
+    "layerrecipes",
+    "pelletlayers",
+    "pid"
+  ],
+  "ui": "ui:printing:open",
+  "operations": [
+    "activity.log",
+    "bedcal.plan",
+    "bedcal.preheat",
+    "bedcal.status",
+    "bedcal.stop",
+    "bedcal.tune",
+    "bedestimates.get",
+    "bedestimates.set",
+    "bedzones.get",
+    "bedzones.off",
+    "bedzones.set",
+    "bedzones.setpoint",
+    "gcodelib.info",
+    "gcodelib.layers",
+    "gcodelib.list",
+    "gcodelib.refresh",
+    "gcodelib.thumbnail",
+    "jobs.preview",
+    "layerrecipes.arm",
+    "layerrecipes.disarm",
+    "layerrecipes.get",
+    "layerrecipes.import_pellet",
+    "layerrecipes.list",
+    "layerrecipes.preview",
+    "layerrecipes.remove",
+    "layerrecipes.set",
+    "layerrecipes.status",
+    "machine.config.apply",
+    "machine.config.plan",
+    "pelletlayers.arm",
+    "pelletlayers.disarm",
+    "pelletlayers.get",
+    "pelletlayers.list",
+    "pelletlayers.remove",
+    "pelletlayers.set",
+    "pelletlayers.status",
+    "pid.cancel",
+    "pid.start",
+    "pid.status",
+    "pid.trace",
+    "risk.end",
+    "risk.start"
+  ],
+  "shared": [
+    "activity.log",
+    "machine.config.apply",
+    "machine.config.plan",
+    "risk.end",
+    "risk.start"
+  ],
+  "restricted": [],
+  "targets": [
+    "printing:bedzone",
+    "printing:file",
+    "printing:folder",
+    "printing:pellet",
+    "printing:recipe"
+  ],
+  "profiles": {
+    "readonly": {
+      "title": "PrintingReadOnly",
+      "capabilities": [
+        "jobs.library",
+        "jobs.view",
+        "machine.config_view",
+        "machine.stop",
+        "machine.view"
+      ]
+    },
+    "operator": {
+      "title": "PrintingOperator",
+      "capabilities": [
+        "jobs.library",
+        "jobs.view",
+        "machine.config_view",
+        "machine.stop",
+        "machine.view"
+      ]
+    },
+    "admin": {
+      "title": "PrintingAdmin",
+      "capabilities": [
+        "jobs.library",
+        "jobs.library_manage",
+        "jobs.view",
+        "machine.config_apply",
+        "machine.config_view",
+        "machine.procedures",
+        "machine.stop",
+        "machine.view",
+        "system.bed_calibration",
+        "system.bedzones",
+        "system.layerrecipes",
+        "system.pelletlayers"
+      ]
+    }
+  }
+}

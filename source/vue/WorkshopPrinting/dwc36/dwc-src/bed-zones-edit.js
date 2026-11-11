@@ -4,10 +4,11 @@
 //
 // The map and the table of BedZones.vue turn into an editor when the technician presses Edit. Everything the editor does is here, as functions of plain
 // data, so it is tested without a screen: the editing aids (align, distribute, make equal) and the state of an edit session (selection, undo, add / remove
-// a zone, typed numbers). Nothing in this file lays zones out by itself: a zone only moves or changes size when the user asks for exactly that.
+// a zone, typed numbers). Nothing in this file lays zones out by itself: a zone only moves or changes size when the user asks for exactly that (the one-shot "tidy up" of bed-zones-smart.js is such a request: a preview first, then Apply).
 // Millimetres in MAP space (see bed-zones-layout.js).
 import { round1, EPS, geometryProblems, bedFromModel, newGeometry } from './bed-zones-layout.js'
-import { clampRect, placeMissing, pushUndo, popUndo } from './bed-zones-drag.js'
+import { clampRect, pushUndo, popUndo } from './bed-zones-drag.js'
+import { arrangeZones, shrinkToFit, placeNew, normalizeOptions, DEFAULT_OPTIONS } from './bed-zones-smart.js'
 import { toNumber, fitLayout } from './bed-zones.js'
 
 export const UNDO_LIMIT = 30
@@ -106,8 +107,8 @@ export function startEdit(config, model) {
 	const c = JSON.parse(JSON.stringify(config))
 	if (!c.geometry) c.geometry = newGeometry(bedFromModel(model))
 	c.geometry = { bed: c.geometry.bed }
-	c.zones = placeMissing(c.zones, c.geometry.bed).zones
-	return { config: c, selection: [], reference: null, undo: [], snap: true, alignTo: 'selection', note: null }
+	c.zones = placeNew(c.zones, c.geometry.bed).zones
+	return { config: c, selection: [], reference: null, undo: [], snap: true, guides: true, alignTo: 'selection', note: null, noteArgs: null, arrange: null }
 }
 
 // Problems of the zones as a list of {field, key, n?, other?} (keys of the area bedZones); [] when the geometry can be saved
@@ -128,6 +129,14 @@ function remember(edit) {
 // The edit with a new configuration; `undo` records the state before it. Keys of the configuration that are not given stay.
 function change(edit, patch, extra) {
 	return Object.assign({}, edit, { config: Object.assign({}, edit.config, patch), undo: remember(edit), note: null }, extra || {})
+}
+
+// The edit with a message for the person (key of the area bedZones; 'zones_layout_done_*' says what was done, any other says why nothing happened)
+const said = (edit, key, args) => Object.assign({}, edit, { note: key, noteArgs: args || null })
+
+// An aid that answers: what it did (with how many zones) or why nothing changed, so a press is never silent
+function aid(edit, next, done, none, count) {
+	return next === edit ? said(edit, none) : said(next, done, { n: count })
 }
 
 function withRects(edit, make) {
@@ -154,7 +163,7 @@ function addZone(edit, max) {
 	const c = edit.config
 	if (!c.geometry || c.zones.length >= max) return edit
 	const zones = c.zones.concat([{ bed: freeBed(c.zones), active: true, offset: 0 }])
-	const placed = placeMissing(zones, c.geometry.bed)
+	const placed = placeNew(zones, c.geometry.bed)
 	if (!placed.ok) return Object.assign({}, edit, { note: 'zones_layout_nofit' })
 	const l = fitLayout(zones.length, c.layout) // the map of the settings grows with the zones: the service refuses a layout with fewer cells than zones
 	const index = zones.length - 1
@@ -171,13 +180,13 @@ function typedRect(edit, field, text) {
 	const index = edit.reference !== null ? edit.reference : edit.selection[0]
 	const n = toNumber(text)
 	const zone = edit.config.zones[index]
-	if (n === null || !zone || !zone.rect || ((field === 'w' || field === 'h') && n <= 0)) return edit
+	if (n === null || !zone || !zone.rect || ((field === 'w' || field === 'h') && n <= 0)) return said(edit, 'zones_layout_note_number')
 	return change(edit, { zones: edit.config.zones.map((z, i) => (i === index ? Object.assign({}, z, { rect: Object.assign({}, z.rect, { [field]: round1(n) }) }) : z)) })
 }
 
 function typedBed(edit, side, text) {
 	const n = toNumber(text)
-	if (n === null || !edit.config.geometry) return edit
+	if (n === null || !edit.config.geometry) return said(edit, 'zones_layout_note_number')
 	return change(edit, { geometry: { bed: Object.assign({}, edit.config.geometry.bed, { [side]: round1(n) }) } })
 }
 
@@ -194,18 +203,45 @@ function undoOne(edit) {
 function simpleGrid(edit) {
 	const config = Object.assign({}, edit.config, { zones: edit.config.zones.map(z => { const o = Object.assign({}, z); delete o.rect; return o }) })
 	delete config.geometry
-	return Object.assign({}, edit, { config, undo: remember(edit), selection: [], reference: null, note: null })
+	return Object.assign({}, edit, { config, undo: remember(edit), selection: [], reference: null, note: null, arrange: null })
 }
 
 function enableGeometry(edit, model) {
 	const geometry = newGeometry(bedFromModel(model))
-	const placed = placeMissing(edit.config.zones, geometry.bed)
+	const placed = placeNew(edit.config.zones, geometry.bed)
 	return change(edit, { geometry, zones: placed.zones }, { note: placed.ok ? null : 'zones_layout_nofit' })
+}
+
+// ---- the tidy-up (one explicit action; the maths is in bed-zones-smart.js) ----
+
+// What the tidy-up would do now, for the preview: null when it is not open, else the result of arrangeZones (or of the uniform reduction once asked), computed from the
+// zones as they are at this moment. The preview is never stored: it is recomputed, so it can not go stale.
+export function arrangePlan(edit) {
+	const a = edit.arrange
+	if (!a || !edit.config.geometry) return null
+	const rects = edit.config.zones.map(z => z.rect || null)
+	const bed = edit.config.geometry.bed
+	return a.shrink ? shrinkToFit(rects, bed, a.options) : arrangeZones(rects, bed, a.options)
+}
+
+function arrangeOption(edit, name, value) {
+	if (!edit.arrange || DEFAULT_OPTIONS[name] === undefined) return edit
+	const options = normalizeOptions(Object.assign({}, edit.arrange.options, { [name]: name === 'gap' || name === 'minGap' ? toNumber(value) : value }))
+	return Object.assign({}, edit, { arrange: Object.assign({}, edit.arrange, { options, shrink: false }) })
+}
+
+// Apply: ONE undo step with every rect of the plan; nothing to apply (it does not fit, or it is tidy already) only closes the panel
+function arrangeApply(edit) {
+	const plan = arrangePlan(edit)
+	if (!plan || !plan.ok || !plan.fits || !plan.changed) return Object.assign({}, edit, { arrange: null })
+	const zones = edit.config.zones.map((z, i) => (plan.rects[i] && z.rect ? Object.assign({}, z, { rect: plan.rects[i] }) : z))
+	return change(edit, { zones }, { arrange: null })
 }
 
 // One step of the editor: the new state for an action, or the same state when the action changes nothing (a number that is not a number, an aid with nothing to
 // do). ctx: {max: most zones this board supports, model: the object model}. Actions: pick {index, multi}, clear, begin, rect {index, rect}, field {name, value},
-// bed {side, value}, align {edge}, distribute {axis}, equal {dim}, add, remove, undo, snap {value}, alignTo {value}, simple, enable.
+// bed {side, value}, guides {value}, align {edge}, distribute {axis}, equal {dim}, add, remove, undo, snap {value}, alignTo {value}, simple, enable,
+// arrangeOpen, arrangeClose, arrangeOption {name, value}, arrangeShrink (preview of the uniform reduction), arrangeBack, arrangeApply.
 export function reduce(edit, action, ctx) {
 	const c = edit.config
 	const bed = c.geometry ? c.geometry.bed : null
@@ -217,16 +253,23 @@ export function reduce(edit, action, ctx) {
 		case 'rect': return setRectAt(edit, action.index, action.rect)
 		case 'field': return typedRect(edit, action.name, action.value)
 		case 'bed': return typedBed(edit, action.side, action.value)
-		case 'align': return withRects(edit, rects => alignRects(rects, targets(), action.edge, edit.alignTo === 'reference' ? edit.reference : null, bed))
-		case 'distribute': return withRects(edit, rects => distributeRects(rects, targets(), action.axis))
-		case 'equal': return withRects(edit, rects => equalizeRects(rects, targets(), action.dim, edit.reference, bed))
+		case 'align': return aid(edit, withRects(edit, rects => alignRects(rects, targets(), action.edge, edit.alignTo === 'reference' ? edit.reference : null, bed)), 'zones_layout_done_align', 'zones_layout_note_aligned', targets().length)
+		case 'distribute': return aid(edit, withRects(edit, rects => distributeRects(rects, targets(), action.axis)), 'zones_layout_done_distribute', targets().length < 3 ? 'zones_layout_note_distribute_min' : 'zones_layout_note_distribute_none', targets().length)
+		case 'equal': return aid(edit, withRects(edit, rects => equalizeRects(rects, targets(), action.dim, edit.reference, bed)), 'zones_layout_done_equal', targets().length < 2 ? 'zones_layout_note_equal_min' : 'zones_layout_note_equal_none', targets().length)
 		case 'add': return addZone(edit, ctx.max)
 		case 'remove': return removeZones(edit)
 		case 'undo': return undoOne(edit)
+		case 'guides': return Object.assign({}, edit, { guides: !!action.value })
 		case 'snap': return Object.assign({}, edit, { snap: !!action.value })
 		case 'alignTo': return Object.assign({}, edit, { alignTo: action.value === 'reference' ? 'reference' : 'selection' })
 		case 'simple': return simpleGrid(edit)
 		case 'enable': return enableGeometry(edit, ctx.model)
+		case 'arrangeOpen': return c.geometry && c.zones.length ? Object.assign({}, edit, { arrange: { options: Object.assign({}, DEFAULT_OPTIONS), shrink: false } }) : edit
+		case 'arrangeClose': return Object.assign({}, edit, { arrange: null })
+		case 'arrangeOption': return arrangeOption(edit, action.name, action.value)
+		case 'arrangeShrink': return edit.arrange ? Object.assign({}, edit, { arrange: Object.assign({}, edit.arrange, { shrink: true }) }) : edit
+		case 'arrangeBack': return edit.arrange ? Object.assign({}, edit, { arrange: Object.assign({}, edit.arrange, { shrink: false }) }) : edit
+		case 'arrangeApply': return arrangeApply(edit)
 		default: return edit
 	}
 }

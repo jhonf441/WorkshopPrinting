@@ -37,7 +37,7 @@
 		<div class="d-flex align-end flex-wrap mt-2" style="gap:12px">
 			<wf-field id="pl-file" :label="tx('pellet_layers_f_file')" :message="fileHint">
 				<template #help><help-tip v-bind="help('file')" /></template>
-				<v-text-field id="pl-file" v-model="file" dense outlined hide-details style="min-width:220px" :aria-label="tx('pellet_layers_f_file')" :disabled="!canArm || armedNow" />
+				<gcode-picker id="pl-file" :value="fileName" :job-file="jobName" clearable :show-help="false" :aria-label="tx('pellet_layers_f_file')" :disabled="!canArm || armedNow" @input="onFilePick" />
 			</wf-field>
 			<v-btn small :color="armed === 'arm' ? 'amber darken-3' : 'primary'" :loading="busy === 'arm'" :disabled="!canArm || armedNow || !canArmNow" @click="touch('arm', arm)">
 				<v-icon small left>mdi-fire</v-icon>{{ armed === 'arm' ? tx('pellet_layers_tap_again_arm') : tx('pellet_layers_arm') }}
@@ -164,6 +164,7 @@ import HelpTip from './HelpTip.vue' // vue/_shared36
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared36
 import LockReason from './LockReason.vue' // vue/_shared36
 import WfField from './WfField.vue' // vue/_shared36
+import GcodePicker from './GcodePicker.vue' // the select of the G-code library (the job file)
 import {
 	MAX_POINTS, draftOf, profileOf, emptyProfile, validateProfile, chartModel, jobLayers, pointLayers, previewWarnings, previewPath,
 	fileForJob, liveState, tempsText, toolZones, parseNumber, NAME_MAX
@@ -176,7 +177,7 @@ export default {
 	// what the person who left read, did or was refused stays nowhere (role-mixin.js)
 	sessionData: ['armed', 'msg', 'msgKind'],
 	sessionErrors: ['failure', 'msg', 'msgKind'],
-	components: { HelpGuide, HelpTip, ErrorNotice, LockReason, WfField },
+	components: { HelpGuide, HelpTip, ErrorNotice, LockReason, WfField, GcodePicker },
 	props: {
 		tool: { type: Object, default: null } // the current tool of the page (its heaters are the zones of the profile)
 	},
@@ -300,6 +301,11 @@ export default {
 		clearTimeout(this.armedTimer)
 	},
 	methods: {
+		// the file field is the select of the G-code library
+		onFilePick(path) {
+			this.file = path || ''
+			this.fileTouched = true
+		},
 		tx(key, params) {
 			return this.$t('plugins.WorkshopPrinting.pellet.' + key, params || {})
 		},
@@ -474,6 +480,10 @@ export default {
 </script>
 
 <style scoped>
+/* one height for every button of the card (the rows of buttons and fields line up), and the fields of a row share one baseline */
+.pl-card .v-btn:not(.v-btn--icon) { height: 44px; min-height: 44px; }
+.pl-card .v-btn--icon { width: 44px; height: 44px; }
+.pl-card .d-flex.align-end > .v-btn { margin-bottom: 0; }
 .pl-live { border-left: 3px solid var(--wf-line, rgba(128, 128, 128, 0.4)); padding-left: 10px; }
 .pl-scroll { overflow-x: auto; max-width: 100%; }
 .pl-table { border-collapse: collapse; min-width: 100%; }

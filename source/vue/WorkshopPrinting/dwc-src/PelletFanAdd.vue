@@ -46,7 +46,7 @@
 
 <script setup>
 import { onBeforeUnmount, ref } from 'vue'
-import { MODE_FILE, readText, writeText, note } from './util.js'
+import { MODE_FILE, modeFilePath, readText, writeText, note } from './util.js'
 import { pinInUse } from './pellet-feed.js'
 import { normalize, applyFan, marked, removeFan, nextFanIndex } from './pellet-fans.js'
 import { confirmRisk } from './risk.js'
@@ -109,7 +109,7 @@ async function save() {
 	saving.value = true;
 	try {
 		if (props.busy) throw new Error(i18n.t('plugins.WorkshopPrinting.pellet.reorder_busy'));
-		const texts = await Promise.all(['0:/sys/config.g', MODE_FILE, '0:/sys/modelaser.g', '0:/sys/modecnc.g'].map(p => readOptional(p)));
+		const texts = await Promise.all(['0:/sys/config.g', MODE_FILE, modeFilePath('modelaser.g'), modeFilePath('modecnc.g')].map(p => readOptional(p)));
 		const taken = marked(texts[1]).map(m => m.index);
 		// the first fan number the board does not have and no fan of this page is waiting for a reload with
 		const index = nextFanIndex(Array.from({ length: 16 }, (_, i) => props.omFans[i] || taken.includes(i)), 16);

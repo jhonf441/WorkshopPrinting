@@ -281,7 +281,7 @@
 	},
 	"extruder": {
 		"could_not_apply": "No se pudo aplicar: ",
-		"save_changes_the_m92_e_line": "Guardar cambia la línea M92 E de sys/modefff.g y deja una copia .bak antes. Repite la prueba después para confirmar.",
+		"save_changes_the_m92_e_line": "Guardar cambia la línea M92 E de sys/workshop/modes/modefff.g y deja una copia .bak antes. Repite la prueba después para confirmar.",
 		"apply_now_until_the_mode_changes": "Aplicar ahora (hasta cambiar de modo)",
 		"very_different_from_expected_check_the": "Muy distinto de lo esperado: revisa el peso, el diámetro y que hayas juntado todo antes de cambiar nada.",
 		"pick_the_material_and_type_the": "Elige el material y escribe el peso para calcular.",
@@ -778,7 +778,7 @@
 		"the_machine_has_to_be_idle": "La máquina tiene que estar en reposo.",
 		"the_new_models_are_already_in": "Los modelos nuevos ya están en uso hasta cambiar de modo. Guardar reemplaza la línea M307 de cada zona en modefff.g, todas de una vez (con copia .bak).",
 		"save_all_to_modefff_g": "Guardar todo en modefff.g",
-		"new_lines_for_sys_modefff_g": "Líneas nuevas para sys/modefff.g",
+		"new_lines_for_sys_modefff_g": "Líneas nuevas para sys/workshop/modes/modefff.g",
 		"to_stop_cancel_turns_the_zones": "Para cortar: Cancelar (apaga las zonas), o la Parada de Emergencia.",
 		"cancel": "Cancelar",
 		"tap_again_it_will_heat": "Toca otra vez: va a calentar",
@@ -804,7 +804,7 @@
 		"above_machine_limit": "Por encima del tope de la máquina ({max} °C).",
 		"tuning_in_progress": "Calibrando {name}: {c} °C. Puedes cambiar de página; el resultado se lee al volver.",
 		"current_model_of": "Modelo actual de {name}",
-		"line_for_modefff": "Línea para sys/modefff.g:",
+		"line_for_modefff": "Línea para sys/workshop/modes/modefff.g:",
 		"now_in_the_file": "Ahora en el archivo:",
 		"not_read": "(sin leer)",
 		"limit_n": "tope {n}",
@@ -1068,7 +1068,7 @@
 		"the_thermistor_reads_nothing_open_circuit": "El termistor no se lee (circuito abierto): ¿está conectado el cabezal o la cama? Revisa el cable y el conector.",
 		"http_reading": "HTTP {status} leyendo {path}",
 		"http_writing": "HTTP {status} escribiendo {path}",
-		"line_not_found": "No encontré una línea \"{start}...\" en sys/modefff.g",
+		"line_not_found": "No encontré una línea \"{start}...\" en sys/workshop/modes/modefff.g",
 		"sensor_reports": "El sensor reporta \"{state}\"."
 	},
 	"startup": {

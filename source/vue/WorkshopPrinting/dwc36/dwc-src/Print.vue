@@ -21,8 +21,9 @@
 						{{ ' ' }}<template v-if="canConfig">{{ $t('plugins.WorkshopPrinting.printing.use') }} <a href="#" @click.prevent="section = 'head'">{{ $t('plugins.WorkshopPrinting.printing.head_change') }}</a>{{ $t('plugins.WorkshopPrinting.printing.it_guides_you_to_remove_it') }}</template>
 					</div>
 					<!-- changing the mode is a technician's (F3-P): the others are told whom to ask instead of getting a button -->
-					<lock-reason :min="needConfig" class="mt-3 ask-technician" />
-					<div v-if="canConfig" class="d-flex align-center flex-wrap mt-3" style="gap:8px">
+					<!-- ONE rule for every mode switch (mode-switch.js): the mode buttons of the bar ask the same one -->
+					<lock-reason :op="modeSwitchOp" :need="modeSwitchRole" class="mt-3 ask-technician" />
+					<div v-if="canSwitchMode" class="d-flex align-center flex-wrap mt-3" style="gap:8px">
 						<!-- changes the machine's configuration: amber double tap (DESIGN.md 5) -->
 						<v-btn small :color="armed === 'mode' ? 'amber darken-3' : 'primary'" :disabled="!!reasonNoMode" @click="arm('mode', changeAfff)">
 							<v-icon small left>mdi-printer-3d-nozzle</v-icon>{{ armed === 'mode' ? $t('plugins.WorkshopPrinting.printing.tap_again_switch_to_fff_mode') : $t('plugins.WorkshopPrinting.printing.switch_to_fff_mode') }}
@@ -193,11 +194,18 @@
 						<v-alert v-if="msg" dense text :type="msgKind" class="mt-3 mb-0">{{ msg }}</v-alert>
 					</pc-section>
 					</v-tab-item>
-
-					<!-- ===== Operate: bed zones ===== -->
+					<!-- ===== Operate: bed zones, live part (the map, the setpoints, the zone table and the chart) ===== -->
 					<v-tab-item value="bed">
-						<pc-section icon="mdi-radiator" :title="$t('plugins.WorkshopPrinting.printing.bed_zones')" :lead="$t('plugins.WorkshopPrinting.bedZones.lead')">
-							<bed-zones :series="seriesChart" :samples="samples" :is-fff="isFff" />
+						<pc-section icon="mdi-radiator" :title="$t('plugins.WorkshopPrinting.printing.bed_zones_live')" :lead="$t('plugins.WorkshopPrinting.bedZones.lead')">
+							<bed-zones part="live" :series="seriesChart" :samples="samples" :is-fff="isFff" @goto="goTo" />
+						</pc-section>
+					</v-tab-item>
+
+					<!-- ===== Configure: bed zones, setup part (layout editor on the map, power estimate, insulation test, settings; the calibration assistant under it: the service preheats and tunes the zones and saves the results, always with the person present) ===== -->
+					<v-tab-item v-if="canConfig" value="bedsetup">
+						<pc-section icon="mdi-tune-variant" :title="$t('plugins.WorkshopPrinting.printing.bed_zones_setup')" :lead="$t('plugins.WorkshopPrinting.bedZones.setup_lead')">
+							<bed-zones part="setup" :series="seriesChart" :samples="samples" :is-fff="isFff" />
+							<bed-calibration />
 						</pc-section>
 					</v-tab-item>
 
@@ -226,7 +234,7 @@
 						<pellet-setup :is-fff="isFff" :current-tool="tool" :heaters="heaters" :fans="fans" :state="state" @goto="goTo" />
 					</v-tab-item>
 
-					<!-- ===== Operate: Materiales (preheat) ===== -->
+					<!-- ===== Prepare: Materiales (the material table and its preheat) ===== -->
 					<v-tab-item v-if="canOperate" value="materials">
 						<materiales :is-fff="isFff" :heaters="heaters" :tools="tools" :current-tool="tool" :state="state" />
 					</v-tab-item>
@@ -250,6 +258,20 @@
 					<v-tab-item value="job">
 						<fff-job :is-fff="isFff" />
 					</v-tab-item>
+
+					<!-- ===== Prepare: the material applied to a job file: what the file asks and what the material makes of it (read only), and Apply ===== -->
+					<v-tab-item value="layers">
+						<pc-section icon="mdi-layers-triple-outline" :title="$t('plugins.WorkshopPrinting.printing.layers_section')">
+							<layer-preview-page @goto="goTo" />
+						</pc-section>
+					</v-tab-item>
+
+					<!-- ===== Prepare: the G-code library: the slicing of every file (list, layer preview, info) from the parsed cache of the service ===== -->
+					<v-tab-item value="library">
+						<pc-section icon="mdi-bookshelf" :title="$t('plugins.WorkshopPrinting.printing.gcode_library')">
+							<gcode-library-page />
+						</pc-section>
+					</v-tab-item>
 				</v-tabs-items>
 				</div>
 				</div>
@@ -270,12 +292,15 @@ import extruder from './Extruder.vue'
 import Pid from './Pid.vue'
 import Pellet from './Pellet.vue'
 import PelletSetup from './PelletSetup.vue'
+import LayerPreviewPage from './LayerPreviewPage.vue'
+import GcodeLibraryPage from './GcodeLibraryPage.vue' // the G-code library (list + layer preview + info of every indexed file)
 import StartupPanel from './StartupPanel.vue' // start-up strip (vue/_shared)
 import PageHeader from './PageHeader.vue' // header of every page (vue/_shared)
 import { printModesMixin } from './print-modes-mixin.js' // which modes the machine uses: rows, entry, head change
 import StartupPrint from './PrintingStartup.vue' // the start-up assistant of the printing page (not the shared card, see HeadChange.vue)
 import ChartState from './ChartState.vue'
 import BedZones from './BedZones.vue' // the bed split in zones: map, setpoints, chart and settings (service op bedzones.*)
+import BedCalibration from './BedCalibration.vue' // calibration assistant of the zones: the service preheats, tunes and saves (with confirmation, Stop and a backup)
 import FffJob from './FffJob.vue' // 3D job tab: temperatures, print state, job control and 3D view (moved from the Workbench)
 import FilamentLoad from './FilamentLoad.vue' // load / unload filament (filament tools only)
 import { heaterConfigRows } from './heater-config.js' // the rows of "How it is configured"
@@ -303,6 +328,7 @@ import { sectionColor } from './section-colors.js' // the color of the open sect
 import { roleMixin } from './role-mixin.js' // what the role sees and may do (vue/_shared)
 import { sideItems, sectionToShow, lockedSection, restoreSection, hiddenIds, NEED, SECTIONS } from './print-sections.js'
 import LockReason from './LockReason.vue' // vue/_shared36
+import { MODE_SWITCH_OP, MODE_SWITCH_ROLE } from './mode-switch.js' // the one rule of every mode switch (vue/_shared36)
 import LockedCover from './LockedCover.vue' // the cover of a section the role cannot open (vue/_shared36)
 import FilamentPanel from './FilamentPanel.vue'
 import { kindOfTool, loadExtruderKinds } from './extruder-kind.js' // pellets or filament of each tool: the pellet sections only show for a pellet tool
@@ -312,7 +338,7 @@ export default {
 	// what the person who left had read or done stays nowhere: the messages and the armed tap go, the files are read again (onSessionChange)
 	sessionData: ['armed', 'msg', 'msgKind', 'modeHasM302'],
 	sessionErrors: ['msg', 'msgKind'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
-	components: { PageHeader, SideTabs, LockedCover, LockReason, HeadChange: HeadChange, Materiales: materials, Extrusor: extruder, Pid, Pellet, PelletSetup, PrintingStartup: StartupPrint, StartupPanel: StartupPanel, ChartState, BedZones, FffJob, FilamentLoad, FilamentPanel, PcSection },
+	components: { PageHeader, SideTabs, LockedCover, LockReason, HeadChange: HeadChange, Materiales: materials, Extrusor: extruder, Pid, Pellet, PelletSetup, PrintingStartup: StartupPrint, StartupPanel: StartupPanel, ChartState, BedZones, BedCalibration, LayerPreviewPage, GcodeLibraryPage, FffJob, FilamentLoad, FilamentPanel, PcSection },
 	data() {
 		let section = restoreSection(null);
 		try {
@@ -393,6 +419,16 @@ export default {
 		},
 		needConfig() {
 			return NEED.configure;
+		},
+		// switching the mode: the one rule of mode-switch.js (the bar's mode buttons ask the same one)
+		modeSwitchOp() {
+			return MODE_SWITCH_OP;
+		},
+		modeSwitchRole() {
+			return MODE_SWITCH_ROLE;
+		},
+		canSwitchMode() {
+			return this.canDo(MODE_SWITCH_OP);
 		},
 		// every section with its role
 		allSections() {
@@ -737,7 +773,7 @@ export default {
 			return '';
 		},
 		async changeAfff() {
-			if (!this.canConfig) return; // changing the mode is a technician's
+			if (!this.canSwitchMode) return; // changing the mode: the one rule of mode-switch.js
 			if (this.calcReasonNoMode()) return; // se vuelve a mirar al tocar
 			try {
 				// the owner's macro when this machine has it; otherwise RRF's own FFF mode (a new install has no macros/mode/selectfff.g:

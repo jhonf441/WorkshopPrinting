@@ -53,7 +53,7 @@ import i18n from '../../i18n'
 import { mapActions } from 'vuex'
 import LockReason from './LockReason.vue' // vue/_shared36
 import { confirmRisk } from './risk.js' // the JS plugins' box, else a box of the page (vue/_shared36)
-import { MODE_FILE, readText, writeText, note } from './util.js'
+import { MODE_FILE, modeFilePath, readText, writeText, note } from './util.js'
 import { pinInUse } from './pellet-feed.js'
 import { normalize, applyFan, marked, removeFan, nextFanIndex } from './pellet-fans.js'
 
@@ -109,7 +109,7 @@ export default {
 			this.saving = true;
 			try {
 				if (this.busy) throw new Error(i18n.t('plugins.WorkshopPrinting.pellet.reorder_busy'));
-				const texts = await Promise.all(['0:/sys/config.g', MODE_FILE, '0:/sys/modelaser.g', '0:/sys/modecnc.g'].map(p => this.readOptional(p)));
+				const texts = await Promise.all(['0:/sys/config.g', MODE_FILE, modeFilePath('modelaser.g'), modeFilePath('modecnc.g')].map(p => this.readOptional(p)));
 				const taken = marked(texts[1]).map(m => m.index);
 				// the first fan number the board does not have and no fan of this page is waiting for a reload with
 				const index = nextFanIndex(Array.from({ length: 16 }, (_, i) => this.omFans[i] || taken.includes(i)), 16);

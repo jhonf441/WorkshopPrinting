@@ -8,7 +8,9 @@ import { replaceFirstLine, changeOrAddLine, mergeCfg } from './mode-lines.js'
 import { fileError } from './print-errors.js'
 
 export const CFG_FILE = '0:/sys/workshop/config/printing.json';
-export const MODE_FILE = '0:/sys/modefff.g';
+import { MODE_FILES, sdPath, modeFilePath } from './machine-modes.js'
+export { modeFilePath }
+export const MODE_FILE = sdPath(MODE_FILES.fff);
 
 // Default pellet materials (typical temperatures; density in g/cm3
 // for the flow calibration by weight).

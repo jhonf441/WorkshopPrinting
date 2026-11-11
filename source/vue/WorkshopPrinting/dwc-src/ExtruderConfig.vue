@@ -5,7 +5,7 @@
 		<div class="wf-help pc-help">
 			<v-icon size="small">mdi-information-outline</v-icon>
 			<div><b>{{ $t('plugins.WorkshopPrinting.extruderConfig.extruder_configuration_what_the_board_reads') }}</b><div class="mt-1">
-			{{ $t('plugins.WorkshopPrinting.extruderConfig.each_zone_is_a_heater_with') }} <b>{{ $t('plugins.WorkshopPrinting.common.save') }}</b> {{ $t('plugins.WorkshopPrinting.extruderConfig.writes') }} <code>sys/modefff.g</code> {{ $t('plugins.WorkshopPrinting.extruderConfig.directly_with_a_backup_copy_then') }}
+			{{ $t('plugins.WorkshopPrinting.extruderConfig.each_zone_is_a_heater_with') }} <b>{{ $t('plugins.WorkshopPrinting.common.save') }}</b> {{ $t('plugins.WorkshopPrinting.extruderConfig.writes') }} <code>{{ modeFileLabel }}</code> {{ $t('plugins.WorkshopPrinting.extruderConfig.directly_with_a_backup_copy_then') }}
 			</div></div>
 		</div>
 		</details>
@@ -174,7 +174,8 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
-import { readText, writeText, MODE_FILE, isError, note } from './util.js'
+import { MODE_FILES } from './machine-modes.js'
+import { readText, writeText, MODE_FILE, modeFilePath, isError, note } from './util.js'
 import { isFriendly } from './print-errors.js'
 import { NEED } from './print-sections.js'
 import {
@@ -201,6 +202,7 @@ const emit = defineEmits(['error', 'msg'])
 const { atLeast } = useRole()
 
 const text = ref(null)
+const modeFileLabel = MODE_FILES.fff
 const textConfig = ref('')
 const othersModes = ref({})
 const viewPins = ref(false)
@@ -611,7 +613,7 @@ async function read() {
 		text.value = await readText(MODE_FILE);
 		textConfig.value = await readText('0:/sys/config.g').catch(() => '');
 		const om = {};
-		for (const f of ['modelaser.g', 'modecnc.g']) om[f] = await readText('0:/sys/' + f).catch(() => '');
+		for (const f of ['modelaser.g', 'modecnc.g']) om[f] = await readText(modeFilePath(f)).catch(() => '');
 		othersModes.value = om;
 		zones.value = zonesOfFile();
 		if (!zones.value.length) errReading.value = i18n.t('plugins.WorkshopPrinting.extruderConfig.couldn_t_find_the_tool_zones');

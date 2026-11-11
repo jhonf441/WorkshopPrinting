@@ -4,4 +4,4 @@
 ; Edit it for your machine.
 ;
 ; M451                     ; select FFF mode (RepRapFirmware)
-; M98 P"0:/sys/modefff.g"  ; your own FFF settings (heaters, extruders...), if you have that file
+; M98 P"0:/sys/workshop/modes/modefff.g"  ; your own FFF settings (heaters, extruders...), if you have that file

@@ -6,11 +6,13 @@
 export const SECTION_COLORS = {
 	state: '#1E88E5',
 	bed: '#C2185B',
+	bedsetup: '#AD1457',
 	pellet: '#F4511E',
 	hotend: '#FB8C00',
 	materials: '#AB47BC',
 	filament: '#8D6E63',
 	job: '#FFA000',
+	library: '#3949AB',
 	tests: '#43A047',
 	head: '#26A69A',
 	zones: '#F57C00',

@@ -17,6 +17,8 @@
 			<div v-if="r.bar != null" :key="'b' + i" class="fff-bar"><div :style="{ width: r.bar.toFixed(1) + '%' }" /></div>
 		</template>
 		<div v-if="panel.none" class="text-body-2 grey--text">{{ t('fff.p_none') }}</div>
+		<!-- the library's card of the job file (nothing when the library does not know it) -->
+		<gcode-info-card v-if="jobFile" :file="jobFile" class="mt-3" />
 	</v-card>
 </template>
 
@@ -24,12 +26,18 @@
 'use strict'
 
 import { tzFffPanel } from './fff-temps.js'
+import { fffJobFile } from './fff-job.js'
+import GcodeInfoCard from './GcodeInfoCard.vue'
 
 export default {
+	components: { GcodeInfoCard },
 	props: {
 		isFff: { type: Boolean, default: false }
 	},
 	computed: {
+		jobFile() {
+			return fffJobFile(this.$store.state.machine.model);
+		},
 		panel() {
 			return tzFffPanel(this.$store.state.machine.model, this.t);
 		}

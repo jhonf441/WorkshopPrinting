@@ -1,5 +1,68 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.31.0 -- 2026-11-11
+
+- Job file select ("Material y G-code"): the file can only be chosen from the library list; no typed paths. Without a library in the service the select stays empty and says so.
+
+## 2.30.0 -- 2026-11-11
+
+- Bed zones calibration assistant: the service does the work. Preheat the zones in order with a stagger, hold, then turn them off; tune the PID (M303) of one zone or all in order, with the neighbours held; stop turns every zone off. Confirmation that names zones and temperatures, technician role, bounded temperatures, audit.
+- Saving: the M307 model and the M143 cap of each bed heater go through the plan of the configuration (exact diff, snapshot, restart note); offsets through the bed zones settings. No more G-code blocks to copy and run by hand.
+
+- G-code select (GcodePicker, 3.6 line): the job's file can only be chosen from the library list; no free text and no typed paths. Typing only filters the list. With a service that has no library the select stays, empty, and says so (it used to turn into a plain text field). New text `picker2.unsupported` in both languages.
+
+## 2.29.2 -- 2026-11-10
+
+- Library: slider track fix and orange for files without types
+
+## 2.29.1 -- 2026-11-10
+
+- Library: the layer slider track no longer collapses to zero height
+
+## 2.29.0 -- 2026-11-10
+
+- G-code library: whole model with progressive layers, no overflow in the card, service thumbnails
+
+## 2.28.0 -- 2026-11-10
+
+- G-code library: 3D view with configurable camera, file kinds (print, laser, CNC, test) with filters, job file select; side bar in Operate, Prepare and Configure; bed zones split in live and setup
+
+## 2.27.0 -- 2026-11-10
+
+- G-code library page, picker and info card; whole-bed insulation test
+
+## 2.26.1 -- 2026-11-10
+
+- Material and G-code: a material without layers reads the file with a flat recipe of its zone temperatures
+
+## 2.26.0 -- 2026-11-10
+
+- Material is the single profile: type, zone temperatures and optional per-layer block in Materials; Material and G-code page
+
+## 2.25.0 -- 2026-11-10
+
+- Recipes relative to the G-code (Printing), session role switch and UI fixes (26), SD layout manifest
+
+## 2.24.0 -- 2026-11-09
+
+- SD layout: mode files move to sys/workshop/modes, hook macros, templates for air assist, status LEDs and CNC buttons, bar buttons with a missing macro locked, unmigrated modes notice
+
+## 2.23.0 -- 2026-11-07
+
+- Layers and G-code section: the viewer of what a recipe will do in a job file, with its own place in the side bar
+
+## 2.22.0 -- 2026-11-07
+
+- UI fixes from the 18 screenshots: session and role locks, floating camera and Jog, Model colours, bed editor, calibration assistant
+
+## 2.21.0 -- 2026-11-07
+
+- Recipes of temperature by layer (extruder and bed tracks, shapes, run panel, G-code viewer), power estimate and insulation test in bed zones, editor ruler and guides
+
+## 2.20.0 -- 2026-11-07
+
+- Bed zones: smart tidy-up that keeps the sizes and the order the user set (preview, apply, undo)
+
 ## 2.19.0 -- 2026-11-06
 
 - Bed zones: edit on the map page, align, distribute and make equal, no automatic layout

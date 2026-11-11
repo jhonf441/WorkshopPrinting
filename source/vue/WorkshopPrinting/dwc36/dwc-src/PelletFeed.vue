@@ -67,7 +67,7 @@ import i18n from '../../i18n'
 
 import { mapActions } from 'vuex'
 import { confirmRisk } from './risk.js' // the JS plugins' box, else a box of the page (vue/_shared36)
-import { MODE_FILE, readText, writeText, updateCfg, isError, note } from './util.js'
+import { MODE_FILE, modeFilePath, readText, writeText, updateCfg, isError, note } from './util.js'
 import { isFriendly } from './print-errors.js'
 import { normalize as normFeed, hopperState, pinOk, pinInUse, nextFree, pulseCodes, definitionLines, triggerLine, triggerMacro, applyFeedToMode, nextTrigger, markedTrigger } from './pellet-feed.js'
 
@@ -159,7 +159,7 @@ export default {
 				if (sensorPin && !pinOk(sensorPin)) throw new Error(i18n.t('plugins.WorkshopPrinting.pellet.feed_err_pin', { pin: sensorPin }));
 				if (mechPin && !pinOk(mechPin)) throw new Error(i18n.t('plugins.WorkshopPrinting.pellet.feed_err_pin', { pin: mechPin }));
 				if (f.mode === 'auto' && !(sensorPin && mechPin)) throw new Error(i18n.t('plugins.WorkshopPrinting.pellet.feed_err_auto'));
-				const texts = await Promise.all(['0:/sys/config.g', MODE_FILE, '0:/sys/modelaser.g', '0:/sys/modecnc.g'].map(p => this.readOptional(p)));
+				const texts = await Promise.all(['0:/sys/config.g', MODE_FILE, modeFilePath('modelaser.g'), modeFilePath('modecnc.g')].map(p => this.readOptional(p)));
 				[sensorPin, mechPin].filter(Boolean).forEach(p => { if (pinInUse(texts, p)) throw new Error(i18n.t('plugins.WorkshopPrinting.pellet.feed_err_pin_use', { pin: p })); });
 				const inIdx = old.sensor ? old.sensor.index : nextFree(this.gpIn, 8);
 				const outIdx = old.mechanism ? old.mechanism.index : nextFree(this.gpOut, 20);

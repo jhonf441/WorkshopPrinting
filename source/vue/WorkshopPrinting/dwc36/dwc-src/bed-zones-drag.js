@@ -45,6 +45,41 @@ export function resizeRect(start, dw, dh, bed, step) {
 	return clampRect({ x: start.x, y: start.y, w: Math.min(w, bed.width - start.x), h: Math.min(h, bed.length - start.y) }, bed)
 }
 
+// Alignment guides while a zone is dragged: the edges and the centre of the zone jump to the edges and centres of the other zones and of the bed when they are
+// closer than `tol` mm. mode 'move' moves the zone, mode 'resize' only moves its far edges (right, bottom). Returns {rect, guides}; guides are the lines to draw:
+// {axis: 'x', at} is a vertical line at x = at mm, {axis: 'y', at} a horizontal one. Only a line the final rect really sits on is returned.
+export function guideSnap(rect, others, bed, mode, tol) {
+	const lines = { x: [0, bed.width / 2, bed.width], y: [0, bed.length / 2, bed.length] }
+	others.forEach(o => {
+		if (!o) return
+		lines.x.push(o.x, o.x + o.w / 2, o.x + o.w)
+		lines.y.push(o.y, o.y + o.h / 2, o.y + o.h)
+	})
+	const pull = (edges, targets) => {
+		let best = null
+		edges.forEach(e => targets.forEach(t => { const d = t - e; if (Math.abs(d) <= tol && (best === null || Math.abs(d) < Math.abs(best))) best = d }))
+		return best
+	}
+	const r = Object.assign({}, rect)
+	if (mode === 'resize') {
+		const dx = pull([r.x + r.w], lines.x)
+		const dy = pull([r.y + r.h], lines.y)
+		if (dx !== null) r.w += dx
+		if (dy !== null) r.h += dy
+	} else {
+		const dx = pull([r.x, r.x + r.w / 2, r.x + r.w], lines.x)
+		const dy = pull([r.y, r.y + r.h / 2, r.y + r.h], lines.y)
+		if (dx !== null) r.x += dx
+		if (dy !== null) r.y += dy
+	}
+	const out = clampRect(r, bed)
+	const hit = (edges, targets) => edges.map(e => targets.find(v => Math.abs(v - e) <= 0.05)).filter(v => v !== undefined)
+	const xs = mode === 'resize' ? [out.x + out.w] : [out.x, out.x + out.w / 2, out.x + out.w]
+	const ys = mode === 'resize' ? [out.y + out.h] : [out.y, out.y + out.h / 2, out.y + out.h]
+	const unique = list => list.filter((v, i) => list.indexOf(v) === i)
+	return { rect: out, guides: unique(hit(xs, lines.x)).map(at => ({ axis: 'x', at })).concat(unique(hit(ys, lines.y)).map(at => ({ axis: 'y', at }))) }
+}
+
 // Indexes of the rects that overlap another one or leave the bed: what the map paints as a problem
 export function conflicts(rects, bed) {
 	const bad = new Set()
