@@ -3,8 +3,8 @@
 	<!-- Nozzle change of the pellet extruder (technician): guided steps (hot, because the pellet inside is hard when cold) and what has to be
 	     done again afterwards, since the firmware does not know the diameter. -->
 	<v-card outlined class="pa-3">
-		<div class="text-subtitle-1">{{ $t('plugins.WorkshopPrinting.nozzle.title') }}</div>
-		<div class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.nozzle.intro') }}</div>
+		<h4>{{ $t('plugins.WorkshopPrinting.nozzle.title') }}</h4>
+		<div class="text-caption pc-muted">{{ $t('plugins.WorkshopPrinting.nozzle.intro') }}</div>
 		<div class="text-body-2 mt-2">
 			{{ saved > 0 ? $t('plugins.WorkshopPrinting.nozzle.current_size', { d: saved }) : $t('plugins.WorkshopPrinting.nozzle.no_size_saved') }}
 		</div>
@@ -13,12 +13,12 @@
 		<v-card v-if="!(saved > 0)" outlined class="pa-3 mt-2">
 			<div class="text-body-2 font-weight-medium">{{ $t('plugins.WorkshopPrinting.nozzle.first_title') }}</div>
 			<div class="text-caption">{{ $t('plugins.WorkshopPrinting.nozzle.first_intro') }}</div>
-			<div class="d-flex flex-wrap align-center mt-2" style="gap:12px">
+			<div class="pc-actions mt-2">
 				<v-text-field v-model.number="firstD" type="number" step="0.05" min="0.2" max="8" dense outlined hide-details style="max-width:190px"
 					:label="$t('plugins.WorkshopPrinting.nozzle.fitted_diameter')" suffix="mm" :disabled="!configure || busyHere" />
 				<v-btn small color="primary" :disabled="!configure || !validFirst || busyHere" :loading="running === 'first'" @click="registerCurrent">{{ $t('plugins.WorkshopPrinting.nozzle.first_button') }}</v-btn>
 			</div>
-			<v-alert v-if="firstMsg" dense text :type="firstKind" class="mt-2 mb-0">{{ firstMsg }}</v-alert>
+			<div v-if="firstMsg" class="wf-note mt-2" :class="{ 'is-warn': firstKind === 'warning' || firstKind === 'error' }" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ firstMsg }}</span></div>
 		</v-card>
 
 		<!-- what was calibrated with each nozzle (the one fitted now first) -->
@@ -26,47 +26,47 @@
 			<div class="text-caption font-weight-medium">{{ $t('plugins.WorkshopPrinting.nozzle.profiles_title') }}
 				<v-btn icon x-small :title="$t('plugins.WorkshopPrinting.nozzle.profiles_refresh')" @click="loadProfiles"><v-icon x-small>mdi-refresh</v-icon></v-btn>
 			</div>
-			<div v-if="!profileList.length" class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.nozzle.profiles_none') }}</div>
+			<div v-if="!profileList.length" class="text-caption pc-muted">{{ $t('plugins.WorkshopPrinting.nozzle.profiles_none') }}</div>
 			<div v-for="p in profileList" :key="p.d" class="text-caption" :class="{ 'font-weight-medium': p.active }">
 				{{ p.d }} mm<span v-if="p.active"> ({{ $t('plugins.WorkshopPrinting.nozzle.profile_fitted') }})</span>, {{ p.date || '?' }}:
 				<span v-for="(i, n) in p.items" :key="i.id">{{ n ? ' | ' : '' }}{{ $t('plugins.WorkshopPrinting.nozzle.profile_' + i.id) }} <code>{{ i.text }}</code></span>
 			</div>
 		</div>
 
-		<div class="d-flex flex-wrap align-center mt-2" style="gap:12px">
+		<div class="pc-actions pc-actions-end mt-2">
 			<v-text-field v-model.number="diameter" type="number" step="0.05" min="0.2" max="8" dense outlined hide-details style="max-width:190px"
 				:label="$t('plugins.WorkshopPrinting.nozzle.new_diameter')" suffix="mm" :disabled="busyHere" />
 			<v-text-field v-model.number="temp" type="number" step="5" dense outlined hide-details style="max-width:190px"
 				:label="$t('plugins.WorkshopPrinting.nozzle.melt_temperature')" suffix="°C" :disabled="busyHere" />
 		</div>
-		<div v-if="diameter !== '' && !valid" class="text-caption error--text mt-1">{{ $t('plugins.WorkshopPrinting.nozzle.invalid_diameter') }}</div>
-		<div v-else-if="valid && change === 'same'" class="text-caption warning--text mt-1">{{ $t('plugins.WorkshopPrinting.nozzle.same_diameter') }}</div>
+		<div v-if="diameter !== '' && !valid" class="text-caption wf-state err mt-1">{{ $t('plugins.WorkshopPrinting.nozzle.invalid_diameter') }}</div>
+		<div v-else-if="valid && change === 'same'" class="text-caption wf-state warn mt-1">{{ $t('plugins.WorkshopPrinting.nozzle.same_diameter') }}</div>
 
 		<template v-if="valid">
 			<div class="mt-3">
 				<div v-for="(p, k) in steps" :key="k" class="step" :class="{ done: done(k), current: k === next }">
-					<div class="step-num"><v-icon v-if="done(k)" small color="white">mdi-check</v-icon><span v-else>{{ k + 1 }}</span></div>
+					<div class="step-num"><v-icon v-if="done(k)" x-small>mdi-check</v-icon><span v-else>{{ k + 1 }}</span></div>
 					<div class="step-body">
 						<div class="text-body-2" :class="{ 'font-weight-medium': k === next }">{{ p.text }}</div>
-						<div v-if="p.detail" class="text-caption grey--text">{{ p.detail }}</div>
+						<div v-if="p.detail" class="text-caption pc-muted">{{ p.detail }}</div>
 						<div class="mt-1">
 							<v-checkbox v-if="p.kind === 'manual'" :input-value="done(k)" :disabled="k > next" dense hide-details class="mt-0" :label="p.check" @change="mark(k, $event)" />
 							<template v-else-if="p.kind === 'action'">
 								<v-btn x-small :color="done(k) ? '' : 'primary'" :outlined="done(k)" :disabled="k > next || busyHere || !!p.blocked" :loading="running === k" @click="run(k)">
 									{{ done(k) ? $t('plugins.WorkshopPrinting.headChange.again') : p.button }}
 								</v-btn>
-								<span v-if="k === next && p.blocked" class="text-caption warning--text ml-2">{{ p.blocked }}</span>
+								<span v-if="k === next && p.blocked" class="text-caption wf-state warn ml-2">{{ p.blocked }}</span>
 							</template>
-							<div v-else-if="p.kind === 'auto'" class="text-caption" :class="p.ok() ? 'success--text' : 'warning--text'">{{ p.state() }}</div>
+							<div v-else-if="p.kind === 'auto'" class="text-caption" :class="p.ok() ? 'wf-state ok' : 'wf-state warn'">{{ p.state() }}</div>
 						</div>
 					</div>
 				</div>
 			</div>
-			<v-alert v-if="msg" dense text :type="msgKind" class="mt-3 mb-0">{{ msg }}</v-alert>
+			<pc-result :text="msg || ''" :kind="msgKind" class="mt-3" />
 
 			<!-- what has to be done again with this diameter -->
 			<div v-if="next >= steps.length" class="mt-4">
-				<v-alert dense text type="success">{{ $t('plugins.WorkshopPrinting.nozzle.saved_now_redo', { d: diameter }) }}</v-alert>
+				<div class="wf-note" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-check-circle-outline</v-icon><span>{{ $t('plugins.WorkshopPrinting.nozzle.saved_now_redo', { d: diameter }) }}</span></div>
 				<!-- a profile saved for this diameter: flow, PID and pressure advance come back with one tap -->
 				<div v-if="profileItems.length && !restored.length" class="followup">
 					<div class="text-body-2 font-weight-medium">{{ $t('plugins.WorkshopPrinting.nozzle.profile_title', { d: diameter }) }}</div>
@@ -74,9 +74,9 @@
 					<div v-for="i in profileItems" :key="i.id" class="text-caption"><b>{{ $t('plugins.WorkshopPrinting.nozzle.profile_' + i.id) }}</b>: <code>{{ i.text }}</code></div>
 					<v-btn x-small color="primary" class="mt-1" :disabled="!configure || busyHere" :loading="applying" @click="applySaved">{{ $t('plugins.WorkshopPrinting.nozzle.profile_apply') }}</v-btn>
 				</div>
-				<div v-else-if="!restored.length && after && after.change !== 'same'" class="text-caption grey--text mt-2">{{ $t('plugins.WorkshopPrinting.nozzle.profile_none', { d: diameter }) }}</div>
-				<v-alert v-if="restored.length" dense text type="success" class="mt-2 mb-0">{{ $t('plugins.WorkshopPrinting.nozzle.profile_applied', { list: restored.map(i => $t('plugins.WorkshopPrinting.nozzle.profile_' + i)).join(', ') }) }}</v-alert>
-				<div v-if="after && after.snapshot" class="text-caption grey--text mt-2">{{ $t('plugins.WorkshopPrinting.nozzle.profile_kept', { d: after.old }) }}</div>
+				<div v-else-if="!restored.length && after && after.change !== 'same'" class="text-caption pc-muted mt-2">{{ $t('plugins.WorkshopPrinting.nozzle.profile_none', { d: diameter }) }}</div>
+				<div v-if="restored.length" class="wf-note mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-check-circle-outline</v-icon><span>{{ $t('plugins.WorkshopPrinting.nozzle.profile_applied', { list: restored.map(i => $t('plugins.WorkshopPrinting.nozzle.profile_' + i)).join(', ') }) }}</span></div>
+				<div v-if="after && after.snapshot" class="text-caption pc-muted mt-2">{{ $t('plugins.WorkshopPrinting.nozzle.profile_kept', { d: after.old }) }}</div>
 				<div v-for="f in follow" :key="f.id" class="followup">
 					<div class="text-body-2 font-weight-medium">{{ $t('plugins.WorkshopPrinting.nozzle.follow_' + f.id + '_title') }}</div>
 					<div class="text-caption">{{ $t('plugins.WorkshopPrinting.nozzle.follow_' + f.id, limits) }}</div>
@@ -89,6 +89,7 @@
 
 <script>
 import i18n from '../../i18n'
+import PcResult from './PcResult.vue' // the result of an action, one line
 
 'use strict'
 
@@ -101,6 +102,7 @@ import { getProfile, profileItems } from './nozzle-profiles.js'
 import { readProfiles, snapshotNozzle, applyProfile } from './nozzle-store.js'
 
 export default {
+	components: { PcResult },
 	props: {
 		tool: { type: Object, default: null },
 		zones: { type: Array, default: () => [] }, // heaters of the tool, nozzle first
@@ -294,11 +296,11 @@ export default {
 </script>
 
 <style scoped>
-.step { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(128, 128, 128, 0.15); opacity: 0.6; }
-.step.current, .step.done { opacity: 1; }
-.step-num { flex: none; width: 24px; height: 24px; border-radius: 50%; background: #546e7a; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
-.step.current .step-num { background: #1976d2; }
-.step.done .step-num { background: #2e7d32; }
+.step { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--wf-line); }
+.step:not(.current):not(.done) .step-body { opacity: 0.7; }
+.step.current { box-shadow: inset 3px 0 0 var(--wf-sec-now); padding-left: 10px; }
+.step-num { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--wf-line-strong); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+.step.done .step-num { border-color: var(--wf-ok); }
 .step-body { flex: 1; min-width: 0; }
-.followup { padding: 8px 0; border-bottom: 1px solid rgba(128, 128, 128, 0.15); }
+.followup { padding: 8px 0; border-bottom: 1px solid var(--wf-line); }
 </style>

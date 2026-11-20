@@ -5,22 +5,22 @@
 			<thead><tr><th>{{ t('col_zone') }}</th><th>{{ t('col_measured') }}</th><th>{{ t('col_offset_now') }}</th><th>{{ t('col_offset_new') }}</th></tr></thead>
 			<tbody>
 				<tr v-for="x in map.rows" :key="'o' + x.bed">
-					<td>{{ $t('plugins.WorkshopPrinting.bedZones.zone_n', { n: x.n }) }} <span class="grey--text text-caption">(P{{ x.bed }})</span></td>
+					<td>{{ $t('plugins.WorkshopPrinting.bedZones.zone_n', { n: x.n }) }} <span class="pc-muted text-caption">(P{{ x.bed }})</span></td>
 					<td class="bco-mono">{{ x.measured }} °C</td>
 					<td class="bco-mono">{{ signed(current[x.bed]) }}</td>
-					<td class="bco-mono">{{ signed(x.offset) }}<span v-if="x.clamped" class="warning--text text-caption"> {{ t('offsets_clamped', { max: config.max_offset }) }}</span></td>
+					<td class="bco-mono">{{ signed(x.offset) }}<span v-if="x.clamped" class="text-caption wf-state warn"> {{ t('offsets_clamped', { max: config.max_offset }) }}</span></td>
 				</tr>
 			</tbody>
 		</v-simple-table>
-		<div class="d-flex align-center flex-wrap mt-2" style="gap:8px">
+		<div class="pc-actions mt-2">
 			<v-btn small color="primary" :disabled="!map.ready || !!why || saving" :loading="saving" @click="save()">
 				<v-icon small left>mdi-content-save-outline</v-icon>{{ t('offsets_apply') }}
 			</v-btn>
-			<span v-if="why" class="text-caption grey--text">{{ why }}</span>
-			<span v-else-if="!map.ready" class="text-caption grey--text">{{ t('offsets_need_two') }}</span>
+			<span v-if="why" class="text-caption pc-muted">{{ why }}</span>
+			<span v-else-if="!map.ready" class="text-caption pc-muted">{{ t('offsets_need_two') }}</span>
 		</div>
-		<v-alert v-if="error" dense text type="error" class="mt-2 mb-0">{{ error }}</v-alert>
-		<v-alert v-if="done" dense text type="success" class="mt-2 mb-0">{{ t('offsets_saved') }}</v-alert>
+		<div v-if="error" class="wf-note is-warn mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ error }}</span></div>
+		<div v-if="done" class="wf-note mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-check-circle-outline</v-icon><span>{{ t('offsets_saved') }}</span></div>
 	</div>
 </template>
 

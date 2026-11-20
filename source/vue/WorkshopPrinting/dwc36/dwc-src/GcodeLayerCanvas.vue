@@ -276,7 +276,7 @@ export default {
 			const ctx = cv.getContext('2d')
 			if (!ctx) return
 			if (!this.drawState) ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-			const scene = { w, h, frame: this.frameNow(), cam: this.camera, layers: this.layers(), hidden: this.hidden, travel: this.travel, top: this.range.to, moving: this.moving, bed: this.bedRect(), cache: this.projCache }
+			const scene = { w, h, dpr, frame: this.frameNow(), cam: this.camera, layers: this.layers(), hidden: this.hidden, travel: this.travel, top: this.range.to, moving: this.moving, bed: this.bedRect(), cache: this.projCache }
 			this.drawState = drawScene3d(ctx, scene, this.drawState)
 			if (!this.moving) { const pct = decimationPct(this.drawState.ratio); if (pct !== this.decimation) this.decimation = pct } // say so when the file is thinned to stay fast
 			if (!this.drawState.done) this.schedule()

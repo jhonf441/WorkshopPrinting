@@ -2,17 +2,17 @@
 	<div class="bz-config">
 		<div class="d-flex align-center flex-wrap" style="gap:4px">
 			<v-switch v-model="draft.enabled" dense hide-details class="mt-0 pt-0" :label="$t('plugins.WorkshopPrinting.bedZones.f_enabled')" :disabled="saving" />
-			<help-tip v-bind="help('enabled')" />
+			<pc-help v-bind="help('enabled')" />
 		</div>
 
-		<div class="text-subtitle-2 mt-4 mb-1">{{ $t('plugins.WorkshopPrinting.bedZones.zones_title') }}</div>
-		<div v-for="(z, i) in draft.zones" :key="i" class="bz-row">
+		<h4 class="mt-4">{{ $t('plugins.WorkshopPrinting.bedZones.zones_title') }}</h4>
+		<div v-for="(z, i) in draft.zones" :key="i" class="bz-row pc-field-row">
 			<v-switch v-model="z.active" dense hide-details class="mt-0 pt-0" :label="$t('plugins.WorkshopPrinting.bedZones.zone_n', { n: i + 1 })" :disabled="saving" />
 			<wf-field :id="'bz-bed-' + i" :label="$t('plugins.WorkshopPrinting.bedZones.f_bed')" :message="fieldError('zones[' + i + '].bed')" level="error">
 				<v-text-field :id="'bz-bed-' + i" v-model="z.bed" dense outlined hide-details inputmode="numeric" :disabled="saving" :aria-label="$t('plugins.WorkshopPrinting.bedZones.f_bed')" />
 			</wf-field>
 			<wf-field :id="'bz-off-' + i" :label="$t('plugins.WorkshopPrinting.bedZones.f_offset')" :message="fieldError('zones[' + i + '].offset')" level="error">
-				<template #help><help-tip v-bind="help('offset')" /></template>
+				<template #help><pc-help v-bind="help('offset')" /></template>
 				<v-text-field :id="'bz-off-' + i" v-model="z.offset" dense outlined hide-details suffix="°C" inputmode="decimal" :disabled="saving" :aria-label="$t('plugins.WorkshopPrinting.bedZones.f_offset')" />
 			</wf-field>
 		</div>
@@ -21,20 +21,20 @@
 
 		<div v-if="fieldError('geometry')" class="wf-field-msg is-error">{{ fieldError('geometry') }}</div>
 
-		<div class="text-subtitle-2 mt-4 mb-1">{{ $t('plugins.WorkshopPrinting.bedZones.limits_title') }}</div>
+		<h4 class="mt-4">{{ $t('plugins.WorkshopPrinting.bedZones.limits_title') }}</h4>
 		<div class="bz-grid">
 			<wf-field v-for="f in limits" :id="'bz-' + f.key" :key="f.key" :label="$t('plugins.WorkshopPrinting.bedZones.f_' + f.key)" :message="fieldError(f.key)" level="error">
-				<template #help><help-tip v-bind="help(f.key)" /></template>
+				<template #help><pc-help v-bind="help(f.key)" /></template>
 				<v-text-field :id="'bz-' + f.key" v-model="draft[f.key]" dense outlined hide-details :suffix="f.unit" inputmode="decimal" :disabled="saving" :aria-label="$t('plugins.WorkshopPrinting.bedZones.f_' + f.key)" />
 			</wf-field>
 		</div>
 
 		<error-notice v-if="failure" :error="failure" :action="$t('plugins.WorkshopPrinting.bedZones.saving')" class="mt-3" />
 		<ul v-if="serverErrors.length" class="bz-errors mt-2">
-			<li v-for="(e, i) in serverErrors" :key="i" class="text-caption error--text">{{ e }}</li>
+			<li v-for="(e, i) in serverErrors" :key="i" class="text-caption wf-state err">{{ e }}</li>
 		</ul>
 
-		<div class="d-flex flex-wrap mt-4" style="gap:8px">
+		<div class="pc-actions mt-4">
 			<v-btn small color="primary" :loading="saving" :disabled="!dirty" @click="save()">{{ $t('plugins.WorkshopPrinting.common.save') }}</v-btn>
 			<v-btn small outlined :disabled="saving || !dirty" @click="reset()">{{ $t('plugins.WorkshopPrinting.bedZones.cancel') }}</v-btn>
 		</div>
@@ -50,7 +50,7 @@
 import { api } from './workshop-api.js'
 import { draftOf, configOf, sameConfig, zoneLimit, MAX_ZONES } from './bed-zones.js'
 import WfField from './WfField.vue' // vue/_shared36
-import HelpTip from './HelpTip.vue' // vue/_shared36
+import PcHelp from './PcHelp.vue' // the "?" of a row, drawn folded by the section
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared36
 
 const LIMITS = [
@@ -62,7 +62,7 @@ const LIMITS = [
 const HELPED = ['enabled', 'offset', 'layout', 'max_temp', 'max_offset', 'tolerance', 'timeout_s']
 
 export default {
-	components: { WfField, HelpTip, ErrorNotice },
+	components: { WfField, PcHelp, ErrorNotice },
 	props: {
 		config: { type: Object, required: true },
 		rev: { type: String, required: true }
@@ -135,7 +135,7 @@ export default {
 </script>
 
 <style scoped>
-.bz-row { display: grid; grid-template-columns: minmax(110px, 1fr) minmax(70px, 1fr) minmax(90px, 1fr); gap: 12px; align-items: start; margin-bottom: 8px; }
+.bz-row { grid-template-columns: minmax(110px, 1fr) minmax(70px, 1fr) minmax(90px, 1fr); margin-bottom: 8px; }
 .bz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
 .bz-errors { padding-left: 16px; }
 @media (max-width: 599px) {

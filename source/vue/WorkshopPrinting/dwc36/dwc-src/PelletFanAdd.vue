@@ -1,40 +1,40 @@
 <template>
 	<!-- adds a fan to the extruder from the panel: a part fan (joins the tool) or a throat fan (thermostatic). WRITES modefff.g -->
 	<v-card outlined class="pa-3">
-		<div class="d-flex align-center flex-wrap" style="gap:8px">
+		<div class="pc-actions">
 			<v-icon small>mdi-fan-plus</v-icon>
-			<span class="text-subtitle-1">{{ $t('plugins.WorkshopPrinting.pellet.newfan_title') }}</span>
+			<span class="pc-card-title">{{ $t('plugins.WorkshopPrinting.pellet.newfan_title') }}</span>
 		</div>
-		<div class="text-caption grey--text mt-1">{{ $t('plugins.WorkshopPrinting.pellet.newfan_intro') }}</div>
+		<div class="text-caption pc-muted mt-1">{{ $t('plugins.WorkshopPrinting.pellet.newfan_intro') }}</div>
 		<v-btn-toggle v-model="form.kind" mandatory dense color="primary" class="mt-2">
 			<v-btn small value="part">{{ $t('plugins.WorkshopPrinting.pellet.newfan_part') }}</v-btn>
 			<v-btn small value="throat">{{ $t('plugins.WorkshopPrinting.pellet.newfan_throat') }}</v-btn>
 		</v-btn-toggle>
-		<div class="text-caption grey--text mt-1">{{ form.kind === 'throat' ? $t('plugins.WorkshopPrinting.pellet.newfan_throat_note') : $t('plugins.WorkshopPrinting.pellet.newfan_part_note') }}</div>
-		<div class="d-flex align-center flex-wrap mt-2" style="gap:8px">
+		<div class="text-caption pc-muted mt-1">{{ form.kind === 'throat' ? $t('plugins.WorkshopPrinting.pellet.newfan_throat_note') : $t('plugins.WorkshopPrinting.pellet.newfan_part_note') }}</div>
+		<div class="pc-actions mt-2">
 			<input v-model.trim="form.name" class="field wide" :placeholder="$t('plugins.WorkshopPrinting.pellet.newfan_name')" maxlength="24" />
 			<input v-model.trim="form.pin" class="field wide" placeholder="out6" />
 			<input v-model.number="form.freq" type="number" min="1" max="50000" class="field" /> Hz
 		</div>
 		<template v-if="form.kind === 'throat'">
-			<div class="text-subtitle-2 mt-3">{{ $t('plugins.WorkshopPrinting.pellet.newfan_follows') }}</div>
+			<h4 class="mt-3">{{ $t('plugins.WorkshopPrinting.pellet.newfan_follows') }}</h4>
 			<v-checkbox v-for="z in zones" :key="z.id" v-model="form.heaters" :value="z.id" dense hide-details class="mt-0" :label="'H' + z.id + ' · ' + z.name" />
-			<div class="d-flex align-center flex-wrap mt-2" style="gap:8px">
+			<div class="pc-actions mt-2">
 				{{ $t('plugins.WorkshopPrinting.pellet.fan_on_from') }} <input v-model.number="form.low" type="number" min="0" max="300" class="field" /> °C
 				{{ $t('plugins.WorkshopPrinting.pellet.fan_full_from') }} <input v-model.number="form.high" type="number" min="0" max="300" class="field" /> °C
 			</div>
 		</template>
-		<div class="d-flex align-center flex-wrap mt-3" style="gap:8px">
+		<div class="pc-actions mt-3">
 			<v-btn small :color="armed === 'add' ? 'amber darken-3' : 'primary'" :loading="saving" :disabled="!configure" @click="arm('add', save)">
 				{{ armed === 'add' ? $t('plugins.WorkshopPrinting.common.tap_again') : $t('plugins.WorkshopPrinting.pellet.newfan_save') }}
 			</v-btn>
 		</div>
-		<lock-reason min="technician" class="mt-1" />
-		<div class="text-caption grey--text mt-2">{{ $t('plugins.WorkshopPrinting.pellet.newfan_note') }}</div>
+		<lock-reason min="technician" class="mt-1" :subject="$t('plugins.WorkshopPrinting.subjects.pellet_fan')" />
+		<div class="text-caption pc-muted mt-2">{{ $t('plugins.WorkshopPrinting.pellet.newfan_note') }}</div>
 		<template v-if="made.length">
 			<v-divider class="my-3" />
-			<div class="text-subtitle-2">{{ $t('plugins.WorkshopPrinting.pellet.newfan_made') }}</div>
-			<div v-for="f in made" :key="f.index" class="d-flex align-center" style="gap:8px">
+			<h4>{{ $t('plugins.WorkshopPrinting.pellet.newfan_made') }}</h4>
+			<div v-for="f in made" :key="f.index" class="pc-actions">
 				<span class="text-body-2">M106 P{{ f.index }} · {{ f.name }} · {{ f.kind === 'throat' ? $t('plugins.WorkshopPrinting.pellet.newfan_throat') : $t('plugins.WorkshopPrinting.pellet.newfan_part') }}</span>
 				<v-spacer />
 				<v-btn x-small text color="error" :loading="removing === f.index" @click="arm('rm' + f.index, () => remove(f.index))">
@@ -57,7 +57,10 @@ import { MODE_FILE, modeFilePath, readText, writeText, note } from './util.js'
 import { pinInUse } from './pellet-feed.js'
 import { normalize, applyFan, marked, removeFan, nextFanIndex } from './pellet-fans.js'
 
+import { tapArmMixin } from './tap-arm-mixin.js' // the double tap of the page (4 s)
+
 export default {
+	mixins: [tapArmMixin],
 	components: { LockReason },
 	props: {
 		tool: { type: Object, default: null },
@@ -69,28 +72,15 @@ export default {
 	data() {
 		return {
 			form: { kind: 'part', name: '', pin: '', freq: 250, heaters: [], low: 45, high: 50 },
-			saving: false, removing: null, armed: null, armedTimer: null, made: []
+			saving: false, removing: null, made: []
 		};
 	},
 	created() {
 		if (this.zones.length) this.form.heaters = [this.zones[0].id];
 		this.loadMade();
 	},
-	beforeDestroy() {
-		clearTimeout(this.armedTimer);
-	},
 	methods: {
 		...mapActions('machine', ['sendCode']),
-		arm(id, fn) {
-			if (this.armed !== id) {
-				this.armed = id;
-				clearTimeout(this.armedTimer);
-				this.armedTimer = setTimeout(() => { this.armed = null; }, 4000);
-				return;
-			}
-			this.armed = null;
-			fn();
-		},
 		say(kind, text) {
 			this.$emit('msg', { kind, text });
 		},

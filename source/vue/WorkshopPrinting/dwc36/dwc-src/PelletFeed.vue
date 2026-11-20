@@ -2,50 +2,50 @@
 <template>
 			<!-- feeding of the hopper: level sensor + feeding mechanism, by hand or automatic. READ the board, WRITE modefff.g -->
 			<v-card v-if="feedForm" outlined class="pa-3">
-				<div class="d-flex align-center flex-wrap" style="gap:8px">
+				<div class="pc-actions">
 					<v-icon small>mdi-grain</v-icon>
-					<span class="text-subtitle-1">{{ $t('plugins.WorkshopPrinting.pellet.feed_title') }}</span>
+					<span class="pc-card-title">{{ $t('plugins.WorkshopPrinting.pellet.feed_title') }}</span>
 					<span class="pc-state"><span class="pc-dot" :style="{ background: feedHmi.color }" />{{ feedHmi.levelText }}</span>
 				</div>
-				<div class="text-caption grey--text mt-1">{{ $t('plugins.WorkshopPrinting.pellet.feed_intro') }}</div>
+				<div class="text-caption pc-muted mt-1">{{ $t('plugins.WorkshopPrinting.pellet.feed_intro') }}</div>
 				<div v-if="!configure" class="text-body-2 mt-2">{{ feedForm.mode === 'auto' ? $t('plugins.WorkshopPrinting.pellet.feed_auto') : $t('plugins.WorkshopPrinting.pellet.feed_manual') }}</div>
 				<v-btn-toggle v-if="configure" v-model="feedForm.mode" mandatory dense color="primary" class="mt-2">
 					<v-btn small value="manual"><v-icon small left>mdi-hand-back-right-outline</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.feed_manual') }}</v-btn>
 					<v-btn small value="auto" :disabled="!!feedAutoReason"><v-icon small left>mdi-autorenew</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.feed_auto') }}</v-btn>
 				</v-btn-toggle>
-				<div v-if="configure" class="text-caption mt-1" :class="feedAutoReason ? 'warning--text' : 'grey--text'">
+				<div v-if="configure" class="text-caption mt-1" :class="feedAutoReason ? 'wf-state warn' : 'pc-muted'">
 					{{ feedAutoReason || (feedForm.mode === 'auto' ? $t('plugins.WorkshopPrinting.pellet.feed_auto_note') : $t('plugins.WorkshopPrinting.pellet.feed_manual_note')) }}
 				</div>
 				<v-divider class="my-3" />
-				<div class="text-subtitle-2">{{ $t('plugins.WorkshopPrinting.pellet.feed_sensor') }}</div>
+				<h4>{{ $t('plugins.WorkshopPrinting.pellet.feed_sensor') }}</h4>
 				<div v-if="feedCfg.sensor && gpIn[feedCfg.sensor.index]" class="text-caption">
 					J{{ feedCfg.sensor.index }} · {{ feedCfg.sensor.pin || '?' }} · {{ $t('plugins.WorkshopPrinting.pellet.feed_value', { v: gpIn[feedCfg.sensor.index].value }) }}
 				</div>
-				<div v-else-if="feedCfg.sensor" class="text-caption warning--text">{{ $t('plugins.WorkshopPrinting.pellet.feed_pending_reload') }}</div>
-				<div v-else class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.pellet.feed_no_sensor') }}</div>
-				<div v-if="configure" class="d-flex align-center flex-wrap mt-1" style="gap:8px">
+				<div v-else-if="feedCfg.sensor" class="text-caption wf-state warn">{{ $t('plugins.WorkshopPrinting.pellet.feed_pending_reload') }}</div>
+				<div v-else class="text-caption pc-muted">{{ $t('plugins.WorkshopPrinting.pellet.feed_no_sensor') }}</div>
+				<div v-if="configure" class="pc-actions mt-1">
 					<input v-model.trim="feedForm.sensorPin" class="field wide" placeholder="io3.in" />
 					<select v-model.number="feedForm.present" class="field wide">
 						<option :value="1">{{ $t('plugins.WorkshopPrinting.pellet.feed_present_1') }}</option>
 						<option :value="0">{{ $t('plugins.WorkshopPrinting.pellet.feed_present_0') }}</option>
 					</select>
 				</div>
-				<div class="text-subtitle-2 mt-3">{{ $t('plugins.WorkshopPrinting.pellet.feed_mechanism') }}</div>
+				<h4 class="mt-3">{{ $t('plugins.WorkshopPrinting.pellet.feed_mechanism') }}</h4>
 				<div v-if="feedCfg.mechanism && gpOut[feedCfg.mechanism.index]" class="text-caption">
 					P{{ feedCfg.mechanism.index }} · {{ feedCfg.mechanism.pin || '?' }} · {{ Math.round((gpOut[feedCfg.mechanism.index].pwm || 0) * 100) }} %
 				</div>
-				<div v-else-if="feedCfg.mechanism" class="text-caption warning--text">{{ $t('plugins.WorkshopPrinting.pellet.feed_pending_reload') }}</div>
-				<div v-else class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.pellet.feed_no_mechanism') }}</div>
-				<div v-if="configure" class="d-flex align-center flex-wrap mt-1" style="gap:8px">
+				<div v-else-if="feedCfg.mechanism" class="text-caption wf-state warn">{{ $t('plugins.WorkshopPrinting.pellet.feed_pending_reload') }}</div>
+				<div v-else class="text-caption pc-muted">{{ $t('plugins.WorkshopPrinting.pellet.feed_no_mechanism') }}</div>
+				<div v-if="configure" class="pc-actions mt-1">
 					<input v-model.trim="feedForm.mechPin" class="field wide" placeholder="out4" />
 					<input v-model.number="feedForm.freq" type="number" min="1" max="5000" class="field" /> Hz
 				</div>
-				<div v-if="configure" class="d-flex align-center flex-wrap mt-3" style="gap:8px">
+				<div v-if="configure" class="pc-actions mt-3">
 					{{ $t('plugins.WorkshopPrinting.pellet.feed_run') }} <input v-model.number="feedForm.run_s" type="number" min="1" max="60" class="field" /> s
 					{{ $t('plugins.WorkshopPrinting.pellet.feed_wait') }} <input v-model.number="feedForm.wait_s" type="number" min="0" max="600" class="field" /> s
 					{{ $t('plugins.WorkshopPrinting.pellet.feed_max') }} <input v-model.number="feedForm.max_s" type="number" min="5" max="3600" class="field" /> s
 				</div>
-				<div class="d-flex align-center flex-wrap mt-3" style="gap:8px">
+				<div class="pc-actions mt-3">
 					<v-btn v-if="configure" small :color="armed === 'feedsave' ? 'amber darken-3' : 'primary'" :loading="feedSaving" @click="arm('feedsave', saveFeed)">
 						{{ armed === 'feedsave' ? $t('plugins.WorkshopPrinting.common.tap_again') : $t('plugins.WorkshopPrinting.pellet.feed_save') }}
 					</v-btn>
@@ -56,7 +56,7 @@
 						{{ armed === 'feedrm' ? $t('plugins.WorkshopPrinting.common.tap_again') : $t('plugins.WorkshopPrinting.pellet.feed_remove') }}
 					</v-btn>
 				</div>
-				<div v-if="configure" class="text-caption grey--text mt-2">{{ $t('plugins.WorkshopPrinting.pellet.feed_save_note') }}</div>
+				<div v-if="configure" class="text-caption pc-muted mt-2">{{ $t('plugins.WorkshopPrinting.pellet.feed_save_note') }}</div>
 			</v-card>
 </template>
 
@@ -71,7 +71,10 @@ import { MODE_FILE, modeFilePath, readText, writeText, updateCfg, isError, note 
 import { isFriendly } from './print-errors.js'
 import { normalize as normFeed, hopperState, pinOk, pinInUse, nextFree, pulseCodes, definitionLines, triggerLine, triggerMacro, applyFeedToMode, nextTrigger, markedTrigger } from './pellet-feed.js'
 
+import { tapArmMixin } from './tap-arm-mixin.js' // the double tap of the page (4 s)
+
 export default {
+	mixins: [tapArmMixin],
 	props: {
 		config: { type: Object, default: null }, // what printing.json keeps ("feed")
 		tool: { type: Object, default: null },
@@ -83,7 +86,7 @@ export default {
 		canOperate: { type: Boolean, default: true }
 	},
 	data() {
-		return { feedForm: null, feedSaving: false, armed: null, armedTimer: null };
+		return { feedForm: null, feedSaving: false };
 	},
 	computed: {
 		feedCfg() {
@@ -113,21 +116,8 @@ export default {
 	created() {
 		this.seedFeed();
 	},
-	beforeDestroy() {
-		clearTimeout(this.armedTimer);
-	},
 	methods: {
 		...mapActions('machine', ['sendCode']),
-		arm(id, fn) {
-			if (this.armed !== id) {
-				this.armed = id;
-				clearTimeout(this.armedTimer);
-				this.armedTimer = setTimeout(() => { this.armed = null; }, 4000);
-				return;
-			}
-			this.armed = null;
-			fn();
-		},
 		say(kind, text) {
 			this.$emit('msg', { kind, text });
 		},

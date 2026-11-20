@@ -198,9 +198,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['error', 'msg'])
-
 const { atLeast } = useRole()
-
 const text = ref(null)
 const modeFileLabel = MODE_FILES.fff
 const textConfig = ref('')

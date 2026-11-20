@@ -4,30 +4,31 @@
 	     the board (0:/filaments/<name>/load.g, unload.g) it runs M701 / M702; without them it moves the extruder directly within the limits
 	     of filament-load.js. The extruder never moves below the cold extrusion temperature of the board. Operator's (NEED.operate).
 	     ONE main button in the card (DESIGN.md: Load, filled); Heat, Cool down and Unload are secondary (gray outline; armed = filled amber). -->
-	<pc-section icon="mdi-tray-arrow-down" :title="$t('plugins.WorkshopPrinting.printing.filament_load')">
-		<template v-slot:help>
+	<div class="tool-part mt-4">
+		<div class="pc-actions">
+			<h4 class="pc-card-title">{{ $t('plugins.WorkshopPrinting.printing.filament_load') }}</h4>
 			<help-tip :title="$t('plugins.WorkshopPrinting.printing.filament_load')">
 				<p class="mb-1">{{ t('filament.help_what') }}</p>
 				<p class="mb-1">{{ t('filament.help_why') }}</p>
 				<p class="mb-1">{{ t('filament.help_missing') }}</p>
 				<p class="mb-0">{{ t('filament.help_how') }}</p>
 			</help-tip>
-		</template>
-		<v-alert v-if="!isFff" dense text type="info" class="mt-3 mb-0">{{ t('filament.only_fff') }}</v-alert>
+		</div>
+		<div v-if="!isFff" class="wf-note mt-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ t('filament.only_fff') }}</span></div>
 		<!-- ONE reason for every button and field of the card that this person cannot use (an operator's) -->
-		<lock-reason :min="needOperate" class="mt-2" />
+		<lock-reason :min="needOperate" class="mt-2" :subject="$t('plugins.WorkshopPrinting.subjects.filament_load')" />
 
 		<!-- 1. the material and the temperature: double tap (it heats, DESIGN.md 5 level 2) -->
-		<div class="text-subtitle-2 mt-3">{{ t('filament.step_material') }}</div>
-		<div class="text-caption grey--text">{{ t('filament.material_help') }}</div>
-		<div class="d-flex align-center flex-wrap mt-2" style="gap:8px">
+		<h4 class="mt-3">{{ t('filament.step_material') }}</h4>
+		<div class="text-caption pc-muted">{{ t('filament.material_help') }}</div>
+		<div class="pc-actions mt-2">
 			<v-select v-model="material" :items="materials" item-text="name" return-object :label="$t('plugins.WorkshopPrinting.common.material')" dense outlined hide-details class="fl-select" />
 			<span v-if="temp !== null" class="text-body-2">{{ t('filament.heat_to', { tool: toolName, temp, now: nowText }) }}</span>
-			<span v-else class="text-caption grey--text">{{ t('filament.no_temp') }}</span>
+			<span v-else class="text-caption pc-muted">{{ t('filament.no_temp') }}</span>
 			<v-chip small outlined :color="heatColor">{{ t('filament.heat_' + heat) }}</v-chip>
 		</div>
-		<div v-if="loaded" class="text-caption grey--text mt-1">{{ t('filament.loaded_now', { name: loaded }) }}</div>
-		<div class="d-flex align-center flex-wrap mt-2" style="gap:8px">
+		<div v-if="loaded" class="text-caption pc-muted mt-1">{{ t('filament.loaded_now', { name: loaded }) }}</div>
+		<div class="pc-actions mt-2">
 			<v-btn small :outlined="armed !== 'heat'" :color="armed === 'heat' ? 'amber darken-3' : undefined" :disabled="!isFff || !!heatReason || temp === null || !canOperate || sending" @click="arm('heat', heatUp)">
 				<v-icon small left>mdi-fire</v-icon>{{ armed === 'heat' ? t('filament.heat_again', { temp }) : t('filament.heat') }}
 			</v-btn>
@@ -39,16 +40,16 @@
 		</div>
 
 		<!-- 2. load / unload: double tap (it moves the extruder); the reason is written when it cannot -->
-		<div class="text-subtitle-2 mt-4">{{ t('filament.step_move') }}</div>
-		<div class="text-caption grey--text">{{ via.load || via.unload ? t('filament.macro_help', { name: materialName || loaded || '...' }) : t('filament.direct_help') }}</div>
-		<div v-if="!via.load || !via.unload" class="d-flex align-center flex-wrap mt-2" style="gap:8px">
+		<h4 class="mt-4">{{ t('filament.step_move') }}</h4>
+		<div class="text-caption pc-muted">{{ via.load || via.unload ? t('filament.macro_help', { name: materialName || loaded || '...' }) : t('filament.direct_help') }}</div>
+		<div v-if="!via.load || !via.unload" class="pc-actions mt-2">
 			<span class="text-body-2">{{ t('filament.length') }}</span>
 			<input v-model.number="form.length" type="number" step="10" :min="limits.length.min" :max="limits.length.max" class="field" :disabled="!canOperate" /> mm
 			<span class="text-body-2 ml-2">{{ t('filament.speed') }}</span>
 			<input v-model.number="form.speed" type="number" step="0.5" :min="limits.speed.min" :max="limits.speed.max" class="field" :disabled="!canOperate" /> mm/s
-			<span class="text-caption grey--text">{{ t('filament.limits', { lmin: limits.length.min, lmax: limits.length.max, smin: limits.speed.min, smax: limits.speed.max }) }}</span>
+			<span class="text-caption pc-muted">{{ t('filament.limits', { lmin: limits.length.min, lmax: limits.length.max, smin: limits.speed.min, smax: limits.speed.max }) }}</span>
 		</div>
-		<div class="d-flex align-center flex-wrap mt-2" style="gap:8px">
+		<div class="pc-actions mt-2">
 			<v-btn small :color="armed === 'load' ? 'amber darken-3' : 'primary'" :disabled="!!blockReason || !(via.load || formOk) || !canOperate || sending" @click="arm('load', () => move('load'))">
 				<v-icon small left>mdi-arrow-down-bold</v-icon>{{ armed === 'load' ? $t('plugins.WorkshopPrinting.common.tap_again') : t(via.load ? 'filament.load_macro' : 'filament.load') }}
 			</v-btn>
@@ -60,14 +61,14 @@
 		</div>
 
 		<!-- 3. the wrap-up -->
-		<div class="text-subtitle-2 mt-4">{{ t('filament.step_after') }}</div>
-		<div class="text-caption grey--text">{{ t('filament.after_help') }}</div>
-		<v-alert v-if="msg" dense text :type="msgKind" class="mt-3 mb-0">{{ msg }}</v-alert>
-	</pc-section>
+		<h4 class="mt-4">{{ t('filament.step_after') }}</h4>
+		<div class="text-caption pc-muted">{{ t('filament.after_help') }}</div>
+		<pc-result :text="msg || ''" :kind="msgKind" class="mt-3 d-block" />
+	</div>
 </template>
 
 <script>
-import PcSection from './PcSection.vue' // the card with the header of the section (printing-design.css)
+import PcResult from './PcResult.vue' // the result next to the action
 'use strict'
 
 import HelpTip from './HelpTip.vue' // vue/_shared36
@@ -81,13 +82,14 @@ import { machineFree } from './machine-free.js' // job (file, paused or live) an
 import { ts } from './shared-t.js'
 import { serviceText, serviceDefaultKey } from './service-text.js'
 import { NEED } from './print-sections.js'
+import { tapArmMixin } from './tap-arm-mixin.js' // the double tap of the page (4 s)
 import { roleMixin } from './role-mixin.js' // what the role may do (vue/_shared)
 
 export default {
-	mixins: [roleMixin],
+	mixins: [roleMixin, tapArmMixin],
 	sessionData: ['armed', 'msg', 'msgKind'], // what the person who left did or was refused stays nowhere (ESTANDAR 3)
 	sessionErrors: ['msg', 'msgKind'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
-	components: { PcSection, HelpTip, LockReason },
+	components: { PcResult, HelpTip, LockReason },
 	props: {
 		isFff: { type: Boolean, default: false },
 		tool: { type: Object, default: null },
@@ -99,7 +101,7 @@ export default {
 		return {
 			limits: LOAD_LIMITS, materials: [], material: null,
 			form: { length: LOAD_DEFAULTS.length, speed: LOAD_DEFAULTS.speed }, macros: { load: false, unload: false },
-			armed: null, armedTimer: null, sending: false, msg: null, msgKind: 'info'
+			sending: false, msg: null, msgKind: 'info'
 		};
 	},
 	computed: {
@@ -156,6 +158,8 @@ export default {
 		},
 		// why the extruder may not move now ('' = it may): job, machine not free, no reading, below the cold extrusion temperature
 		blockReason() {
+			// the extruder moves only in FFF (and an unknown mode denies: mode-gate.js); the tab is disabled outside FFF, this is the guard of the button itself
+			if (!this.isFff) return this.t('filament.only_fff');
 			const why = moveBlock({ tool: this.tool, nozzle: this.nozzle, minTemp: this.minExtrusion, busyJob: jobRunning(this.state), notFree: !this.free.free });
 			if (!why) return '';
 			if (why === 'machine') return this.free.reason;
@@ -186,16 +190,6 @@ export default {
 			const load = name ? macroState(await listItemsFolder(FILAMENTS_DIR + '/' + name)).load : false;
 			const unload = cur ? macroState(await listItemsFolder(FILAMENTS_DIR + '/' + cur)).unload : false;
 			if (name === this.materialName && cur === this.loaded) this.macros = { load, unload };
-		},
-		arm(id, fn) {
-			if (this.armed !== id) {
-				this.armed = id;
-				clearTimeout(this.armedTimer);
-				this.armedTimer = setTimeout(() => { this.armed = null; }, 4000);
-				return;
-			}
-			this.armed = null;
-			fn();
 		},
 		async run(codes, okText) {
 			if (!this.canOperate || this.sending || !codes.length) return false;

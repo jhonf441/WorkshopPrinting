@@ -116,8 +116,23 @@ export function explainSensor(estado, reading) {
 
 // Change sys/workshop/config/printing.json reading the latest (several tabs write
 // different parts: materials, last material, diameter, commissioning).
+// printing.json read so that "it does not exist yet" ({}) is told apart from "it could not be read" (an error: network, 401 / 403, a file that is not JSON):
+// the second one must never be taken for an empty file, or the next save would write only the changed key and lose the rest.
+export async function readCfgStrict(saving) {
+	const r = await fetch('/machine/file/' + encodeURIComponent(CFG_FILE), { cache: 'no-store' });
+	if (r.status === 404) return {};
+	// reading to save (updateCfg): a 401 / 403 is the person's problem and ErrorNotice explains it; reading to show: the plain cause
+	if (!r.ok) throw (saving && fileError(r.status, CFG_FILE, (k, p) => i18n.t(k, p))) || new Error(i18n.t('plugins.WorkshopPrinting.util.http_reading', { status: r.status, path: CFG_FILE }));
+	const text = (await r.text()).replace(/^﻿/, '').trim();
+	if (!text) return {};
+	let v = null;
+	try { v = JSON.parse(text); } catch (e) { v = null; }
+	if (!v || typeof v !== 'object' || Array.isArray(v)) throw new Error(i18n.t('plugins.WorkshopPrinting.util.config_unreadable', { path: CFG_FILE }));
+	return v;
+}
+
 export async function updateCfg(change) {
-	const cfg = (await readJson(CFG_FILE, {})) || {};
+	const cfg = await readCfgStrict(true);
 	const nuevo = mergeCfg(cfg, change);
 	await writeText(CFG_FILE, JSON.stringify(nuevo, null, 1));
 	return nuevo;

@@ -5,8 +5,8 @@
 			{{ $t('plugins.WorkshopPrinting.extruderConfig.each_zone_is_a_heater_with') }} <b>{{ $t('plugins.WorkshopPrinting.common.save') }}</b> {{ $t('plugins.WorkshopPrinting.extruderConfig.writes') }} <code>{{ modeFileLabel }}</code> {{ $t('plugins.WorkshopPrinting.extruderConfig.directly_with_a_backup_copy_then') }}
 			</div></div>
 		</help-guide>
-		<div v-if="loading" class="text-body-2 grey--text mt-2">{{ $t('plugins.WorkshopPrinting.extruderConfig.reading_modefff_g') }}</div>
-		<div v-else-if="errReading" class="text-body-2 error--text mt-2">{{ errReading }}</div>
+		<div v-if="loading" class="wf-state info mt-2" role="status">{{ $t('plugins.WorkshopPrinting.extruderConfig.reading_modefff_g') }}</div>
+		<error-notice v-else-if="errReading" :error="errReading" retry class="mt-2" @retry="read()" />
 		<template v-else>
 			<div v-for="(z, k) in zones" :key="z.key" class="pc-zcard" :class="{ removed: z.remove }">
 				<div class="pc-zhead">
@@ -17,23 +17,23 @@
 					<v-chip v-else-if="changesOf(z).length" x-small outlined color="warning">{{ $t('plugins.WorkshopPrinting.extruderConfig.changed') }}</v-chip>
 					<span class="pc-tgt text-caption">{{ $t('plugins.WorkshopPrinting.extruderConfig.heater_h_sensor_s', { h: z.h, s: z.s }) }}</span>
 					<v-spacer />
-					<v-btn v-if="!z.remove" x-small outlined :aria-expanded="isOpen(z) ? 'true' : 'false'" @click="toggleZone(z)">
+					<v-btn v-if="!z.remove" small outlined :aria-expanded="isOpen(z) ? 'true' : 'false'" @click="toggleZone(z)">
 						<v-icon x-small left>{{ isOpen(z) ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>{{ isOpen(z) ? $t('plugins.WorkshopPrinting.extruderConfig.close_zone') : $t('plugins.WorkshopPrinting.extruderConfig.edit_zone') }}
 					</v-btn>
-					<v-btn v-if="k > 0 && !z.remove" x-small text color="error" @click="removeZone(z)">{{ $t('plugins.WorkshopPrinting.extruderConfig.remove_zone') }}</v-btn>
-					<v-btn v-if="z.remove" x-small text @click="z.remove = false">{{ $t('plugins.WorkshopPrinting.extruderConfig.keep') }}</v-btn>
+					<v-btn v-if="k > 0 && !z.remove" small text color="error" @click="removeZone(z)">{{ $t('plugins.WorkshopPrinting.extruderConfig.remove_zone') }}</v-btn>
+					<v-btn v-if="z.remove" small text @click="z.remove = false">{{ $t('plugins.WorkshopPrinting.extruderConfig.keep') }}</v-btn>
 				</div>
 				<!-- 2026-10-11: output type (DC board, AC SSR, mechanical relay) and connectors chosen from a list -->
 				<template v-if="!z.remove && isOpen(z)">
-					<div class="pc-fsec" style="--fs:#F4511E">
+					<div class="pc-fsec">
 						<div class="pc-fhead"><span class="pc-fb"><v-icon x-small>mdi-fire</v-icon></span>{{ $t('plugins.WorkshopPrinting.extruderConfig.heater_section') }}</div>
-					<v-row dense class="mt-1">
-						<v-col cols="12" sm="4"><v-text-field v-model.trim="z.name" :label="$t('plugins.WorkshopPrinting.extruderConfig.name')" dense outlined hide-details /></v-col>
-						<v-col cols="12" sm="5" class="pc-w-230"><v-select v-model="z.kind" :items="kindsOutput" :label="$t('plugins.WorkshopPrinting.extruderConfig.output_type')" dense outlined hide-details /></v-col>
-						<v-col v-if="z.kind === 'relay'" cols="12" sm="3" class="pc-w-230"><v-checkbox v-model="z.ca" :label="$t('plugins.WorkshopPrinting.extruderConfig.switches_ac_mains_110_220_v')" dense hide-details class="mt-1" /></v-col>
-					</v-row>
-					<v-row dense>
-						<v-col cols="6" sm="3" class="pc-w-150">
+					<div class="pc-fgrid mt-1">
+						<div class="pc-fcell pc-fcell-2"><v-text-field v-model.trim="z.name" :label="$t('plugins.WorkshopPrinting.extruderConfig.name')" dense outlined hide-details /></div>
+						<div class="pc-fcell"><v-select v-model="z.kind" :items="kindsOutput" :label="$t('plugins.WorkshopPrinting.extruderConfig.output_type')" dense outlined hide-details /></div>
+						<div v-if="z.kind === 'relay'" class="pc-fcell"><v-checkbox v-model="z.ca" :label="$t('plugins.WorkshopPrinting.extruderConfig.switches_ac_mains_110_220_v')" dense hide-details class="mt-1" /></div>
+					</div>
+					<div class="pc-fgrid">
+						<div class="pc-fcell">
 							<v-combobox :value="z.output" :items="optionsPin(z, 'output')" :label="z.kind === 'dc' ? $t('plugins.WorkshopPrinting.extruderConfig.heater_output') : $t('plugins.WorkshopPrinting.extruderConfig.output_that_drives_the_relay')"
 								placeholder="out1" dense outlined hide-details :menu-props="{ maxHeight: 360 }" @change="v => choosePin(z, 'output', v)">
 								<template #item="{ item }">
@@ -43,130 +43,75 @@
 									</v-list-item-content>
 								</template>
 							</v-combobox>
-						</v-col>
-						<v-col cols="6" sm="2" class="pc-w-110"><v-text-field v-model.number="z.max" :label="$t('plugins.WorkshopPrinting.extruderConfig.limit_c')" type="number" dense outlined hide-details /></v-col>
-					</v-row>
-					<div class="wf-help pc-help" style="--fs:#F4511E">
+						</div>
+						<div class="pc-fcell"><v-text-field v-model.number="z.max" :label="$t('plugins.WorkshopPrinting.extruderConfig.limit_c')" type="number" dense outlined hide-details /></div>
+					</div>
+					<div class="wf-help pc-help">
 						<v-icon small>mdi-information-outline</v-icon>
 						<div>
 						<span>{{ explanationKind(z.kind) }}</span>
-						<span v-if="(z.kind === 'ssr' || z.kind === 'ssrdc') && z.q && z.orig && z.orig.kind === z.kind" class="grey--text"> {{ $t('plugins.WorkshopPrinting.extruderConfig.in_the_file_q', { q: z.q }) }}</span>
+						<span v-if="(z.kind === 'ssr' || z.kind === 'ssrdc') && z.q && z.orig && z.orig.kind === z.kind" class="pc-muted"> {{ $t('plugins.WorkshopPrinting.extruderConfig.in_the_file_q', { q: z.q }) }}</span>
 						</div>
 					</div>
-					<v-alert v-if="z.kind === 'ssr' || (z.kind === 'relay' && z.ca)" dense outlined type="warning" icon="mdi-flash-alert" class="text-caption mt-2 mb-0">
-						{{ $t('plugins.WorkshopPrinting.extruderConfig.danger_110_220_v_ac_mains') }}
-					</v-alert>
+					<div v-if="z.kind === 'ssr' || (z.kind === 'relay' && z.ca)" class="wf-note is-warn mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-flash-alert</v-icon><span>{{ $t('plugins.WorkshopPrinting.extruderConfig.danger_110_220_v_ac_mains') }}</span></div>
 					</div>
 					<!-- 2026-10-11: tipo de sensor (M308 Y) y sensores de vigilancia extra (M143 P1/P2 con otro sensor) -->
-					<div v-for="f in rowsSensor(z)" :key="f.key" class="pc-fsec" :style="{ '--fs': f.m ? '#8E24AA' : '#1E88E5' }">
+					<div v-for="f in rowsSensor(z)" :key="f.key" class="pc-fsec">
 						<div class="pc-fhead">
 							<span class="pc-fb"><v-icon x-small>{{ f.m ? 'mdi-shield-half-full' : 'mdi-thermometer' }}</v-icon></span><span>{{ f.title }}</span>
 							<v-chip v-if="f.m && f.m.newItem" x-small outlined color="info">{{ $t('plugins.WorkshopPrinting.extruderConfig.new') }}</v-chip>
 							<v-chip v-else-if="f.m && f.m.remove" x-small outlined color="error">{{ $t('plugins.WorkshopPrinting.extruderConfig.removed_on_save') }}</v-chip>
 							<v-spacer />
-							<v-btn v-if="f.m && !f.m.remove" x-small text color="error" @click="removeMonitor(z, f.m)">{{ $t('plugins.WorkshopPrinting.extruderConfig.remove_monitor') }}</v-btn>
-							<v-btn v-if="f.m && f.m.remove" x-small text @click="f.m.remove = false">{{ $t('plugins.WorkshopPrinting.extruderConfig.keep') }}</v-btn>
+							<v-btn v-if="f.m && !f.m.remove" small text color="error" @click="removeMonitor(z, f.m)">{{ $t('plugins.WorkshopPrinting.extruderConfig.remove_monitor') }}</v-btn>
+							<v-btn v-if="f.m && f.m.remove" small text @click="f.m.remove = false">{{ $t('plugins.WorkshopPrinting.extruderConfig.keep') }}</v-btn>
 						</div>
-						<v-row v-if="f.m && !f.m.remove" dense class="mt-1">
-							<v-col cols="12" sm="4" class="pc-w-190"><v-select v-model="f.m.source" :items="sourcesMonitor(z, f.m)" :label="$t('plugins.WorkshopPrinting.extruderConfig.monitoring_sensor')" dense outlined hide-details @change="v => chooseSource(f.m, v)" /></v-col>
-							<v-col cols="6" sm="2" class="pc-w-150"><v-select v-model="f.m.cond" :items="conditionsMonitor" :label="$t('plugins.WorkshopPrinting.extruderConfig.triggers')" dense outlined hide-details /></v-col>
-							<v-col cols="6" sm="2" class="pc-w-110"><v-text-field v-model.number="f.m.limit" :label="$t('plugins.WorkshopPrinting.extruderConfig.limit_c_2')" type="number" dense outlined hide-details /></v-col>
-							<v-col cols="12" sm="4" class="pc-w-230"><v-select v-model="f.m.action" :items="actionsMonitor" :label="$t('plugins.WorkshopPrinting.extruderConfig.what_the_board_does')" dense outlined hide-details /></v-col>
-						</v-row>
+						<div v-if="f.m && !f.m.remove" class="pc-fgrid mt-1">
+							<div class="pc-fcell"><v-select v-model="f.m.source" :items="sourcesMonitor(z, f.m)" :label="$t('plugins.WorkshopPrinting.extruderConfig.monitoring_sensor')" dense outlined hide-details @change="v => chooseSource(f.m, v)" /></div>
+							<div class="pc-fcell"><v-select v-model="f.m.cond" :items="conditionsMonitor" :label="$t('plugins.WorkshopPrinting.extruderConfig.triggers')" dense outlined hide-details /></div>
+							<div class="pc-fcell"><v-text-field v-model.number="f.m.limit" :label="$t('plugins.WorkshopPrinting.extruderConfig.limit_c_2')" type="number" dense outlined hide-details /></div>
+							<div class="pc-fcell"><v-select v-model="f.m.action" :items="actionsMonitor" :label="$t('plugins.WorkshopPrinting.extruderConfig.what_the_board_does')" dense outlined hide-details /></div>
+						</div>
 						<template v-if="!f.m || (!f.m.remove && f.m.source === 'newItem')">
-							<v-row dense class="mt-1">
-								<v-col v-if="f.m" cols="12" sm="3"><v-text-field v-model.trim="f.o.name" :label="$t('plugins.WorkshopPrinting.extruderConfig.sensor_name')" dense outlined hide-details /></v-col>
-								<v-col cols="12" sm="3" class="pc-w-190">
-									<v-select v-if="f.o.ysen !== 'other'" v-model="f.o.ysen" :items="kindsSensor" :label="$t('plugins.WorkshopPrinting.extruderConfig.sensor_type')" dense outlined hide-details />
-									<v-text-field v-else :value="f.o.yRaw" :label="$t('plugins.WorkshopPrinting.extruderConfig.sensor_type')" disabled dense outlined hide-details />
-								</v-col>
-								<v-col cols="6" sm="2" class="pc-w-150">
-									<v-combobox :value="f.o.pin" :items="optionsPin(f.o, 'pin')" :label="isSpi(f.o.ysen) ? $t('plugins.WorkshopPrinting.extruderConfig.adapter_board_cs') : $t('plugins.WorkshopPrinting.extruderConfig.sensor_connector')"
-										:placeholder="isSpi(f.o.ysen) ? 'spi.cs0' : 'temp1'" dense outlined hide-details :menu-props="{ maxHeight: 360 }" @change="v => choosePin(f.o, 'pin', v)">
-										<template #item="{ item }">
-											<v-list-item-content>
-												<v-list-item-title>{{ item.text }}</v-list-item-title>
-												<v-list-item-subtitle :class="classNote(item)">{{ item.note }}</v-list-item-subtitle>
-											</v-list-item-content>
-										</template>
-									</v-combobox>
-								</v-col>
-								<template v-if="f.o.ysen === 'thermistor'">
-									<v-col cols="4" sm="1" class="pc-w-110"><v-text-field v-model.number="f.o.beta" :label="$t('plugins.WorkshopPrinting.extruderConfig.beta')" type="number" dense outlined hide-details /></v-col>
-									<v-col cols="4" sm="2" class="pc-w-150"><v-text-field v-model.number="f.o.r25" :label="$t('plugins.WorkshopPrinting.extruderConfig.r_at_25_c')" type="number" dense outlined hide-details /></v-col>
-									<v-col cols="4" sm="1" class="pc-w-190"><v-text-field v-model.trim="f.o.shc" :label="$t('plugins.WorkshopPrinting.extruderConfig.coef_c')" :placeholder="$t('plugins.WorkshopPrinting.extruderConfig.optional')" dense outlined hide-details /></v-col>
-								</template>
-								<v-col v-if="f.o.ysen === 'max31856'" cols="6" sm="2" class="pc-w-150"><v-select v-model="f.o.tc" :items="kindsThermocouple" :label="$t('plugins.WorkshopPrinting.extruderConfig.thermocouple_type')" dense outlined hide-details /></v-col>
-								<template v-if="f.o.ysen === 'max31865'">
-									<v-col cols="6" sm="1" class="pc-w-110"><v-select v-model="f.o.threads" :items="[2, 3, 4]" :label="$t('plugins.WorkshopPrinting.extruderConfig.wires')" dense outlined hide-details /></v-col>
-									<v-col cols="6" sm="2" class="pc-w-150"><v-text-field v-model.number="f.o.rref" :label="$t('plugins.WorkshopPrinting.extruderConfig.reference_r')" type="number" dense outlined hide-details /></v-col>
-								</template>
-								<v-col v-if="f.o.ysen === 'max31856' || f.o.ysen === 'max31865'" cols="6" sm="2" class="pc-w-190"><v-select v-model="f.o.red" :items="networksElectrical" :label="$t('plugins.WorkshopPrinting.extruderConfig.mains_frequency')" dense outlined hide-details /></v-col>
-								<template v-if="f.o.ysen === 'linear'">
-									<v-col cols="6" sm="2" class="pc-w-190"><v-text-field v-model.number="f.o.lb" :label="$t('plugins.WorkshopPrinting.extruderConfig.c_with_the_input_at_0')" type="number" dense outlined hide-details /></v-col>
-									<v-col cols="6" sm="2" class="pc-w-190"><v-text-field v-model.number="f.o.lc" :label="$t('plugins.WorkshopPrinting.extruderConfig.c_with_the_input_at_maximum')" type="number" dense outlined hide-details /></v-col>
-								</template>
-							</v-row>
-							<div class="wf-help pc-help"><v-icon small>mdi-information-outline</v-icon><span>{{ explanationSensor(f.o.ysen) }}</span></div>
+								<extruder-sensor-fields :o="f.o" :named="!!f.m" :pin-items="optionsPin(f.o, 'pin')" @pin="v => choosePin(f.o, 'pin', v)" />
 						</template>
 					</div>
-					<div class="wf-actions">
-						<v-btn x-small outlined :disabled="!canAddMonitor(z)" @click="addMonitor(z)"><v-icon x-small left>mdi-shield-plus</v-icon>{{ $t('plugins.WorkshopPrinting.extruderConfig.add_monitor') }}</v-btn>
-						<span class="text-caption grey--text">{{ canAddMonitor(z) ? '' : $t('plugins.WorkshopPrinting.extruderConfig.maximum_2_extra_monitors_per_heater') }}</span>
+					<div class="pc-actions mt-3">
+						<v-btn small outlined :disabled="!canAddMonitor(z)" @click="addMonitor(z)"><v-icon small left>mdi-shield-plus</v-icon>{{ $t('plugins.WorkshopPrinting.extruderConfig.add_monitor') }}</v-btn>
+						<span class="text-caption pc-muted">{{ canAddMonitor(z) ? '' : $t('plugins.WorkshopPrinting.extruderConfig.maximum_2_extra_monitors_per_heater') }}</span>
 					</div>
-					<div class="wf-help pc-help" style="--fs:#8E24AA">
+					<div class="wf-help pc-help">
 						<v-icon small>mdi-information-outline</v-icon>
 						<span>{{ $t('plugins.WorkshopPrinting.extruderConfig.the_heater_is_controlled_with_a') }}</span>
 					</div>
 				</template>
-				<div v-for="e in errorsOf(z)" :key="e" class="wf-help pc-help" style="--fs:#E53935"><v-icon small>mdi-alert-circle-outline</v-icon><span class="error--text">{{ e }}</span></div>
-				<div v-for="a in noticesOf(z)" :key="'a' + a" class="wf-help pc-help" style="--fs:#FFA000"><v-icon small>mdi-alert-outline</v-icon><span>{{ a }}</span></div>
+				<div v-for="e in errorsOf(z)" :key="e" class="wf-help pc-help"><v-icon small>mdi-alert-circle-outline</v-icon><span>{{ e }}</span></div>
+				<div v-for="a in noticesOf(z)" :key="'a' + a" class="wf-help pc-help"><v-icon small>mdi-alert-outline</v-icon><span>{{ a }}</span></div>
 			</div>
-			<div class="wf-help pc-help mt-3" style="--fs:#1E88E5">
+			<div class="wf-help pc-help mt-3">
 				<v-icon small>mdi-information-outline</v-icon>
 				<span>
 				{{ $t('plugins.WorkshopPrinting.extruderConfig.output_and_sensor_the_board_connector') }}
 				</span>
 			</div>
 			<!-- Board connectors (2026-10-10: "a list with available outputs and inputs and which board they are on") -->
-			<div class="mt-3">
-				<v-btn x-small text color="primary" @click="viewPins = !viewPins">
-					<v-icon x-small left>{{ viewPins ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>{{ viewPins ? $t('plugins.WorkshopPrinting.extruderConfig.hide_connectors') : $t('plugins.WorkshopPrinting.extruderConfig.show_free_connectors_of_each_board') }}
-				</v-btn>
-				<template v-if="viewPins">
-					<div class="text-caption grey--text mt-1">
-						{{ $t('plugins.WorkshopPrinting.extruderConfig.green_free_orange_used_only_by') }}
-					</div>
-					<div v-for="b in boards" :key="b.key" class="mt-2">
-						<div class="text-body-2"><b>{{ b.name }}</b> <span class="grey--text">{{ b.where }}</span></div>
-						<div v-if="!b.groups.length" class="text-caption grey--text">{{ b.note }}</div>
-						<div v-for="g in b.groups" :key="g.kind" class="d-flex flex-wrap align-center mt-1" style="gap:4px">
-							<span class="text-caption grey--text pin-kind">{{ g.kind }}</span>
-							<v-chip v-for="c in g.pins" :key="c.pin" x-small :outlined="!c.used" :color="c.used ? 'grey' : c.otherMode ? 'warning' : 'success'"
-								:title="c.used ? $t('plugins.WorkshopPrinting.extruderConfig.used_by', { who: c.used }) : c.otherMode ? $t('plugins.WorkshopPrinting.extruderConfig.only_in_other_mode_title', { who: c.otherMode }) : (g.field ? $t('plugins.WorkshopPrinting.extruderConfig.free_tap_to_use') : $t('plugins.WorkshopPrinting.extruderConfig.free_cap'))"
-								@click="!c.used && g.field && usePin(g.field, c.pin, c.otherMode)">{{ c.pin }}</v-chip>
-						</div>
-					</div>
-					<div v-if="msgPin" class="text-caption mt-1">{{ msgPin }}</div>
-				</template>
-			</div>
-			<div class="d-flex flex-wrap align-center mt-2" style="gap:8px">
+				<extruder-pin-list :boards="boards" :msg="msgPin" @use="usePin" />
+			<div class="pc-actions mt-3">
 				<v-btn small outlined :disabled="hFree == null || sFree == null" @click="addZone()"><v-icon small left>mdi-plus</v-icon>{{ $t('plugins.WorkshopPrinting.extruderConfig.add_zone') }}</v-btn>
 				<v-btn small color="primary" :disabled="!changes.length || !!errors.length || saving || !canConfig" :loading="saving" @click="save()">
 					<v-icon small left>mdi-content-save</v-icon>{{ $t('plugins.WorkshopPrinting.common.save_to_modefff_g') }}
 				</v-btn>
 				<v-btn small outlined :disabled="changes.length > 0" @click="reload()">{{ $t('plugins.WorkshopPrinting.extruderConfig.reload_fff_mode') }}</v-btn>
 				<v-btn small text :disabled="!changes.length" @click="read()">{{ $t('plugins.WorkshopPrinting.extruderConfig.discard_changes') }}</v-btn>
-				<span v-if="reloadPending" class="text-caption warning--text">{{ $t('plugins.WorkshopPrinting.extruderConfig.saved_reload_fff_mode_so_the') }}</span>
+				<span v-if="reloadPending" class="wf-state warn">{{ $t('plugins.WorkshopPrinting.extruderConfig.saved_reload_fff_mode_so_the') }}</span>
 			</div>
-			<lock-reason :min="needConfig" class="mt-1" />
+			<lock-reason :min="needConfig" class="mt-1" :subject="$t('plugins.WorkshopPrinting.subjects.extruder_config')" />
 			<div v-if="changes.length" class="text-caption mt-2">
 				<b>{{ $t('plugins.WorkshopPrinting.extruderConfig.will_change') }}</b>
 				<ul class="mt-1">
 					<li v-for="c in changes" :key="c">{{ c }}</li>
 				</ul>
 			</div>
-			<div v-if="errors.length && changes.length" class="text-caption error--text mt-1">{{ $t('plugins.WorkshopPrinting.extruderConfig.fix_what_is_marked_in_red') }}</div>
+			<div v-if="errors.length && changes.length" class="wf-state err mt-1">{{ $t('plugins.WorkshopPrinting.extruderConfig.fix_what_is_marked_in_red') }}</div>
 		</template>
 	</div>
 </template>
@@ -174,6 +119,10 @@
 <script>
 import i18n from '../../i18n'
 import { kinds, labelKind, SENSOR_TEXT, actions, conditions } from './extruder-config-text.js' // texts of the forms
+import { computeUses, boardsOf, explanationKind } from './extruder-config-pins.js' // pure: connector uses, boards, explanations
+import ExtruderPinList from './ExtruderPinList.vue'
+import ErrorNotice from './ErrorNotice.vue' // vue/_shared36
+import ExtruderSensorFields from './ExtruderSensorFields.vue'
 
 'use strict'
 
@@ -187,7 +136,7 @@ import LockReason from './LockReason.vue' // vue/_shared36
 import { NEED } from './print-sections.js'
 import {
 	partir, command, param, RX_OUTPUT, RX_OUTPUT_RELAY, RX_THERMISTOR, RX_CS, isCA, isSpiKind, readSensor, copySensor,
-	kindChange, relayWithoutB1, sensorMonitor, zonesFromLines, rewriteModeText, SENSORES
+	kindChange, relayWithoutB1, sensorMonitor, zonesFromLines, rewriteModeText
 } from './modefff-edit.js'
 import { machineFree } from './machine-free.js' // trabajo de archivo, pausado o en vivo (vue/_shared)
 import { confirmRisk } from './risk.js' // the JS plugins' box, else a box of the page (vue/_shared36)
@@ -198,12 +147,12 @@ const MAX_MONITORS = 3; // P0 (the cap of the zone) + P1 + P2 (RRF: "assuming 3 
 
 export default {
 	mixins: [roleMixin],
-	components: { HelpGuide, LockReason },
+	components: { HelpGuide, LockReason, ErrorNotice, ExtruderPinList, ExtruderSensorFields },
 	props: {
 		tool: { type: Object, default: null }
 	},
 	data() {
-		return { modeFileLabel: MODE_FILES.fff, text: null, textConfig: '', othersModes: {}, viewPins: false, msgPin: '', zones: [], loading: true, errReading: null, openZones: {}, saving: false, reloadPending: false };
+		return { modeFileLabel: MODE_FILES.fff, text: null, textConfig: '', othersModes: {}, msgPin: '', zones: [], loading: true, errReading: null, openZones: {}, saving: false, reloadPending: false };
 	},
 	computed: {
 		// saving writes modefff.g: a technician's (the reason sits under the buttons)
@@ -249,15 +198,6 @@ export default {
 		kindsOutput() {
 			return Object.keys(kinds).map(k => ({ text: kinds[k], value: k }));
 		},
-		kindsSensor() {
-			return Object.keys(SENSORES).map(k => ({ text: SENSOR_TEXT[k], value: k }));
-		},
-		kindsThermocouple() {
-			return ['K', 'J', 'T', 'E', 'N', 'R', 'S', 'B'];
-		},
-		networksElectrical() {
-			return [{ value: 50, text: '50 Hz' }, { value: 60, text: '60 Hz' }];
-		},
 		actionsMonitor() {
 			return actions;
 		},
@@ -284,36 +224,9 @@ export default {
 		usesExact() {
 			return this.computeUses(true);
 		},
-		boards() {
-			// connectors of each Duet 3 board (those that matter for an extruder)
-			const CAT = {
-				MB6HC: { cal: [0, 1, 2, 3], fan: [4, 5, 6, 7, 8, 9], temp: [0, 1, 2, 3], io: [0, 1, 2, 3, 4, 5, 6, 7, 8], cs: [0, 1, 2, 3] },
-				EXP3HC: { cal: [0, 1, 2], fan: [3, 4, 5, 6, 7, 8], temp: [0, 1, 2], io: [0, 1, 2, 3, 4, 5] },
-				TOOL1LC: { cal: [0], fan: [1, 2], temp: [0, 1], io: [0, 1, 2] },
-				MB6XD: { cal: [0, 1, 2], fan: [3, 4, 5, 6, 7, 8], temp: [0, 1, 2, 3], io: [0, 1, 2, 3, 4, 5, 6, 7, 8], cs: [0, 1, 2, 3] }
-			};
-			const uses = this.usesPins;
-			return ((this.model && this.model.boards) || []).map((b, i) => {
-				const can = b.canAddress || 0;
-				const pre = can ? can + '.' : '';
-				const cat = CAT[b.shortName];
-				// only in Laser or CNC mode: in FFF it can be used (each mode configures its own), with a notice
-				const other = u => !!u && !/(config|modefff)\.g/.test(u);
-				const pins = (pref, nums) => nums.map(n => { const u = uses[pre + pref + n] || null; return { pin: pre + pref + n, used: other(u) ? null : u, otherMode: other(u) ? u : null }; });
-				return {
-					key: 'b' + i,
-					name: b.name || b.shortName || i18n.t('plugins.WorkshopPrinting.extruderConfig.board'),
-					where: can ? i18n.t('plugins.WorkshopPrinting.extruderConfig.expansion_board_can', { can }) : i18n.t('plugins.WorkshopPrinting.extruderConfig.main_board'),
-					note: cat ? '' : (b.shortName === 'EXP1XD' ? i18n.t('plugins.WorkshopPrinting.extruderConfig.single_motor_board_it_has_no') : i18n.t('plugins.WorkshopPrinting.extruderConfig.i_don_t_know_this_board')),
-					groups: cat ? [
-						{ id: 'cal', kind: i18n.t('plugins.WorkshopPrinting.extruderConfig.heater_outputs'), field: 'output', pins: pins('out', cat.cal) },
-						{ id: 'temp', kind: i18n.t('plugins.WorkshopPrinting.extruderConfig.thermistors'), field: 'pin', pins: pins('temp', cat.temp) },
-						{ id: 'fan', kind: i18n.t('plugins.WorkshopPrinting.extruderConfig.small_outputs_fans'), field: null, pins: pins('out', cat.fan) },
-						{ id: 'io', kind: i18n.t('plugins.WorkshopPrinting.extruderConfig.io_inputs_outputs'), field: null, pins: pins('io', cat.io) }
-					].concat(cat.cs ? [{ id: 'cs', kind: i18n.t('plugins.WorkshopPrinting.extruderConfig.spi_cs_adapter_board'), field: null, pins: pins('spi.cs', cat.cs) }] : []) : []
-				};
-			});
-		},
+			boards() {
+				return boardsOf(this.model, this.usesPins);
+			},
 		errors() {
 			return this.zones.reduce((a, z) => a.concat(this.errorsOf(z)), []);
 		}
@@ -326,33 +239,10 @@ export default {
 	},
 	methods: {
 		...mapActions('machine', ['sendCode']),
-		// exacto = false: "io3.in" y "io3.out" cuentan como "io3" (lo de siempre)
-		computeUses(exact) {
-			const uses = {};
-			const noteUse = (pin, who) => { uses[pin] = uses[pin] ? uses[pin] + ', ' + who : who; };
-			const files = [['config.g', this.textConfig], ['modefff.g', this.text], ['modelaser.g', this.othersModes['modelaser.g']], ['modecnc.g', this.othersModes['modecnc.g']]];
-			files.forEach(([nombre, txt]) => {
-				(txt || '').split(/\r?\n/).forEach(l => {
-					const c = command(l);
-					if (!c || !['M950', 'M308', 'M574', 'M558', 'M591', 'M280', 'M42'].includes(c)) return;
-					const cod = partir(l)[0];
-					const rx = /\b[CP]"([^"]+)"/g;
-					let m;
-					while ((m = rx.exec(cod))) {
-						m[1].split('+').forEach(x => {
-							const raw = x.trim().toLowerCase().replace(/^[!^]+/, '');
-							const pin = raw.replace(/\.(in|out)$/, '');
-							if (!/^(\d+\.)?(out|temp|io|spi\.cs)\d+$/.test(pin)) return;
-							const who = cod.trim().split(/\s+/).filter(t => t.indexOf('"') < 0).slice(0, 2).join(' ') + ' (' + nombre + ')';
-							if (!exact || raw !== pin) noteUse(exact ? raw : pin, who);
-							else if (/io\d+$/.test(pin)) { noteUse(pin + '.in', who); noteUse(pin + '.out', who); }
-							else noteUse(pin, who);
-						});
-					}
-				});
-			});
-			return uses;
-		},
+			// exact = false: "io3.in" and "io3.out" count as "io3"
+			computeUses(exact) {
+				return computeUses([['config.g', this.textConfig], ['modefff.g', this.text], ['modelaser.g', this.othersModes['modelaser.g']], ['modecnc.g', this.othersModes['modecnc.g']]], exact);
+			},
 		// ---- list of connectors to choose from in each zone (2026-10-11) ----
 		// free ones first, then those used only by another mode (with a notice) and finally the used ones (disabled, with the reason)
 		// z: a zone (output or sensor) or a watch with its own sensor (only the 'pin' field)
@@ -419,20 +309,8 @@ export default {
 			});
 			return r;
 		},
-		isSpi(t) {
-			return isSpiKind(t);
-		},
 		nameSensor(t, raw) {
 			return t === 'other' ? (raw || '?') : SENSOR_TEXT[t] || SENSOR_TEXT.thermistor;
-		},
-		explanationSensor(t) {
-			if (t === 'thermistor') return i18n.t('plugins.WorkshopPrinting.extruderConfig.common_thermistor_ntc_on_a_tempn');
-			if (t === 'pt1000') return i18n.t('plugins.WorkshopPrinting.extruderConfig.two_wire_pt1000_straight_to_a');
-			if (t === 'max31856') return i18n.t('plugins.WorkshopPrinting.extruderConfig.thermocouple_k_j_t_with_the');
-			if (t === 'max31855') return i18n.t('plugins.WorkshopPrinting.extruderConfig.type_k_thermocouple_with_a_max31855');
-			if (t === 'max31865') return i18n.t('plugins.WorkshopPrinting.extruderConfig.pt100_with_the_max31865_adapter_board');
-			if (t === 'linear') return i18n.t('plugins.WorkshopPrinting.extruderConfig.a_temperature_transmitter_that_gives_a');
-			return i18n.t('plugins.WorkshopPrinting.extruderConfig.this_sensor_type_is_not_edited');
 		},
 		rowsSensor(z) {
 			const r = [{ key: 'main', o: z, m: null, title: i18n.t('plugins.WorkshopPrinting.extruderConfig.sensor_controlling_zone_s', { s: z.s }) }];
@@ -556,24 +434,15 @@ export default {
 			return c;
 		},
 		classNote(item) {
-			return item.state === 3 ? 'grey--text' : item.state === 1 ? 'warning--text' : 'success--text';
+			return item.state === 3 ? 'pc-muted' : '';
 		},
 		// from the combobox comes the list's object or what was typed by hand
 		choosePin(z, field, v) {
 			z[field] = String((v && typeof v === 'object' ? v.value : v) || '').trim();
 		},
-		explanationKind(kind) {
-			if (kind === 'ssrdc') {
-				return i18n.t('plugins.WorkshopPrinting.extruderConfig.explain_ssrdc');
-			}
-			if (kind === 'ssr') {
-				return i18n.t('plugins.WorkshopPrinting.extruderConfig.explain_ssr');
-			}
-			if (kind === 'relay') {
-				return i18n.t('plugins.WorkshopPrinting.extruderConfig.explain_relay');
-			}
-			return i18n.t('plugins.WorkshopPrinting.extruderConfig.the_heater_cartridge_goes_straight_to');
-		},
+			explanationKind(kind) {
+				return explanationKind(kind);
+			},
 		async read() {
 			this.loading = true;
 			this.errReading = null;
@@ -752,15 +621,9 @@ export default {
 <style scoped>
 .removed {
 	opacity: 0.6;
-	border-color: rgba(198, 40, 40, 0.6) !important;
+	border-color: var(--wf-err) !important;
 }
 ul {
 	padding-left: 18px;
-}
-.monitor {
-	border-left: 2px solid rgba(128, 128, 128, 0.4);
-}
-.pin-kind {
-	min-width: 150px;
 }
 </style>

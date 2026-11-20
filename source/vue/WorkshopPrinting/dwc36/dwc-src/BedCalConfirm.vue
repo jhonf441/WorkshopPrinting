@@ -1,9 +1,9 @@
 <template>
 	<!-- The confirmation of an action that HEATS: the zones, the temperatures and the order, read from the plan the service made (bedcal.plan). Nothing has been sent to the machine
 	     yet; the start button works only with the "I will stay" box ticked, and Cancel sends nothing. -->
-	<v-dialog :value="true" persistent max-width="560" @keydown.esc="$emit('cancel')">
+	<v-dialog :value="true" persistent max-width="560" content-class="impresion-dialog" @keydown.esc="$emit('cancel')">
 		<v-card role="alertdialog" aria-labelledby="bcc-title">
-			<v-card-title id="bcc-title" class="text-h6">{{ t(kind === 'tune' ? 'confirm_tune_title' : 'confirm_preheat_title') }}</v-card-title>
+			<v-card-title id="bcc-title" class="pc-card-title">{{ t(kind === 'tune' ? 'confirm_tune_title' : 'confirm_preheat_title') }}</v-card-title>
 			<v-card-text>
 				<div class="text-body-2 mb-2">{{ t(kind === 'tune' ? 'confirm_tune_text' : 'confirm_preheat_text', { temp: plan.temp }) }}</div>
 				<v-simple-table dense class="bcc-zones">
@@ -36,7 +36,7 @@
 <script>
 'use strict'
 
-import HelpTip from './HelpTip.vue' // vue/_shared36
+import HelpTip from './HelpTip.vue' // vue/_shared36 (a dialog keeps its own "?": the folded help of the section would sit behind it)
 import { planZones } from './bed-cal-run.js'
 
 export default {

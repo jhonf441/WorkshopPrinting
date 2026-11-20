@@ -5,22 +5,23 @@ current values"). It only reads: the object model (heat.heaters[n].model) and th
 response to M307 H<n> that Pid.vue already asks for. The calculations follow RRF 3.5's
 code (src/Heating/FOPDT.cpp, LocalHeater.cpp, Heater.cpp). -->
 	<div class="pid-detail">
-		<div class="d-flex align-center flex-wrap" style="gap:8px">
-			<span class="text-subtitle-1 font-weight-medium">{{ $t('plugins.WorkshopPrinting.pidDetail.how_it_is_and_how_it') }}</span>
+		<div class="pc-actions">
+			<h4>{{ $t('plugins.WorkshopPrinting.pidDetail.how_it_is_and_how_it') }}</h4>
 			<v-chip small outlined :color="colorLevel(a.level)">{{ textLevel(a.level) }}</v-chip>
 			<v-spacer />
-			<span class="text-caption grey--text">{{ chosen.name }} (H{{ chosen.id }})</span>
+			<span class="text-caption pc-muted">{{ chosen.name }} (H{{ chosen.id }})</span>
 		</div>
 
-		<v-alert v-if="a.withoutModel" dense text type="info" class="mt-2 mb-0">{{ $t('plugins.WorkshopPrinting.pidDetail.this_heater_has_no_model_loaded') }}</v-alert>
+		<div v-if="a.withoutModel" class="wf-note mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ $t('plugins.WorkshopPrinting.pidDetail.this_heater_has_no_model_loaded') }}</span></div>
 		<template v-else>
 			<!-- avisos primero: lo que conviene revisar -->
-			<v-alert v-for="(w, k) in a.notices" :key="'w' + k" dense text :type="w.kind" class="mt-2 mb-0">
-				{{ w.text }} <b v-if="w.value">{{ w.value }}</b>
-			</v-alert>
+			<div v-for="(w, k) in a.notices" :key="'w' + k" class="wf-note is-warn mt-2" role="note">
+				<v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon>
+				<span>{{ w.text }} <b v-if="w.value">{{ w.value }}</b></span>
+			</div>
 
 			<!-- 1. valores de la placa -->
-			<div class="text-subtitle-2 mt-3 mb-1">{{ $t('plugins.WorkshopPrinting.pidDetail.board_values_now') }}</div>
+			<h4 class="mt-3">{{ $t('plugins.WorkshopPrinting.pidDetail.board_values_now') }}</h4>
 			<v-simple-table dense class="pd-table">
 				<tbody>
 					<tr>
@@ -109,13 +110,13 @@ code (src/Heating/FOPDT.cpp, LocalHeater.cpp, Heater.cpp). -->
 					</tr>
 				</tbody>
 			</v-simple-table>
-			<div v-if="m307.pidHeat || m307.rise != null" class="text-caption grey--text mt-1">
+			<div v-if="m307.pidHeat || m307.rise != null" class="text-caption pc-muted mt-1">
 				<template v-if="m307.rise != null"><span>{{ $t('plugins.WorkshopPrinting.pidDetail.the_board_m307_calculates_that_at') }}</span> {{ m307.rise }} °C <span>{{ $t('plugins.WorkshopPrinting.pidDetail.above_ambient') }}</span></template>
 				<template v-if="m307.pidHeat"><span>{{ $t('plugins.WorkshopPrinting.pidDetail.pid_on_the_m301_scale_when') }}</span> {{ m307.pidHeat }}<span>{{ $t('plugins.WorkshopPrinting.pidDetail.when_holding') }}</span> {{ m307.pidHold || '-' }}.</template>
 			</div>
 
 			<!-- 2. cuentas -->
-			<div class="text-subtitle-2 mt-4 mb-1">{{ $t('plugins.WorkshopPrinting.pidDetail.calculations_with_these_values') }} <span class="grey--text text-caption"><span>{{ chosen.target > 0 ? $t('plugins.WorkshopPrinting.pidDetail.with_the_target') : $t('plugins.WorkshopPrinting.pidDetail.with_the_temperature_above') }}</span> <b>{{ fmt(reference, 0) }} °C</b></span></div>
+			<h4 class="mt-4">{{ $t('plugins.WorkshopPrinting.pidDetail.calculations_with_these_values') }} <span class="pc-muted text-caption"><span>{{ chosen.target > 0 ? $t('plugins.WorkshopPrinting.pidDetail.with_the_target') : $t('plugins.WorkshopPrinting.pidDetail.with_the_temperature_above') }}</span> <b>{{ fmt(reference, 0) }} °C</b></span></h4>
 			<v-simple-table dense class="pd-table">
 				<tbody>
 					<tr>
@@ -158,7 +159,7 @@ code (src/Heating/FOPDT.cpp, LocalHeater.cpp, Heater.cpp). -->
 
 			<!-- 3. curva estimada (SVG liviano) -->
 			<div v-if="curve" class="mt-4">
-				<div class="text-subtitle-2 mb-1">{{ $t('plugins.WorkshopPrinting.pidDetail.estimated_heating_curve') }}</div>
+				<h4>{{ $t('plugins.WorkshopPrinting.pidDetail.estimated_heating_curve') }}</h4>
 				<svg :viewBox="'0 0 ' + G.w + ' ' + G.h" class="pd-svg" preserveAspectRatio="xMidYMid meet">
 					<g v-for="v in curve.ticksY" :key="'y' + v">
 						<line :x1="G.l" :x2="G.w - G.r" :y1="cy(v)" :y2="cy(v)" class="pd-grid" />
@@ -175,7 +176,7 @@ code (src/Heating/FOPDT.cpp, LocalHeater.cpp, Heater.cpp). -->
 					<path :d="curve.withoutControl" fill="none" class="pd-without" stroke-width="1.5" stroke-dasharray="4 4" />
 					<path :d="curve.withControl" fill="none" class="primary--text" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" />
 				</svg>
-				<div class="text-caption grey--text">
+				<div class="text-caption pc-muted">
 					{{ $t('plugins.WorkshopPrinting.pidDetail.blue_estimated_temperature_at_full_power') }}
 				</div>
 			</div>
@@ -264,7 +265,7 @@ code (src/Heating/FOPDT.cpp, LocalHeater.cpp, Heater.cpp). -->
 
 		<!-- 5. all the heaters at a glance: tapping one chooses it above -->
 		<div v-if="summary.length > 1" class="mt-4">
-			<div class="text-subtitle-2 mb-1">{{ $t('plugins.WorkshopPrinting.pidDetail.all_heaters_at_a_glance') }}</div>
+			<h4>{{ $t('plugins.WorkshopPrinting.pidDetail.all_heaters_at_a_glance') }}</h4>
 			<v-simple-table dense class="pd-table">
 				<thead>
 					<tr><th>{{ $t('plugins.WorkshopPrinting.pidDetail.heater') }}</th><th>{{ $t('plugins.WorkshopPrinting.pidDetail.heating') }}</th><th>{{ $t('plugins.WorkshopPrinting.pidDetail.dead_time') }}</th><th>{{ $t('plugins.WorkshopPrinting.pidDetail.max_at_full_power') }}</th><th>{{ $t('plugins.WorkshopPrinting.pidDetail.to_hold') }}</th><th>{{ $t('plugins.WorkshopPrinting.common.status') }}</th></tr>
@@ -272,7 +273,7 @@ code (src/Heating/FOPDT.cpp, LocalHeater.cpp, Heater.cpp). -->
 				<tbody>
 					<tr v-for="r in summary" :key="r.id" class="pd-row" :class="r.id === chosen.id ? 'pd-sel' : ''" @click="$emit('choose', r.id)">
 						<td>{{ r.name }}</td>
-						<template v-if="r.withoutModel"><td colspan="4" class="grey--text">{{ $t('plugins.WorkshopPrinting.common.no_model') }}</td></template>
+						<template v-if="r.withoutModel"><td colspan="4" class="pc-muted">{{ $t('plugins.WorkshopPrinting.common.no_model') }}</td></template>
 						<template v-else>
 							<td>{{ fmt(r.R, 2) }} °C/s</td>
 							<td>{{ fmt(r.D, 1) }} s</td>
@@ -283,7 +284,7 @@ code (src/Heating/FOPDT.cpp, LocalHeater.cpp, Heater.cpp). -->
 					</tr>
 				</tbody>
 			</v-simple-table>
-			<div class="text-caption grey--text mt-1">{{ $t('plugins.WorkshopPrinting.pidDetail.tap_a_heater_to_see_its') }}</div>
+			<div class="text-caption pc-muted mt-1">{{ $t('plugins.WorkshopPrinting.pidDetail.tap_a_heater_to_see_its') }}</div>
 		</div>
 	</div>
 </template>
@@ -539,6 +540,7 @@ export default {
 	cursor: pointer;
 }
 .pd-sel {
-	background: rgba(25, 118, 210, 0.1);
+	background: var(--wf-soft);
+	box-shadow: inset 3px 0 0 var(--wf-sec-now);
 }
 </style>

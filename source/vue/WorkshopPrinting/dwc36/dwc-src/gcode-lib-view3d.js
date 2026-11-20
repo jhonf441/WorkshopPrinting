@@ -200,9 +200,9 @@ export function depthOrder(items, frame) {
 	return items.slice().sort((a, b) => (key(b) - key(a)) || (a.index - b.index))
 }
 
-export const BUDGET_MOVING = 12000 // polyline segments per frame while the user rotates / zooms
+export const BUDGET_MOVING = 30000 // polyline segments per frame while the user rotates / zooms
 export const BUDGET_IDLE = 80000 // at rest (full detail, spread over frames by the time budget)
-export const MOVING_LAYERS = 10 // while moving at most this many layers are drawn (every Nth, the top one always)
+export const MOVING_LAYERS = 60 // while moving at most this many layers are drawn (every Nth, the top one always)
 export const FRAME_MS = 12 // drawing time per animation frame before the rest waits for the next one
 
 export function segmentBudget(moving) {

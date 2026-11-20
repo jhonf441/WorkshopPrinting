@@ -160,10 +160,12 @@ export function drawReference(ctx, scene, bed) {
 // scene = { w, h, frame, cam, layers: [{ index, z, layer }], hidden, travel, top, moving, bed, cache?, budgetMs?, now? }
 function plan(ctx, scene) {
 	const hidden = scene.hidden || {}
+	const dpr = scene.dpr || 1 // the bitmap is dpr times bigger than the CSS box: clear all of it, then draw in CSS pixels
 	ctx.setTransform(1, 0, 0, 1, 0, 0)
 	ctx.globalAlpha = 1
 	ctx.fillStyle = BG
-	ctx.fillRect(0, 0, scene.w, scene.h)
+	ctx.fillRect(0, 0, Math.ceil(scene.w * dpr), Math.ceil(scene.h * dpr))
+	ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 	drawReference(ctx, scene, scene.bed)
 	const ordered = depthOrder(scene.layers, scene.frame)
 	const picked = layerPick(ordered.length, !!scene.moving).map((i) => ordered[i])

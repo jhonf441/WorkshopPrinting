@@ -1,21 +1,21 @@
 <template>
 	<div>
-	<pc-section icon="mdi-clipboard-check-outline" :title="$t('plugins.WorkshopPrinting.printing.printer_tests')">
-		<v-alert v-if="startupPending > 0" dense text type="warning" class="mb-2">{{ $t('plugins.WorkshopPrinting.commissioning.start_chip_first') }}</v-alert>
+	<pc-section icon="mdi-clipboard-check-outline" :title="$t('plugins.WorkshopPrinting.printing.printer_tests')" role="technician">
+		<div v-if="startupPending > 0" class="wf-note is-warn" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ $t('plugins.WorkshopPrinting.commissioning.start_chip_first') }}</span></div>
 		<help-guide :title="$t('plugins.WorkshopPrinting.common.how_it_works')">
 			<p>
 			{{ $t('plugins.WorkshopPrinting.commissioning.for_the_first_time_everything_is') }}
 			</p>
 		</help-guide>
-		<v-alert v-if="!isFff" dense text type="info" class="mt-3 mb-0">
-			{{ $t('plugins.WorkshopPrinting.commissioning.first_switch_the_machine_to_fff') }}
-			<v-btn x-small text color="primary" @click="$emit('go', 'head')">{{ $t('plugins.WorkshopPrinting.commissioning.go_to_head_change') }}</v-btn>
-		</v-alert>
+		<div v-if="!isFff" class="wf-note mt-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ $t('plugins.WorkshopPrinting.commissioning.first_switch_the_machine_to_fff') }}
+			<v-btn x-small text color="primary" @click="$emit('go', 'head')">{{ $t('plugins.WorkshopPrinting.commissioning.go_to_head_change') }}</v-btn></span></div>
 		<template v-else>
+			<!-- ONE notice at the top: these tests really heat and turn things on -->
+			<div class="wf-note is-warn mt-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ $t('plugins.WorkshopPrinting.commissioning.heats_for_real_note') }}</span></div>
 			<!-- Summary at the top (2026-10-11): how much is done and which one is next, with a single button to go there -->
 			<div class="summary mt-3">
-				<div class="d-flex align-center flex-wrap" style="gap:8px">
-					<span class="text-subtitle-1 font-weight-medium">{{ $t('plugins.WorkshopPrinting.commissioning.n_of_total_steps_done', { n: done, total: steps.length }) }}</span>
+				<div class="pc-actions">
+					<span class="pc-card-title">{{ $t('plugins.WorkshopPrinting.commissioning.tests_n_of_total', { n: done, total: steps.length }) }}</span>
 					<v-chip v-if="withProblem" small outlined color="error"><v-icon x-small left>mdi-alert</v-icon>{{ $t('plugins.WorkshopPrinting.commissioning.n_to_check', { n: withProblem }) }}</v-chip>
 					<v-spacer />
 					<template v-if="next">
@@ -25,40 +25,35 @@
 						</v-btn>
 					</template>
 				</div>
-				<v-progress-linear :value="steps.length ? (done / steps.length) * 100 : 0" color="success" height="6" rounded class="mt-2" />
+				<div class="pc-progress mt-2" role="progressbar" aria-valuemin="0" :aria-valuemax="steps.length" :aria-valuenow="done" :aria-label="$t('plugins.WorkshopPrinting.commissioning.tests_n_of_total', { n: done, total: steps.length })"><i :style="{ width: (steps.length ? (done / steps.length) * 100 : 0) + '%' }" /></div>
 			</div>
-			<v-alert v-if="!next" dense text type="success" class="mt-3 mb-0">
-				{{ $t('plugins.WorkshopPrinting.commissioning.commissioning_complete_the_machine_is_ready') }}
-			</v-alert>
+			<div v-if="!next" class="wf-note mt-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-check-circle-outline</v-icon><span>{{ $t('plugins.WorkshopPrinting.commissioning.commissioning_complete_the_machine_is_ready') }}</span></div>
 
-			<div class="mt-2">
-				<div v-for="(p, k) in steps" :key="p.id" class="step" :class="['p-' + p.state, { open: openId === p.id, follows: next && next.id === p.id }]">
+			<div class="pt-list mt-3" role="list" :aria-label="$t('plugins.WorkshopPrinting.commissioning.tests_n_of_total', { n: done, total: steps.length })">
+				<div v-for="p in steps" :key="p.id" role="listitem" class="step" :class="['p-' + p.state, { open: openId === p.id, follows: next && next.id === p.id }]">
 					<!-- step header: tap to open or close -->
-					<div class="step-cab" role="button" tabindex="0" @click="toggle(p.id)" @keydown.enter="toggle(p.id)">
-						<div class="step-num">
-							<v-icon v-if="p.state === 'ok'" small color="white">mdi-check</v-icon>
-							<v-icon v-else-if="p.state === 'bad'" small color="white">mdi-close</v-icon>
-							<span v-else>{{ k + 1 }}</span>
-						</div>
+					<div class="step-cab" role="button" tabindex="0" :aria-expanded="openId === p.id ? 'true' : 'false'" @click="toggle(p.id)" @keydown.enter.prevent="toggle(p.id)" @keydown.space.prevent="toggle(p.id)">
+						<span class="pt-dot" :class="dotKind(p)" aria-hidden="true" />
 						<div class="step-title">
 							<div class="text-body-2 font-weight-medium">{{ p.title }}</div>
-							<div v-if="openId !== p.id && p.summary" class="text-caption grey--text">{{ p.summary }}</div>
+							<div v-if="p.summary" class="text-caption pc-muted">{{ p.summary }}</div>
 						</div>
 						<v-chip x-small outlined :color="colorChip(p)">{{ textChip(p) }}</v-chip>
 						<v-icon small>{{ openId === p.id ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
 					</div>
 
 					<div v-if="openId === p.id" class="step-body">
-						<div class="text-body-2">{{ p.help }}</div>
+						<div class="text-body-2"><pc-more :text="p.help" :lines="2" :limit="110" />
+							<help-tip :title="p.title" :what="tip(p.id, 'what')" :why="tip(p.id, 'why')" :if-missing="tip(p.id, 'miss')" :how="tip(p.id, 'how')" /></div>
 
 						<!-- 1. sensores: se mira en vivo -->
 						<template v-if="p.id === 'sensors'">
-							<div v-if="!heaters.length" class="text-body-2 grey--text mt-2">{{ $t('plugins.WorkshopPrinting.commissioning.there_are_no_heaters_configured_they') }}</div>
+							<div v-if="!heaters.length" class="text-body-2 pc-muted mt-2">{{ $t('plugins.WorkshopPrinting.commissioning.there_are_no_heaters_configured_they') }}</div>
 							<div v-for="h in heaters" :key="h.id" class="row text-body-2">
 								<v-icon small :color="sensorOk(h) ? 'success' : 'error'">{{ sensorOk(h) ? 'mdi-check-circle' : 'mdi-alert-circle' }}</v-icon>
 								<span class="name">{{ h.name }}</span>
 								<b>{{ h.sensorBad ? $t('plugins.WorkshopPrinting.commissioning.no_reading') : Math.round(h.current) + ' °C' }}</b>
-								<span v-if="!sensorOk(h)" class="error--text text-caption">{{ h.explanation || (h.current > 50 ? $t('plugins.WorkshopPrinting.commissioning.it_is_hot_wait_for_it') : $t('plugins.WorkshopPrinting.commissioning.abnormal_resting_reading_5_to_50')) }}</span>
+								<pc-more v-if="!sensorOk(h)" class="pt-reading" :text-class="'text-caption wf-state err'" :text="h.explanation || (h.current > 50 ? $t('plugins.WorkshopPrinting.commissioning.it_is_hot_wait_for_it') : $t('plugins.WorkshopPrinting.commissioning.abnormal_resting_reading_5_to_50'))" />
 							</div>
 							<div class="actions">
 								<v-btn v-if="p.state === 'ok'" small color="primary" @click="advance(p.id)">
@@ -66,7 +61,7 @@
 								</v-btn>
 								<template v-else-if="heaters.length">
 									<v-btn small color="primary" @click="$emit('go', 'state')"><v-icon small left>mdi-thermometer</v-icon>{{ $t('plugins.WorkshopPrinting.commissioning.see_in_status') }}</v-btn>
-									<span class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.commissioning.it_checks_itself_when_the_sensor') }}</span>
+									<span class="text-caption pc-muted">{{ $t('plugins.WorkshopPrinting.commissioning.it_checks_itself_when_the_sensor') }}</span>
 								</template>
 							</div>
 						</template>
@@ -79,11 +74,11 @@
 								<span v-if="test && test.id === h.id" class="text-caption">
 									<v-progress-circular indeterminate size="12" width="2" class="mr-1" />{{ test.text }}
 								</span>
-								<span v-else-if="resultCal(h)" class="text-caption" :class="resultCal(h).ok ? 'success--text' : 'error--text'">
-									{{ resultCal(h).text }}<span v-if="resultCal(h).date" class="grey--text"> ({{ resultCal(h).date }})</span>
+								<span v-else-if="resultCal(h)" class="text-caption" :class="resultCal(h).ok ? 'wf-state ok' : 'wf-state err'">
+									<pc-more :text="resultCal(h).text" /><span v-if="resultCal(h).date" class="pc-muted"> ({{ resultCal(h).date }})</span>
 								</span>
-								<span v-else-if="reasonNoCal(h)" class="text-caption grey--text">{{ reasonNoCal(h) }}</span>
-								<span v-else class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.commissioning.not_tested') }}</span>
+								<pc-more v-else-if="reasonNoCal(h)" :text-class="'text-caption pc-muted'" :text="reasonNoCal(h)" />
+								<span v-else class="text-caption pc-muted">{{ $t('plugins.WorkshopPrinting.commissioning.not_tested') }}</span>
 								<v-btn v-if="!(test && test.id === h.id) && resultCal(h) && !reasonNoCal(h)" x-small :outlined="armed !== 'cal' + h.id" :color="armed === 'cal' + h.id ? 'amber darken-3' : undefined" @click="arm('cal' + h.id, () => testHeater(h))">
 									{{ armed === 'cal' + h.id ? $t('plugins.WorkshopPrinting.commissioning.tap_again_it_heats') : $t('plugins.WorkshopPrinting.commissioning.repeat') }}
 								</v-btn>
@@ -96,8 +91,8 @@
 								<v-btn v-else-if="p.state === 'ok'" small color="primary" @click="advance(p.id)">
 									<v-icon small left>mdi-arrow-right</v-icon>{{ $t('plugins.WorkshopPrinting.commissioning.good_next_step') }}
 								</v-btn>
-								<span v-if="!test && calNext && reasonNoCal(calNext)" class="text-caption grey--text">{{ reasonNoCal(calNext) }}</span>
-								<span v-else-if="!calNext && p.state !== 'ok'" class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.commissioning.fix_what_is_marked_in_red') }}</span>
+								<pc-more v-if="!test && calNext && reasonNoCal(calNext)" :text-class="'text-caption pc-muted'" :text="reasonNoCal(calNext)" />
+								<span v-else-if="!calNext && p.state !== 'ok'" class="text-caption pc-muted">{{ $t('plugins.WorkshopPrinting.commissioning.fix_what_is_marked_in_red') }}</span>
 							</div>
 						</template>
 
@@ -109,10 +104,10 @@
 								<v-btn v-if="!f.thermostatic" x-small outlined :disabled="!free || turning === f.id" @click="testFan(f)">
 									{{ turning === f.id ? $t('plugins.WorkshopPrinting.commissioning.spinning') : $t('plugins.WorkshopPrinting.commissioning.spin_3_s') }}
 								</v-btn>
-								<span v-else class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.commissioning.automatic_spins_only_when_the_nozzle') }}</span>
+								<span v-else class="text-caption pc-muted">{{ $t('plugins.WorkshopPrinting.commissioning.automatic_spins_only_when_the_nozzle') }}</span>
 							</div>
-							<div v-if="!fans.length" class="text-body-2 grey--text mt-2">{{ $t('plugins.WorkshopPrinting.commissioning.there_are_no_fans_configured') }}</div>
-							<div v-if="!free" class="text-caption grey--text mt-1">{{ reasonBusy }}</div>
+							<div v-if="!fans.length" class="text-body-2 pc-muted mt-2">{{ $t('plugins.WorkshopPrinting.commissioning.there_are_no_fans_configured') }}</div>
+							<div v-if="!free" class="mt-1"><pc-more :text-class="'text-caption pc-muted'" :text="reasonBusy" /></div>
 							<div class="actions">
 								<v-btn v-if="!marked(p.id)" small color="primary" @click="mark(p.id, true)">
 									<v-icon small left>mdi-check</v-icon>{{ $t('plugins.WorkshopPrinting.commissioning.yes_they_all_spin_and_blow') }}
@@ -124,11 +119,11 @@
 						<!-- 4. extruder: done in other tabs, here it is only guided -->
 						<template v-else-if="p.id === 'extruder'">
 							<ol class="text-body-2 mt-2 list">
-								<li>{{ $t('plugins.WorkshopPrinting.commissioning.preheat_the_material') }} <v-btn x-small outlined @click="$emit('go', 'materials')">{{ $t('plugins.WorkshopPrinting.commissioning.go_to_materials') }}</v-btn></li>
+								<li>{{ $t('plugins.WorkshopPrinting.commissioning.preheat_the_material') }} <v-btn x-small outlined @click="$emit('go', 'profiles')">{{ $t('plugins.WorkshopPrinting.commissioning.go_to_materials') }}</v-btn></li>
 								<li>{{ $t('plugins.WorkshopPrinting.commissioning.when_the_nozzle_is_at_temperature') }} <v-btn x-small outlined @click="$emit('go', 'extruder')">{{ $t('plugins.WorkshopPrinting.commissioning.go_to_extruder') }}</v-btn></li>
 								<li>{{ $t('plugins.WorkshopPrinting.commissioning.check_that_plastic_comes_out_of') }}</li>
 							</ol>
-							<div class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.commissioning.if_the_screw_turns_backwards_nothing') }}</div>
+							<div class="text-caption pc-muted">{{ $t('plugins.WorkshopPrinting.commissioning.if_the_screw_turns_backwards_nothing') }}</div>
 							<div class="actions">
 								<v-btn v-if="!marked(p.id)" small color="primary" @click="mark(p.id, true)">
 									<v-icon small left>mdi-check</v-icon>{{ $t('plugins.WorkshopPrinting.commissioning.yes_plastic_comes_out') }}
@@ -149,25 +144,18 @@
 								</template>
 								<v-btn v-if="p.manual && !marked(p.id)" small outlined @click="mark(p.id, true)"><v-icon small left>mdi-check</v-icon>{{ p.manual }}</v-btn>
 							</div>
-							<div v-if="p.only" class="text-caption grey--text mt-1">{{ p.only }}</div>
+							<div v-if="p.only" class="text-caption pc-muted mt-1">{{ p.only }}</div>
 						</template>
 
-						<div v-if="startup[p.id] && startup[p.id].date && startup[p.id].ok" class="text-caption grey--text mt-2">
+						<div v-if="startup[p.id] && startup[p.id].date && startup[p.id].ok" class="text-caption pc-muted mt-2">
 							{{ $t('plugins.WorkshopPrinting.commissioning.done_on', { date: startup[p.id].date }) }} {{ startup[p.id].detail }}
 							<v-btn v-if="p.manual || p.id === 'fans' || p.id === 'extruder'" x-small text @click="mark(p.id, false)">{{ $t('plugins.WorkshopPrinting.commissioning.mark_as_pending') }}</v-btn>
-						</div>
-						<!-- moving between steps: the same four buttons as the other start-up assistants (Previous, Skip, Next, Close) -->
-						<div class="d-flex flex-wrap mt-3 startup-buttons startup-nav" style="gap:8px">
-							<v-btn small :disabled="k === 0" @click="openStep(steps[k - 1].id)">{{ $t('plugins.WorkshopPrinting.startup.assist_prev') }}</v-btn>
-							<v-btn small :disabled="k === steps.length - 1" @click="openStep(steps[k + 1].id)">{{ $t('plugins.WorkshopPrinting.startup.assist_skip') }}</v-btn>
-							<v-btn small color="primary" @click="advance(p.id)">{{ $t('plugins.WorkshopPrinting.startup.assist_next') }}</v-btn>
-							<v-btn small @click="open = '-'">{{ $t('plugins.WorkshopPrinting.startup.assist_close') }}</v-btn>
 						</div>
 					</div>
 				</div>
 			</div>
 		</template>
-		<v-alert v-if="msg" dense text :type="msgKind" class="mt-3 mb-0">{{ msg }}</v-alert>
+		<pc-result :text="msg || ''" :kind="msgKind" class="mt-3 d-block" />
 	</pc-section>
 	</div>
 </template>
@@ -176,6 +164,9 @@
 import i18n from '../../i18n'
 import PcSection from './PcSection.vue' // the card with the header of the section (printing-design.css)
 import HelpGuide from './HelpGuide.vue' // vue/_shared36
+import HelpTip from './HelpTip.vue' // vue/_shared36
+import PcResult from './PcResult.vue' // the result next to the action
+import PcMore from './PcMore.vue' // a long message in one line with See more
 
 'use strict'
 
@@ -191,8 +182,11 @@ const TEST_S = 120;
 // step-by-step assistant. At the top how much is done and which one is next; each step
 // opens one at a time with ONE main button (test, confirm or go to the tab
 // where it is done). The ids of cfg.startup do not change (Pid and Extruder mark them).
+import { tapArmMixin } from './tap-arm-mixin.js' // the double tap of the page (4 s)
+
 export default {
-	components: { HelpGuide, PcSection },
+	mixins: [tapArmMixin],
+	components: { HelpGuide, HelpTip, PcSection, PcResult, PcMore },
 	props: {
 		startupPending: { type: Number, default: 0 },
 		isFff: { type: Boolean, default: false },
@@ -202,7 +196,7 @@ export default {
 		state: { type: String, default: '' }
 	},
 	data() {
-		return { startup: {}, test: null, resCal: {}, armed: null, armedTimer: null, msg: null, msgKind: 'info', open: null, turning: null, obs: null };
+		return { startup: {}, test: null, resCal: {}, msg: null, msgKind: 'info', open: null, turning: null, obs: null };
 	},
 	computed: {
 		free() {
@@ -274,7 +268,6 @@ export default {
 		}
 	},
 	beforeDestroy() {
-		clearTimeout(this.armedTimer);
 		if (this.obs) this.obs.disconnect();
 		if (this.test) this.poweroff(this.test.h);
 	},
@@ -304,6 +297,20 @@ export default {
 				this.open = prox ? prox.id : null;
 			}
 		},
+		// a test that is done in another section (Extruder, flow, PID, height) is a guide: the row says so and the way there is in its body
+		// the four-part help of a row (what it is, what for, without it, how): commissioning.tip_<id>_<part>
+		tip(id, part) {
+			return i18n.t('plugins.WorkshopPrinting.commissioning.tip_' + id + '_' + part);
+		},
+		isGuide(p) {
+			return p.id === 'extruder' || p.go !== undefined;
+		},
+		dotKind(p) {
+			if (p.state === 'ok') return 'is-ok';
+			if (p.state === 'bad') return 'is-err';
+			if (this.next && this.next.id === p.id) return 'is-warn';
+			return this.isGuide(p) ? 'is-info' : 'is-off';
+		},
 		colorChip(p) {
 			if (p.state === 'ok') return 'success';
 			if (p.state === 'bad') return 'error';
@@ -312,7 +319,8 @@ export default {
 		textChip(p) {
 			if (p.state === 'ok') return i18n.t('plugins.WorkshopPrinting.commissioning.chip_done');
 			if (p.state === 'bad') return i18n.t('plugins.WorkshopPrinting.commissioning.chip_check');
-			return this.next && this.next.id === p.id ? i18n.t('plugins.WorkshopPrinting.commissioning.chip_next') : i18n.t('plugins.WorkshopPrinting.commissioning.chip_missing');
+			if (this.next && this.next.id === p.id) return i18n.t('plugins.WorkshopPrinting.commissioning.chip_next');
+			return this.isGuide(p) ? i18n.t('plugins.WorkshopPrinting.commissioning.chip_guide') : i18n.t('plugins.WorkshopPrinting.commissioning.chip_missing');
 		},
 		sensorOk(h) {
 			if (h.sensorBad) return false;
@@ -350,16 +358,6 @@ export default {
 				this.msgKind = 'error';
 				this.msg = i18n.t('plugins.WorkshopPrinting.common.could_not_save') + (e.message || e);
 			}
-		},
-		arm(id, fn) {
-			if (this.armed !== id) {
-				this.armed = id;
-				clearTimeout(this.armedTimer);
-				this.armedTimer = setTimeout(() => { this.armed = null; }, 4000);
-				return;
-			}
-			this.armed = null;
-			fn();
 		},
 		codePut(h, t) {
 			if (h.paper === 'bed') return `M140 S${t}`;
@@ -443,59 +441,57 @@ export default {
 
 <style scoped>
 .explica {
-	background: rgba(25, 118, 210, 0.08);
+	background: var(--wf-soft);
 	border-radius: 6px;
 	padding: 8px 12px;
 }
 .summary {
-	border: 1px solid rgba(128, 128, 128, 0.25);
-	border-radius: 6px;
+	border: 1px solid var(--wf-line);
+	border-radius: 8px;
 	padding: 10px 12px;
 }
-.step {
-	border-bottom: 1px solid rgba(128, 128, 128, 0.15);
-	border-left: 3px solid transparent;
+.pt-list {
+	border-top: 1px solid var(--wf-line);
 }
-.step.open {
-	border-left-color: #1976d2;
-	background: rgba(25, 118, 210, 0.05);
+.step {
+	border-bottom: 1px solid var(--wf-line);
+}
+.step.follows {
+	box-shadow: inset 3px 0 0 var(--wf-sec-now);
 }
 .step-cab {
 	display: flex;
 	align-items: center;
 	gap: 10px;
-	min-height: 44px;
-	padding: 6px 8px;
+	min-height: 56px;
+	padding: 6px 12px;
 	cursor: pointer;
 }
 .step-title {
 	flex: 1;
 	min-width: 0;
 }
-.step-num {
+.pt-dot {
 	flex: none;
-	width: 24px;
-	height: 24px;
+	width: 10px;
+	height: 10px;
 	border-radius: 50%;
-	background: #455a64;
-	color: #fff;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 12px;
-	font-weight: 700;
+	background: var(--wf-line-strong);
 }
-.follows .step-num {
-	background: #1976d2;
+.pt-dot.is-ok {
+	background: var(--wf-ok);
 }
-.p-ok .step-num {
-	background: #2e7d32;
+.pt-dot.is-err {
+	background: var(--wf-err);
 }
-.p-bad .step-num {
-	background: #c62828;
+.pt-dot.is-warn {
+	background: var(--wf-warn);
+}
+.pt-dot.is-info {
+	background: var(--wf-info);
 }
 .step-body {
-	padding: 0 8px 10px 42px;
+	padding: 0 14px 14px 32px;
 }
 .row {
 	display: flex;
@@ -504,22 +500,36 @@ export default {
 	gap: 8px;
 	margin-top: 6px;
 }
+.row > * {
+	min-width: 0;
+}
 .row .name {
-	min-width: 150px;
+	min-width: min(150px, 100%);
+	overflow-wrap: anywhere;
+}
+/* the reading of a sensor (a long thermistor message) wraps inside the row at every width of the content */
+.row .pt-reading {
+	flex: 1 1 220px;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	word-break: break-word;
+}
+.step-body {
+	overflow-wrap: anywhere;
 }
 .actions {
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
-	gap: 8px;
+	gap: 12px;
 	margin-top: 12px;
 }
 .list li {
 	margin-bottom: 4px;
 }
-@media (max-width: 600px) {
+@container pg (max-width: 620px) {
 	.step-body {
-		padding-left: 12px;
+		padding-left: 14px;
 	}
 }
 </style>

@@ -1,24 +1,24 @@
 <template>
 	<v-card outlined class="pa-3 mt-3 bc-card" aria-labelledby="bc-title">
-		<div class="d-flex align-center flex-wrap" style="gap:8px">
+		<div class="pc-actions">
 			<v-icon small>mdi-tune-variant</v-icon>
-			<span id="bc-title" class="text-subtitle-1">{{ tx('title') }}</span>
+			<span id="bc-title" class="pc-card-title">{{ tx('title') }}</span>
 			<span class="wf-pill">{{ tx('does_the_work') }}</span>
 		</div>
-		<div class="text-caption grey--text mt-1">{{ tx('lead') }}</div>
+		<div class="text-caption pc-muted mt-1">{{ tx('lead') }}</div>
 		<help-guide :title="$t('plugins.WorkshopPrinting.common.how_it_works')" :what="tx('guide_what')" :why="tx('guide_why')" :if-missing="tx('guide_miss')" :how="tx('guide_how')" class="mt-2" />
 		<error-notice v-if="failure" :error="failure" :action="tx('acting')" retry class="mt-2" @retry="load()" />
-		<v-alert v-if="ui.error" dense text type="error" class="mt-2 mb-0" role="alert">{{ ui.error.message }}</v-alert>
+		<div v-if="ui.error" class="wf-note is-warn mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ ui.error.message }}</span></div>
 
 		<!-- 1. the map: zone <-> bed <-> heater <-> sensor, and what is missing before anything can be tuned -->
 		<div class="wf-sub">
-			<div class="d-flex align-center" style="gap:4px"><h4>{{ tx('step_map') }}</h4><help-tip v-bind="help('map')" /></div>
-			<div v-if="!rows.length" class="text-body-2 grey--text">{{ tx('map_empty') }}</div>
+			<div class="d-flex align-center" style="gap:4px"><h4>{{ tx('step_map') }}</h4><pc-help v-bind="help('map')" /></div>
+			<div v-if="!rows.length" class="text-body-2 pc-muted">{{ tx('map_empty') }}</div>
 			<v-simple-table v-else dense class="bc-table">
 				<thead><tr><th>{{ tx('col_zone') }}</th><th>{{ tx('col_bed') }}</th><th>{{ tx('col_heater') }}</th><th>{{ tx('col_sensor') }}</th><th>{{ tx('col_max') }}</th><th>{{ tx('col_model') }}</th></tr></thead>
 				<tbody>
 					<tr v-for="r in rows" :key="'m' + r.bed">
-						<td>{{ $t('plugins.WorkshopPrinting.bedZones.zone_n', { n: r.n }) }}<span v-if="!r.active" class="grey--text text-caption"> · {{ $t('plugins.WorkshopPrinting.bedZones.inactive') }}</span></td>
+						<td>{{ $t('plugins.WorkshopPrinting.bedZones.zone_n', { n: r.n }) }}<span v-if="!r.active" class="pc-muted text-caption"> · {{ $t('plugins.WorkshopPrinting.bedZones.inactive') }}</span></td>
 						<td class="bc-mono">P{{ r.bed }}</td>
 						<td class="bc-mono">{{ r.heater === null ? '--' : 'H' + r.heater }}</td>
 						<td class="bc-mono">{{ r.sensor === null ? '--' : 'S' + r.sensor + (r.sensorName ? ' ' + r.sensorName : '') }}</td>
@@ -31,31 +31,31 @@
 
 		<!-- 2. the order of heating, the stagger between starts, and the preheat the service does -->
 		<div class="wf-sub">
-			<div class="d-flex align-center" style="gap:4px"><h4>{{ tx('step_order') }}</h4><help-tip v-bind="help('order')" /></div>
-			<div class="d-flex align-end flex-wrap" style="gap:12px">
+			<div class="d-flex align-center" style="gap:4px"><h4>{{ tx('step_order') }}</h4><pc-help v-bind="help('order')" /></div>
+			<div class="pc-actions pc-actions-end">
 				<wf-field id="bc-stagger" :label="tx('f_stagger')" :message="issueText('stagger')" level="error">
-					<template #help><help-tip v-bind="help('stagger')" /></template>
+					<template #help><pc-help v-bind="help('stagger')" /></template>
 					<v-text-field id="bc-stagger" v-model="stagger" dense outlined hide-details suffix="s" inputmode="numeric" style="max-width:120px" :aria-label="tx('f_stagger')" />
 				</wf-field>
 				<wf-field id="bc-hold" :label="tx('f_hold')" :message="issueText('hold')" level="error">
-					<template #help><help-tip v-bind="help('hold')" /></template>
+					<template #help><pc-help v-bind="help('hold')" /></template>
 					<v-text-field id="bc-hold" v-model="hold" dense outlined hide-details suffix="min" inputmode="numeric" style="max-width:120px" :aria-label="tx('f_hold')" />
 				</wf-field>
 				<wf-field id="bc-temp-pre" :label="tx('f_temp')" :message="issueText('temp')" level="error">
-					<template #help><help-tip v-bind="help('temp')" /></template>
+					<template #help><pc-help v-bind="help('temp')" /></template>
 					<v-text-field id="bc-temp-pre" v-model="temp" dense outlined hide-details suffix="°C" inputmode="decimal" style="max-width:120px" :aria-label="tx('f_temp')" />
 				</wf-field>
 			</div>
 			<ol v-if="order.length" class="text-body-2 bc-order">
 				<li v-for="o in order" :key="'o' + o.bed">{{ $t('plugins.WorkshopPrinting.bedZones.zone_n', { n: o.n }) }} (P{{ o.bed }}): {{ tx(o.reason) }}<span v-if="o.delay_s"> · {{ tx('order_after', { s: o.delay_s }) }}</span></li>
 			</ol>
-			<div v-else class="text-body-2 grey--text">{{ tx('order_empty') }}</div>
-			<div class="d-flex align-center flex-wrap mt-2" style="gap:8px">
+			<div v-else class="text-body-2 pc-muted">{{ tx('order_empty') }}</div>
+			<div class="pc-actions mt-2">
 				<v-btn small color="amber darken-3" dark class="bc-start-preheat" :disabled="!!whyNot('preheat')" :loading="ui.step === 'planning' && ui.action && ui.action.kind === 'preheat'" @click="ask('preheat')">
 					<v-icon small left>mdi-radiator</v-icon>{{ tx('start_preheat') }}
 				</v-btn>
-				<help-tip v-bind="help('start_preheat')" />
-				<span v-if="whyNot('preheat')" class="text-caption grey--text">{{ whyNot('preheat') }}</span>
+				<pc-help v-bind="help('start_preheat')" />
+				<span v-if="whyNot('preheat')" class="text-caption pc-muted">{{ whyNot('preheat') }}</span>
 			</div>
 			<bed-cal-run v-if="ui.view && ui.view.kind === 'preheat' && ui.step !== 'idle'" :view="ui.view" :stopping="ui.stopping" :numbers="numbers" @stop="stop()" @dismiss="dismiss()" />
 			<bed-cal-gcode :lines="gcode.preheat.lines" :error="gcode.preheat.error" :loading="gcode.preheat.loading" @open="loadGcode('preheat')" />
@@ -63,23 +63,23 @@
 
 		<!-- 3. the tuning the service does: one zone or all in order, alone or with the neighbours held -->
 		<div class="wf-sub">
-			<div class="d-flex align-center" style="gap:4px"><h4>{{ tx('step_tune') }}</h4><help-tip v-bind="help('tune')" /></div>
-			<div class="d-flex align-end flex-wrap" style="gap:12px">
+			<div class="d-flex align-center" style="gap:4px"><h4>{{ tx('step_tune') }}</h4><pc-help v-bind="help('tune')" /></div>
+			<div class="pc-actions pc-actions-end">
 				<wf-field id="bc-temp" :label="tx('f_temp')" :message="issueText('temp')" level="error">
-					<template #help><help-tip v-bind="help('temp')" /></template>
+					<template #help><pc-help v-bind="help('temp')" /></template>
 					<v-text-field id="bc-temp" v-model="temp" dense outlined hide-details suffix="°C" inputmode="decimal" style="max-width:120px" :aria-label="tx('f_temp')" />
 				</wf-field>
 				<div class="help-tip-row d-flex align-center" style="gap:4px">
 					<v-switch v-model="together" dense hide-details class="mt-0 pt-0" :label="tx('f_together')" :aria-label="tx('f_together')" />
-					<help-tip v-bind="help('together')" />
+					<pc-help v-bind="help('together')" />
 				</div>
 			</div>
 			<div class="wf-note is-warn" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ tx('tune_warn') }}</span></div>
-			<div v-if="!tunableRows.length" class="text-body-2 grey--text">{{ tx('tune_empty') }}</div>
+			<div v-if="!tunableRows.length" class="text-body-2 pc-muted">{{ tx('tune_empty') }}</div>
 			<v-simple-table v-else dense class="bc-table mt-1">
 				<tbody>
 					<tr v-for="r in tunableRows" :key="'t' + r.bed">
-						<td>{{ $t('plugins.WorkshopPrinting.bedZones.zone_n', { n: r.n }) }} <span class="bc-mono grey--text text-caption">(P{{ r.bed }} H{{ r.heater }})</span></td>
+						<td>{{ $t('plugins.WorkshopPrinting.bedZones.zone_n', { n: r.n }) }} <span class="bc-mono pc-muted text-caption">(P{{ r.bed }} H{{ r.heater }})</span></td>
 						<td><span class="wf-state" :class="r.problems.indexOf('map_no_model') < 0 ? 'ok' : 'warn'">{{ r.problems.indexOf('map_no_model') < 0 ? tx('tuned_yes') : tx('map_no_model') }}</span></td>
 						<td class="text-right">
 							<v-btn x-small outlined color="error" class="bc-tune-zone" :disabled="!!whyNot('tune')" :aria-label="tx('tune_zone_label', { n: r.n })" @click="ask('tune', [r.bed])">
@@ -89,12 +89,12 @@
 					</tr>
 				</tbody>
 			</v-simple-table>
-			<div class="d-flex align-center flex-wrap mt-2" style="gap:8px">
+			<div class="pc-actions mt-2">
 				<v-btn small color="error" class="bc-tune-all" :disabled="!!whyNot('tune')" :loading="ui.step === 'planning' && ui.action && ui.action.kind === 'tune'" @click="ask('tune')">
 					<v-icon small left>mdi-tune-variant</v-icon>{{ tx('tune_all') }}
 				</v-btn>
-				<help-tip v-bind="help('tune_run')" />
-				<span v-if="whyNot('tune')" class="text-caption grey--text">{{ whyNot('tune') }}</span>
+				<pc-help v-bind="help('tune_run')" />
+				<span v-if="whyNot('tune')" class="text-caption pc-muted">{{ whyNot('tune') }}</span>
 			</div>
 			<bed-cal-run v-if="ui.view && ui.view.kind === 'tune' && ui.step !== 'idle'" :view="ui.view" :stopping="ui.stopping" :trace="trace" :numbers="numbers" @stop="stop()" @dismiss="dismiss()" />
 			<bed-cal-gcode :lines="gcode.tune.lines" :error="gcode.tune.error" :loading="gcode.tune.loading" @open="loadGcode('tune')" />
@@ -102,25 +102,25 @@
 
 		<!-- 4. what the board holds now: the M307 of each heater and the M143 caps, saved through the plan with a backup -->
 		<div class="wf-sub">
-			<div class="d-flex align-center" style="gap:4px"><h4>{{ tx('step_models') }}</h4><help-tip v-bind="help('models')" /></div>
-			<div v-if="!modelItems.length && !capItems.length" class="text-body-2 grey--text">{{ tx('models_empty') }}</div>
+			<div class="d-flex align-center" style="gap:4px"><h4>{{ tx('step_models') }}</h4><pc-help v-bind="help('models')" /></div>
+			<div v-if="!modelItems.length && !capItems.length" class="text-body-2 pc-muted">{{ tx('models_empty') }}</div>
 			<template v-if="modelItems.length">
-				<div class="text-subtitle-2 mt-1">{{ tx('models_title') }}</div>
+				<h4 class="mt-1">{{ tx('models_title') }}</h4>
 				<div v-for="m in modelItems" :key="'mo' + m.heater" class="text-body-2"><code class="bc-mono">{{ m.line }}</code></div>
 				<bed-cal-save kind="config.heater_model" :heaters="modelItems.map(m => m.values)" :busy="ui.step === 'running'" />
 			</template>
 			<template v-if="capItems.length">
-				<div class="text-subtitle-2 mt-3">{{ tx('limits_title') }}</div>
-				<div v-for="c in capItems" :key="'li' + c.heater" class="text-body-2"><code class="bc-mono">{{ c.line }}</code><span v-if="c.fromSettings" class="grey--text text-caption"> · {{ tx('cap_from_settings') }}</span></div>
+				<h4 class="mt-3">{{ tx('limits_title') }}</h4>
+				<div v-for="c in capItems" :key="'li' + c.heater" class="text-body-2"><code class="bc-mono">{{ c.line }}</code><span v-if="c.fromSettings" class="pc-muted text-caption"> · {{ tx('cap_from_settings') }}</span></div>
 				<bed-cal-save kind="config.heater_cap" :heaters="capItems.map(c => ({ heater: c.heater, max: c.max }))" :busy="ui.step === 'running'" />
 			</template>
 		</div>
 
 		<!-- 5. the thermal map: a thermometer reading per zone -> the offsets of the settings -->
 		<div class="wf-sub">
-			<div class="d-flex align-center" style="gap:4px"><h4>{{ tx('step_offsets') }}</h4><help-tip v-bind="help('offsets')" /></div>
+			<div class="d-flex align-center" style="gap:4px"><h4>{{ tx('step_offsets') }}</h4><pc-help v-bind="help('offsets')" /></div>
 			<div class="text-body-2">{{ tx('offsets_intro') }}</div>
-			<div class="d-flex align-end flex-wrap" style="gap:12px">
+			<div class="pc-actions pc-actions-end">
 				<wf-field v-for="r in measurable" :id="'bc-meas-' + r.bed" :key="'me' + r.bed" :label="tx('f_measured', { n: r.n })" :message="issueText('measured.' + r.bed)" level="error">
 					<v-text-field :id="'bc-meas-' + r.bed" v-model="measured[r.bed]" dense outlined hide-details suffix="°C" inputmode="decimal" style="max-width:120px" :aria-label="tx('f_measured', { n: r.n })" />
 				</wf-field>
@@ -142,8 +142,9 @@
 // the temperatures and says the person must stay (nothing is sent before it). The numbers are bed-calibration.js, the steps of an action bed-cal-run.js (pure, tested).
 import { api } from './workshop-api.js'
 import { roleMixin } from './role-mixin.js' // vue/_shared36
+import { modeActionMixin } from './mode-gate-mixin.js' // vue/_shared36: the bed heats only in FFF (no profile read)
 import HelpGuide from './HelpGuide.vue' // vue/_shared36
-import HelpTip from './HelpTip.vue' // vue/_shared36
+import PcHelp from './PcHelp.vue' // the "?" of a row, drawn folded by the section
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared36
 import WfField from './WfField.vue' // vue/_shared36
 import BedCalRun from './BedCalRun.vue'
@@ -160,10 +161,10 @@ const HELP = ['map', 'order', 'stagger', 'hold', 'start_preheat', 'tune', 'tune_
 const noGcode = () => ({ lines: [], error: '', loading: false })
 
 export default {
-	mixins: [roleMixin],
+	mixins: [roleMixin, modeActionMixin],
 	sessionData: ['measured'], // what the person who left typed stays nowhere (role-mixin.js)
 	sessionErrors: ['failure'],
-	components: { HelpGuide, HelpTip, ErrorNotice, WfField, BedCalRun, BedCalConfirm, BedCalGcode, BedCalSave, BedCalOffsets },
+	components: { HelpGuide, PcHelp, ErrorNotice, WfField, BedCalRun, BedCalConfirm, BedCalGcode, BedCalSave, BedCalOffsets },
 	data() {
 		return {
 			loaded: false, config: emptyConfig(), rev: '0', failure: null, temp: String(DEFAULT_TUNE_TEMP), stagger: String(DEFAULT_STAGGER_S), hold: String(DEFAULT_HOLD_MIN), together: true, measured: {},
@@ -241,6 +242,8 @@ export default {
 		whyNot(kind) {
 			const op = kind === 'tune' ? 'bedcal.tune' : 'bedcal.preheat'
 			if (!(kind === 'tune' ? this.canDo('bedcal.tune') : this.canDo('bedcal.preheat'))) return this.lockTextOp(op, 'technician')
+			const wrongMode = this.modeBlock(['FFF'])
+			if (wrongMode) return wrongMode
 			const bad = this.issues.find(i => i.field === 'temp' || (kind === 'preheat' && (i.field === 'stagger' || i.field === 'hold')))
 			if (bad) return this.tx(bad.key)
 			if (kind === 'tune' ? !this.tunableRows.length : !this.order.length) return this.tx(kind === 'tune' ? 'tune_empty' : 'order_empty')

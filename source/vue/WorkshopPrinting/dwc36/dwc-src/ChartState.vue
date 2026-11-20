@@ -31,6 +31,7 @@
 					<line v-if="viewStops && s.max > 0" :x1="M.l" :x2="width - M.r" :y1="y(s.max)" :y2="y(s.max)" :stroke="s.color" stroke-width="1.5" stroke-dasharray="2 4" />
 					<path :d="path(s.id, 1)" fill="none" :stroke="s.color" stroke-width="1.5" stroke-dasharray="7 5" opacity="0.85" />
 					<path :d="path(s.id, 0)" fill="none" :stroke="s.color" stroke-width="2" stroke-linejoin="round" />
+					<path v-if="lastPoint(s.id)" :d="mark(s.id, lastPoint(s.id).x, lastPoint(s.id).y, 5)" :fill="s.color" class="eg-mark" />
 				</g>
 				<line v-if="cursor" :x1="x(cursor.t)" :x2="x(cursor.t)" :y1="M.t" :y2="height - M.b" class="eg-cursor" />
 			</svg>
@@ -50,6 +51,7 @@
 		<div class="d-flex flex-wrap mt-2" style="gap:6px">
 			<button v-for="s in series" :key="s.id" type="button" class="eg-law" :class="{ 'eg-off': hidden[s.id] }" :title="hidden[s.id] ? $t('plugins.WorkshopPrinting.stateChart.show_on_the_chart') : $t('plugins.WorkshopPrinting.stateChart.hide_from_the_chart')" @click="toggle(s.id)">
 				<span class="eg-raya" :style="{ background: s.color }" />
+				<svg class="eg-mark-key" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path :d="mark(s.id, 6, 6, 5)" :fill="s.color" /></svg>
 				<span>{{ s.name }}</span>
 				<b class="ml-1">{{ fmt(s.current) }} °C</b>
 				<span class="eg-faint ml-1">{{ $t('plugins.WorkshopPrinting.stateChart.target_and_limit', { target: s.target > 0 ? fmt(s.target) + ' °C' : $t('plugins.WorkshopPrinting.common.off'), max: fmt(s.max) }) }}</span>
@@ -65,6 +67,8 @@
 import i18n from '../../i18n'
 
 'use strict'
+
+import { markShape, markPath } from './series-mark.js' // a shape per series, not only a color
 
 const MIN_KEY = 'workshopPrintingChartMin';
 
@@ -187,6 +191,17 @@ export default {
 				abierto = true;
 			});
 			return d;
+		},
+		// the shape of a series (its position in the list) and where its line ends: the last valid temperature of the window
+		mark(id, cx, cy, r) {
+			return markPath(markShape(this.series.findIndex(s => s.id === id)), cx, cy, r);
+		},
+		lastPoint(id) {
+			for (let i = this.inWindow.length - 1; i >= 0; i--) {
+				const m = this.inWindow[i], p = m.v[id];
+				if (p && p[0] != null && !isNaN(p[0]) && p[0] > -200) return { x: this.x(m.t), y: this.y(p[0]) };
+			}
+			return null;
 		},
 		pointer(ev) {
 			if (this.samples.length < 2) return;

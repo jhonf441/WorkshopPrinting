@@ -56,6 +56,16 @@ export function isNotPrint(kind) {
 	return kind === 'laser' || kind === 'cnc' || kind === 'travel'
 }
 
+// Why "Prepare this file" is off for the selected row ('' = it is on): 'mode' the machine is not in FFF mode (Prepare job is an FFF section), 'unreadable' the
+// service could not read the file, 'not_fff' it is a laser or CNC file. A file that is not indexed yet, a travel-only test and an unknown kind are NOT judged:
+// Prepare job does not stop on a guess.
+export function prepareBlock(row, kind, isFff) {
+	if (!row) return 'none'
+	if (!isFff) return 'mode'
+	if (row.state === 'error') return 'unreadable'
+	return kind === 'laser' || kind === 'cnc' ? 'not_fff' : ''
+}
+
 // ---------- tags ----------
 
 const KNOWN_TAGS = { 'lightburn': 'tag_lightburn', 'macro-calls': 'tag_macro_calls', 'live-job-markers': 'tag_live_job_markers', 'has-thumbnail': 'tag_has_thumbnail' }

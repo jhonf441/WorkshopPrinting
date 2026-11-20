@@ -4,37 +4,37 @@
 	     the retraction is applied now and WRITTEN in modefff.g. Machine is another plugin: without it (not installed or not enabled) nothing about it is shown (no button,
 	     no name in the texts: the variants _no_machine) -->
 	<v-card outlined class="pa-3">
-		<div class="d-flex align-center flex-wrap" style="gap:8px">
+		<div class="pc-actions">
 			<v-icon small>mdi-engine-outline</v-icon>
-			<span class="text-subtitle-1">{{ $t('plugins.WorkshopPrinting.pellet.asst_title') }}</span>
+			<span class="pc-card-title">{{ $t('plugins.WorkshopPrinting.pellet.asst_title') }}</span>
 		</div>
-		<div class="text-caption grey--text mt-1">{{ machineOn ? $t('plugins.WorkshopPrinting.pellet.asst_intro') : $t('plugins.WorkshopPrinting.pellet.asst_intro_no_machine') }}</div>
+		<div class="text-caption pc-muted mt-1">{{ machineOn ? $t('plugins.WorkshopPrinting.pellet.asst_intro') : $t('plugins.WorkshopPrinting.pellet.asst_intro_no_machine') }}</div>
 
-		<div class="text-subtitle-2 mt-3">{{ $t('plugins.WorkshopPrinting.pellet.asst_machine_title') }}</div>
-		<div class="text-caption grey--text">{{ machineOn ? $t('plugins.WorkshopPrinting.pellet.asst_machine_help') : $t('plugins.WorkshopPrinting.pellet.asst_machine_help_no_machine') }}</div>
-		<div v-if="!editable || !machineOn" class="text-caption warning--text mt-1">{{ machineOn ? $t('plugins.WorkshopPrinting.pellet.asst_machine_first_only', { n: index }) : $t('plugins.WorkshopPrinting.pellet.asst_machine_first_only_no_machine', { n: index }) }}</div>
+		<h4 class="mt-3">{{ $t('plugins.WorkshopPrinting.pellet.asst_machine_title') }}</h4>
+		<div class="text-caption pc-muted">{{ machineOn ? $t('plugins.WorkshopPrinting.pellet.asst_machine_help') : $t('plugins.WorkshopPrinting.pellet.asst_machine_help_no_machine') }}</div>
+		<div v-if="!editable || !machineOn" class="text-caption wf-state warn mt-1">{{ machineOn ? $t('plugins.WorkshopPrinting.pellet.asst_machine_first_only', { n: index }) : $t('plugins.WorkshopPrinting.pellet.asst_machine_first_only_no_machine', { n: index }) }}</div>
 		<div v-for="r in rows" :key="r.key" class="mt-3">
-			<div class="d-flex align-center flex-wrap" style="gap:8px">
+			<div class="pc-actions">
 				<span class="text-body-2">{{ $t('plugins.WorkshopPrinting.pellet.asst_' + r.key) }}</span>
 				<span class="text-body-2 font-weight-medium">{{ now[r.key] === null ? '-' : now[r.key] }}</span>
-				<span class="text-caption grey--text">{{ r.unit }}</span>
-				<span v-if="r.perMin && now[r.key] !== null" class="text-caption grey--text">({{ machineOn ? $t('plugins.WorkshopPrinting.pellet.asst_per_min', { n: Math.round(now[r.key] * 60) }) : $t('plugins.WorkshopPrinting.pellet.asst_per_min_no_machine', { n: Math.round(now[r.key] * 60) }) }})</span>
+				<span class="text-caption pc-muted">{{ r.unit }}</span>
+				<span v-if="r.perMin && now[r.key] !== null" class="text-caption pc-muted">({{ machineOn ? $t('plugins.WorkshopPrinting.pellet.asst_per_min', { n: Math.round(now[r.key] * 60) }) : $t('plugins.WorkshopPrinting.pellet.asst_per_min_no_machine', { n: Math.round(now[r.key] * 60) }) }})</span>
 				<v-btn v-if="editable && machineOn" x-small outlined :disabled="!configure" @click="openMachine(r.key)">
 					<v-icon x-small left>mdi-open-in-new</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.asst_machine_open') }}
 				</v-btn>
 			</div>
-			<div class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.pellet.asst_' + r.key + '_help') }}</div>
+			<div class="text-caption pc-muted">{{ $t('plugins.WorkshopPrinting.pellet.asst_' + r.key + '_help') }}</div>
 		</div>
 
-		<div class="text-subtitle-2 mt-3">{{ $t('plugins.WorkshopPrinting.pellet.asst_presets') }}</div>
+		<h4 class="mt-3">{{ $t('plugins.WorkshopPrinting.pellet.asst_presets') }}</h4>
 		<div v-for="p in presets" :key="p.id" class="text-caption mt-1" :class="{ 'font-weight-medium': current && current.id === p.id }">
 			{{ $t('plugins.WorkshopPrinting.pellet.asst_preset_' + p.id) }}: {{ $t('plugins.WorkshopPrinting.pellet.asst_preset_values', presetValues(p)) }}
 		</div>
-		<div class="text-caption grey--text mt-1">{{ current ? $t('plugins.WorkshopPrinting.pellet.asst_preset_' + current.id + '_note') : $t('plugins.WorkshopPrinting.pellet.asst_preset_none') }}</div>
+		<div class="text-caption pc-muted mt-1">{{ current ? $t('plugins.WorkshopPrinting.pellet.asst_preset_' + current.id + '_note') : $t('plugins.WorkshopPrinting.pellet.asst_preset_none') }}</div>
 
-		<div class="text-subtitle-2 mt-4">{{ $t('plugins.WorkshopPrinting.pellet.asst_retract_title') }}</div>
-		<div class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.pellet.asst_retract_help') }}</div>
-		<div class="d-flex align-center flex-wrap mt-1" style="gap:8px">
+		<h4 class="mt-4">{{ $t('plugins.WorkshopPrinting.pellet.asst_retract_title') }}</h4>
+		<div class="text-caption pc-muted">{{ $t('plugins.WorkshopPrinting.pellet.asst_retract_help') }}</div>
+		<div class="pc-actions mt-1">
 			<span class="text-body-2">{{ $t('plugins.WorkshopPrinting.pellet.asst_retractLength') }}</span>
 			<input v-model.number="form.retractLength" type="number" step="0.1" :min="limits.retractLength.min" :max="limits.retractLength.max" class="field" :disabled="!configure" /> mm
 			<template v-if="form.retractLength > 0">
@@ -42,16 +42,16 @@
 				<input v-model.number="form.retractSpeed" type="number" step="1" :min="limits.retractSpeed.min" :max="limits.retractSpeed.max" class="field" :disabled="!configure" /> mm/s
 			</template>
 		</div>
-		<div v-if="form.retractLength > 0 && !retract.ok" class="text-caption warning--text mt-1">{{ $t('plugins.WorkshopPrinting.pellet.asst_retract_cold', { limit: retract.limit, cold: retract.cold.join(', ') }) }}</div>
-		<div v-else-if="form.retractLength > 0" class="text-caption grey--text mt-1">{{ $t('plugins.WorkshopPrinting.pellet.asst_retract_g10') }}</div>
+		<div v-if="form.retractLength > 0 && !retract.ok" class="text-caption wf-state warn mt-1">{{ $t('plugins.WorkshopPrinting.pellet.asst_retract_cold', { limit: retract.limit, cold: retract.cold.join(', ') }) }}</div>
+		<div v-else-if="form.retractLength > 0" class="text-caption pc-muted mt-1">{{ $t('plugins.WorkshopPrinting.pellet.asst_retract_g10') }}</div>
 
-		<div class="d-flex align-center flex-wrap mt-3" style="gap:8px">
+		<div class="pc-actions mt-3">
 			<v-btn small :color="armed === 'apply' ? 'amber darken-3' : 'primary'" :loading="saving" :disabled="!configure" @click="arm('apply', apply)">
 				{{ armed === 'apply' ? $t('plugins.WorkshopPrinting.common.tap_again') : $t('plugins.WorkshopPrinting.pellet.asst_apply') }}
 			</v-btn>
-			<v-btn small outlined @click="$emit('goto', { section: 'pellet' })"><v-icon small left>mdi-flask-outline</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.asst_test') }}</v-btn>
+			<v-btn small outlined @click="$emit('goto', { section: 'tool' })"><v-icon small left>mdi-flask-outline</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.asst_test') }}</v-btn>
 		</div>
-		<div class="text-caption grey--text mt-2">{{ $t('plugins.WorkshopPrinting.pellet.asst_note') }}</div>
+		<div class="text-caption pc-muted mt-2">{{ $t('plugins.WorkshopPrinting.pellet.asst_note') }}</div>
 	</v-card>
 </template>
 
@@ -65,7 +65,10 @@ import { changeOAddLineMode, note } from './util.js'
 import { pluginActive } from './workshop-ids.js' // vue/_shared36: Machine is another plugin, nothing about it when it is absent
 import { LIMITS, PRESETS, fromModel, presetOf, normalizeRetract, retractPlan, retractCheck, machineRoute, machineEditable } from './motor-assist.js'
 
+import { tapArmMixin } from './tap-arm-mixin.js' // the double tap of the page (4 s)
+
 export default {
+	mixins: [tapArmMixin],
 	props: {
 		busy: { type: Boolean, default: false },
 		configure: { type: Boolean, default: false }, // the role writes the configuration (technician) and the setup view
@@ -84,7 +87,7 @@ export default {
 				{ key: 'speed', unit: 'mm/s', perMin: true } // Machine's Motion module takes the speed in mm/min
 			],
 			form: { retractLength: 0, retractSpeed: 20 },
-			saving: false, armed: null, armedTimer: null
+			saving: false
 		};
 	},
 	computed: {
@@ -104,21 +107,8 @@ export default {
 			return retractCheck(this.coldRetract, this.targets);
 		}
 	},
-	beforeDestroy() {
-		clearTimeout(this.armedTimer);
-	},
 	methods: {
 		...mapActions('machine', ['sendCode']),
-		arm(id, fn) {
-			if (this.armed !== id) {
-				this.armed = id;
-				clearTimeout(this.armedTimer);
-				this.armedTimer = setTimeout(() => { this.armed = null; }, 4000);
-				return;
-			}
-			this.armed = null;
-			fn();
-		},
 		// the numbers of a starting point as the text shows them (the speed also in mm/min, the unit Machine asks for)
 		presetValues(p) {
 			return Object.assign({ speedMin: Math.round(p.speed * 60) }, p);

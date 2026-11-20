@@ -1,30 +1,30 @@
 <template>
 	<div class="ml">
-		<div class="d-flex align-center flex-wrap" style="gap:8px">
-			<v-icon small aria-hidden="true">mdi-layers-triple-outline</v-icon>
-			<span class="text-subtitle-2">{{ tx('layers_title') }}</span>
-			<v-chip x-small outlined :color="has ? 'primary' : undefined">{{ has ? tx('layers_on') : tx('layers_off') }}</v-chip>
+		<div class="pc-actions">
+			<v-chip x-small outlined :color="has ? 'primary' : undefined">{{ has ? tx('changes_on') : tx('changes_off') }}</v-chip>
+			<!-- the summary in one line: how many rules, or that the G-code rules (nothing to edit until the switch below is on) -->
+			<span class="text-body-2" role="status">{{ has ? tx('changes_rules', { n: rulesNow }) : tx('changes_none') }}</span>
 			<help-tip v-bind="help()" />
 		</div>
-		<div class="text-caption grey--text mt-1">{{ tx('layers_lead') }}</div>
+		<div class="text-caption pc-muted mt-1">{{ tx('changes_lead') }}</div>
 
-		<error-notice v-if="failure" :error="failure" :action="tx('layers_acting')" retry class="mt-2" @retry="load()" />
+		<error-notice v-if="failure" :error="failure" :action="tx('changes_acting')" retry class="mt-2" @retry="load()" />
 		<div v-if="lockedWhy" class="wf-note is-warn mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ lockedWhy }}</span></div>
-		<lock-reason v-else-if="!canEdit" op="layerrecipes.set" need="technician" :action="tx('layers_acting')" class="mt-2" />
-		<v-alert v-if="msg" dense text :type="msgKind" class="mt-2 mb-0">{{ msg }}</v-alert>
-		<div v-if="!loaded && !failure" class="text-caption grey--text mt-2" role="status">{{ $t('plugins.WorkshopPrinting.common.reading') }}</div>
+		<lock-reason v-else-if="!canEdit" op="layerrecipes.set" need="technician" :action="tx('changes_acting')" class="mt-2" />
+		<pc-result :text="msg || ''" :kind="msgKind" class="mt-2" />
+		<div v-if="!loaded && !failure" class="text-caption pc-muted mt-2" role="status">{{ $t('plugins.WorkshopPrinting.common.reading') }}</div>
 
 		<template v-if="loaded">
-			<v-switch :key="'sw' + swKey" :input-value="has" dense hide-details class="mt-2" :label="tx('layers_switch')" :disabled="!canWrite || (!has && !canStart)" @change="toggle(!!$event)" />
-			<div v-if="!has && !canStart" class="text-caption grey--text">{{ tx('layers_no_zones') }}</div>
+			<v-switch :key="'sw' + swKey" :input-value="has" dense hide-details class="mt-2" :label="tx('changes_switch')" :disabled="!canWrite || (!has && !canStart)" @change="toggle(!!$event)" />
+			<div v-if="!has && !canStart" class="text-caption pc-muted">{{ tx('changes_no_zones') }}</div>
 
 			<div v-if="draft" class="mt-2">
-				<div class="d-flex flex-wrap align-end" style="gap:8px 24px">
-					<wf-field :id="uid + '-axis'" :label="tx('layers_axis')">
+				<div class="pc-actions pc-actions-end">
+					<wf-field :id="uid + '-axis'" :label="tx('changes_axis')">
 						<template #help><help-tip v-bind="axisHelp()" /></template>
-						<v-select :id="uid + '-axis'" :value="axis" :items="axisItems" dense outlined hide-details style="max-width:200px" :disabled="!canWrite" :aria-label="tx('layers_axis')" @change="setAxis" />
+						<v-select :id="uid + '-axis'" :value="axis" :items="axisItems" dense outlined hide-details style="max-width:200px" :disabled="!canWrite" :aria-label="tx('changes_axis')" @change="setAxis" />
 					</wf-field>
-					<v-switch v-for="k in tracks" :key="k" :input-value="!!draft.tracks[k]" dense hide-details class="mt-0 pt-0" :label="tx('layers_use_' + k)" :disabled="!canWrite || (!!draft.tracks[k] && onlyTrack) || (!draft.tracks[k] && !zonesOf(k).length)" @change="toggleTrack(k, !!$event)" />
+					<v-switch v-for="k in tracks" :key="k" :input-value="!!draft.tracks[k]" dense hide-details class="mt-0 pt-0" :label="tx('changes_use_' + k)" :disabled="!canWrite || (!!draft.tracks[k] && onlyTrack) || (!draft.tracks[k] && !zonesOf(k).length)" @change="toggleTrack(k, !!$event)" />
 				</div>
 				<div v-if="fieldError('tracks')" class="wf-field-msg is-error">{{ fieldError('tracks') }}</div>
 				<recipe-track
@@ -33,13 +33,13 @@
 					@shape="applyTrackShape(k, $event)" @add-point="addPoint(k)" @remove-point="removePoint(k, $event)" @zones="setBedZones"
 				/>
 				<div v-for="e in otherErrors" :key="e.field" class="wf-note is-warn mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ errorText(e) }}</span></div>
-				<ul v-if="serverErrors.length" class="mt-2"><li v-for="(e, i) in serverErrors" :key="i" class="text-caption error--text">{{ e }}</li></ul>
-				<div class="d-flex flex-wrap mt-3" style="gap:8px">
-					<v-btn small color="primary" class="ml-btn" :loading="busy === 'save'" :disabled="!canWrite || !!errors.length || !dirty" @click="save()"><v-icon small left>mdi-content-save-outline</v-icon>{{ tx('layers_save') }}</v-btn>
-					<v-btn small outlined class="ml-btn" :disabled="!dirty" @click="discard()">{{ tx('layers_discard') }}</v-btn>
+				<ul v-if="serverErrors.length" class="mt-2"><li v-for="(e, i) in serverErrors" :key="i" class="text-caption wf-state err">{{ e }}</li></ul>
+				<div class="pc-actions mt-3">
+					<v-btn small color="primary" class="ml-btn" :loading="busy === 'save'" :disabled="!canWrite || !!errors.length || !dirty" @click="save()"><v-icon small left>mdi-content-save-outline</v-icon>{{ tx('changes_save') }}</v-btn>
+					<v-btn small outlined class="ml-btn" :disabled="!dirty" @click="discard()">{{ tx('changes_discard') }}</v-btn>
 				</div>
-				<div v-if="!canWrite || (!!errors.length || !dirty)" class="text-caption grey--text mt-1">{{ saveReason }}</div>
-				<div class="text-caption grey--text mt-1">{{ tx('layers_save_note') }}</div>
+				<div v-if="!canWrite || (!!errors.length || !dirty)" class="text-caption pc-muted mt-1">{{ saveReason }}</div>
+				<div class="text-caption pc-muted mt-1">{{ tx('changes_save_note') }}</div>
 			</div>
 		</template>
 	</div>
@@ -48,18 +48,19 @@
 <script>
 'use strict'
 
-// The optional "Change per layer" block of ONE material: the relative recipe (format 2) of the material, stored in the `layer-recipes` area of the service under the
+// The optional "Changes during the print" section of ONE profile: the relative layer changes (format 2) of the profile, stored in the `layer-recipes` area of the service under the
 // SAME NAME as the material (the link is the name; ops layerrecipes.get / set / remove). Off by default: with the switch off the material has no recipe at all.
 // It reuses the track editor (RecipeTrack.vue) and the pure side of the recipes (layer-recipes.js). Nothing here heats or arms anything.
 import { api } from './workshop-api.js'
 import { roleMixin } from './role-mixin.js' // vue/_shared36
+import PcResult from './PcResult.vue' // the result of an action, one line
 import HelpTip from './HelpTip.vue' // vue/_shared36
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared36
 import LockReason from './LockReason.vue' // vue/_shared36
 import WfField from './WfField.vue' // vue/_shared36
 import RecipeTrack from './RecipeTrack.vue'
 import { toolZones } from './pellet-layers.js'
-import { TRACKS, MATERIAL_MAX, emptyTrack, emptyRecipe, recipeDraft, recipeOf, validateRecipe, applyShape, bedZoneList } from './layer-recipes.js'
+import { rulesCount, TRACKS, MATERIAL_MAX, emptyTrack, emptyRecipe, recipeDraft, recipeOf, validateRecipe, applyShape, bedZoneList } from './layer-recipes.js'
 
 let seq = 0
 
@@ -67,7 +68,7 @@ export default {
 	mixins: [roleMixin],
 	sessionData: ['msg', 'msgKind'],
 	sessionErrors: ['failure', 'msg', 'msgKind'],
-	components: { HelpTip, ErrorNotice, LockReason, WfField, RecipeTrack },
+	components: { PcResult, HelpTip, ErrorNotice, LockReason, WfField, RecipeTrack },
 	props: {
 		linkName: { type: String, default: '' }, // the name the material has in the SAVED list ('' = a material that is not saved yet)
 		currentName: { type: String, default: '' }, // the name in the form (differs from linkName while it is being renamed)
@@ -87,8 +88,8 @@ export default {
 			return this.canDo('layerrecipes.set')
 		},
 		lockedWhy() {
-			if (!this.linkName) return this.tx('layers_save_material_first')
-			if (this.currentName.trim() !== this.linkName) return this.tx('layers_save_rename_first')
+			if (!this.linkName) return this.tx('changes_save_material_first')
+			if (this.currentName.trim() !== this.linkName) return this.tx('changes_save_rename_first')
 			return ''
 		},
 		canWrite() {
@@ -96,6 +97,9 @@ export default {
 		},
 		has() {
 			return !!this.draft
+		},
+		rulesNow() {
+			return rulesCount(this.recipe)
 		},
 		toolNumber() {
 			return this.tool && Number.isInteger(this.tool.number) ? this.tool.number : null
@@ -133,10 +137,10 @@ export default {
 		},
 		// why Save is off, said next to it (never a mute button)
 		saveReason() {
-			if (!this.canEdit) return this.tx('layers_why_role')
+			if (!this.canEdit) return this.tx('changes_why_role')
 			if (this.lockedWhy) return this.lockedWhy
-			if (this.errors.length) return this.tx('layers_why_errors')
-			if (!this.dirty) return this.tx('layers_why_nothing')
+			if (this.errors.length) return this.tx('changes_why_errors')
+			if (!this.dirty) return this.tx('changes_why_nothing')
 			return ''
 		}
 	},
@@ -156,13 +160,13 @@ export default {
 	},
 	methods: {
 		tx(key, params) {
-			return this.$t('plugins.WorkshopPrinting.materials.' + key, params || {})
+			return this.$t('plugins.WorkshopPrinting.profiles.' + key, params || {})
 		},
 		px(key, params) {
 			return this.$t('plugins.WorkshopPrinting.pellet.' + key, params || {})
 		},
 		help() {
-			return { title: this.tx('layers_title'), what: this.tx('layers_help_what'), why: this.tx('layers_help_why'), ifMissing: this.tx('layers_help_miss'), how: this.tx('layers_help_how') }
+			return { title: this.tx('changes_title'), what: this.tx('changes_help_what'), why: this.tx('changes_help_why'), ifMissing: this.tx('changes_help_miss'), how: this.tx('changes_help_how') }
 		},
 		axisHelp() {
 			return { title: this.px('layer_recipes_help_axis_title'), what: this.px('layer_recipes_help_axis_what'), why: this.px('layer_recipes_help_axis_why'), ifMissing: this.px('layer_recipes_help_axis_miss'), how: this.px('layer_recipes_help_axis_how') }
@@ -216,7 +220,7 @@ export default {
 				const bed = this.bedZones.filter(z => z.active).map(z => z.heater)
 				if (bed.length) tracks.bed = emptyTrack('bed', bed)
 				this.draft = recipeDraft(emptyRecipe(this.kind, this.currentName, tracks))
-				this.say('info', this.tx('layers_switched_on'))
+				this.say('info', this.tx('changes_switched_on'))
 			} else if (!this.saved) {
 				this.draft = null
 			} else if (!this.offArmed) {
@@ -225,7 +229,7 @@ export default {
 				this.swKey++
 				clearTimeout(this.offTimer)
 				this.offTimer = setTimeout(() => { this.offArmed = false }, 4000)
-				this.say('warning', this.tx('layers_off_again', { name: this.linkName }))
+				this.say('warning', this.tx('changes_off_again', { name: this.linkName }))
 			} else {
 				this.offArmed = false
 				this.removeRecipe()
@@ -287,7 +291,7 @@ export default {
 				this.saved = out.recipe
 				this.draft = recipeDraft(out.recipe)
 				this.$emit('changed', { name: this.linkName, has: true })
-				this.say('success', this.tx('layers_saved', { name: this.linkName }))
+				this.say('success', this.tx('changes_saved', { name: this.linkName }))
 			} catch (e) {
 				if (e && e.code === 'cancelled') return
 				const list = e && e.body && e.body.error && e.body.error.errors
@@ -298,7 +302,7 @@ export default {
 				this.busy = null
 			}
 		},
-		// switching off a saved recipe removes it from the service: the parent asks for a second tap before (see Materials.vue); an unsaved draft is just dropped
+		// switching off a saved recipe removes it from the service: the parent asks for a second tap before (see Profiles.vue); an unsaved draft is just dropped
 		async removeRecipe() {
 			if (!this.saved) { this.draft = null; return }
 			if (!this.canWrite) return
@@ -308,7 +312,7 @@ export default {
 				this.draft = null
 				this.saved = null
 				this.$emit('changed', { name: this.linkName, has: false })
-				this.say('success', this.tx('layers_removed', { name: this.linkName }))
+				this.say('success', this.tx('changes_removed', { name: this.linkName }))
 			} catch (e) {
 				if (!e || e.code !== 'cancelled') this.failure = e
 			} finally {
@@ -320,6 +324,5 @@ export default {
 </script>
 
 <style scoped>
-.ml { border-left: 3px solid var(--wf-line, rgba(128, 128, 128, 0.4)); padding-left: 12px; }
 .ml-btn.v-btn { height: 44px; min-height: 44px; }
 </style>

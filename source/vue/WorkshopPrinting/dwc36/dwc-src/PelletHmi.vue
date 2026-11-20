@@ -146,8 +146,8 @@
 			<span><i style="background:#e65100" />{{ $t('plugins.WorkshopPrinting.pellet.overshot') }}</span>
 			<span><i style="background:#c62828" />{{ $t('plugins.WorkshopPrinting.pellet.fault_no_sensor') }}</span>
 			<span><i style="background:#616161" />{{ $t('plugins.WorkshopPrinting.pellet.off') }}</span>
-			<span class="grey--text">{{ $t('plugins.WorkshopPrinting.pellet.hmi_legend_bar') }}</span>
-			<span class="grey--text">{{ $t('plugins.WorkshopPrinting.pellet.hmi_legend_fan') }}</span>
+			<span class="pc-muted">{{ $t('plugins.WorkshopPrinting.pellet.hmi_legend_bar') }}</span>
+			<span class="pc-muted">{{ $t('plugins.WorkshopPrinting.pellet.hmi_legend_fan') }}</span>
 		</div>
 	</div>
 </template>

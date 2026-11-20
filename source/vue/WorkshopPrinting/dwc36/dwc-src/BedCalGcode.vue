@@ -2,13 +2,13 @@
 	<!-- Read-only: the G-code the service sends in this step, exactly as the plan of the service lists it (bedcal.plan). Collapsed by default; no Copy button because nobody has to copy anything. -->
 	<details class="bcg" @toggle="onToggle">
 		<summary class="text-body-2">{{ t('gcode_show') }}</summary>
-		<div v-if="loading" class="text-caption grey--text">{{ t('gcode_loading') }}</div>
-		<div v-else-if="error" class="text-caption error--text">{{ error }}</div>
+		<div v-if="loading" class="text-caption pc-muted">{{ t('gcode_loading') }}</div>
+		<div v-else-if="error" class="text-caption wf-state err">{{ error }}</div>
 		<template v-else-if="text">
 			<pre class="bcg-text">{{ text }}</pre>
-			<div class="text-caption grey--text">{{ t('gcode_note') }}</div>
+			<div class="text-caption pc-muted">{{ t('gcode_note') }}</div>
 		</template>
-		<div v-else class="text-caption grey--text">{{ t('gcode_empty') }}</div>
+		<div v-else class="text-caption pc-muted">{{ t('gcode_empty') }}</div>
 	</details>
 </template>
 

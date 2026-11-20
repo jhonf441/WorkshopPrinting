@@ -3,14 +3,12 @@
 		<div class="d-flex align-center flex-wrap" style="gap:4px">
 			<v-icon small aria-hidden="true">mdi-text-search</v-icon>
 			<h3 :id="uid + '-title'" class="text-subtitle-1 font-weight-medium">{{ tx('title') }}</h3>
-			<help-tip :title="tx('title')" :what="tx('help_what')" :why="tx('help_why')" :if-missing="tx('help_miss')" :how="tx('help_how')" />
+			<pc-help :title="tx('title')" :what="tx('help_what')" :why="tx('help_why')" :if-missing="tx('help_miss')" :how="tx('help_how')" />
 		</div>
-		<p class="text-caption mt-1 mb-2">{{ tx('lead') }}</p>
-		<div class="wf-note" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ tx('read_only') }}</span></div>
+		<p class="glv-lead mt-1 mb-2">{{ tx('lead') }} {{ tx('read_only') }}</p>
 
 		<div class="d-flex align-center flex-wrap mt-3" style="gap:8px">
 			<v-btn small outlined class="glv-btn" :loading="loading" :disabled="loading" @click="$emit('read')"><v-icon small left>mdi-file-search-outline</v-icon>{{ tx(data ? 'read_again' : 'read') }}</v-btn>
-			<span v-if="recipeName" class="text-caption glv-wrap">{{ tx('recipe', { name: recipeName }) }}</span>
 		</div>
 
 		<error-notice v-if="error" :error="error" :action="tx('acting')" class="mt-2" />
@@ -20,48 +18,69 @@
 
 		<template v-if="data">
 			<div class="text-body-2 mt-3 glv-wrap" role="status">{{ tx('file_summary', { file: data.file || '-', layers: data.layers }) }}</div>
+			<dl class="glv-stats mt-2" :aria-label="tx('stats_label')">
+				<div v-if="fileInfo.known"><dt>{{ tx('stat_lines') }}</dt><dd>{{ fileInfo.count }}</dd></div>
+				<div><dt>{{ tx('stat_changes') }}</dt><dd>{{ data.changes.length }}</dd></div>
+				<div><dt>{{ tx('stat_layers') }}</dt><dd>{{ data.layers }}</dd></div>
+				<div><dt>{{ tx('stat_material') }}</dt><dd class="glv-wrap">{{ recipeName || '-' }}</dd></div>
+			</dl>
+			<ul class="glv-colors mt-2" :aria-label="tx('legend_title')">
+				<li class="glv-tag glv-tag-bed">{{ tx('kind_bed') }}</li>
+				<li class="glv-tag glv-tag-extruder">{{ tx('kind_extruder') }}</li>
+				<li class="glv-tag glv-tag-insert">{{ tx('line_insert') }}</li>
+				<li class="glv-colors-hint">{{ tx('legend_hint') }}</li>
+			</ul>
 
-			<section v-if="fileInfo.known" class="glv-file mt-2" :aria-labelledby="uid + '-file'">
-				<h4 :id="uid + '-file'" class="text-subtitle-2">{{ tx(fileInfo.none ? 'file_sets_none_title' : (fileInfo.count === 1 ? 'file_sets_title_one' : 'file_sets_title'), { count: fileInfo.count }) }}</h4>
+			<section v-if="fileInfo.known" class="glv-file mt-3" :aria-labelledby="uid + '-file'">
+				<h4 :id="uid + '-file'" class="glv-h"><v-icon small aria-hidden="true">mdi-file-code-outline</v-icon>{{ tx(fileInfo.none ? 'file_sets_none_title' : (fileInfo.count === 1 ? 'file_sets_title_one' : 'file_sets_title'), { count: fileInfo.count }) }}</h4>
 				<div v-if="fileInfo.none" class="wf-note mt-1" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ tx('file_sets_none') }}</span></div>
-				<template v-else>
-					<div v-if="fileInfo.inPrinting" class="wf-note is-warn mt-1" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ tx('file_sets_in_print') }}</span></div>
-					<div v-else class="wf-note mt-1" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ tx('file_sets_start_only') }}</span></div>
+				<details v-else class="pc-fold glv-fold mt-1" :open="fileInfo.inPrinting">
+					<summary class="pc-fold-sum">{{ tx('file_lines_open') }}</summary>
+					<div v-if="!fileInfo.inPrinting" class="wf-field-msg is-hint">{{ tx('file_sets_start_only') }}</div>
 					<div class="glv-code glv-code-file mt-1" role="region" tabindex="0" :aria-label="tx('file_sets_label')">
 						<div v-for="l in fileLines" :key="l.line" class="glv-line">
 							<span class="glv-n" aria-hidden="true">{{ l.line }}</span>
 							<span class="glv-text"><span class="sr-only">{{ tx('line_n', { n: l.line }) }} </span><span v-for="(tk, j) in tokensOf(l.text)" :key="j" :class="'glv-t-' + tk.kind">{{ tk.text }}</span></span>
-							<span class="glv-tag glv-tag-soft">{{ tx('kind_' + l.kind) }}</span>
+							<span :class="'glv-tag glv-tag-' + l.kind">{{ tx('kind_' + l.kind) }}</span>
 						</div>
 					</div>
 					<div v-if="fileInfo.truncated" class="text-caption mt-1">{{ tx('file_sets_truncated', { shown: fileInfo.lines.length, count: fileInfo.count }) }}</div>
 					<v-btn v-if="fileInfo.lines.length > FILE_HEAD" small outlined class="glv-btn mt-1" :aria-expanded="fileAll ? 'true' : 'false'" @click="fileAll = !fileAll"><v-icon small left>{{ fileAll ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>{{ fileAll ? tx('file_show_less') : tx('file_show_all', { n: fileInfo.lines.length }) }}</v-btn>
-				</template>
+				</details>
 			</section>
 
-			<div v-for="k in noteKeys" :key="k" class="wf-note is-warn mt-1" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ noteText(k) }}</span></div>
-			<div v-if="data.truncated && noteKeys.indexOf('preview_truncated') < 0" class="wf-note is-warn mt-1" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ tx('truncated') }}</span></div>
+			<div v-if="warns.length" class="wf-note is-warn mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span class="glv-wrap">{{ warns[0] }}</span></div>
+			<details v-if="warns.length > 1" class="glv-more-warns mt-1">
+				<summary class="glv-more-sum">{{ txc('more_warns', warns.length - 1, { n: warns.length - 1 }) }}</summary>
+				<div v-for="(w, i) in warns.slice(1)" :key="i" class="wf-note is-warn mt-1" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span class="glv-wrap">{{ w }}</span></div>
+			</details>
 
 			<div v-if="!data.changes.length" class="wf-note mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ tx('no_changes') }}</span></div>
 
 			<template v-else>
-				<ul class="glv-summary mt-2" :aria-label="tx('summary_label')">
-					<li>{{ tx('sum_changes', { n: sum.count }) }}</li>
-					<li>{{ tx('sum_layers', { first: sum.firstLayer, last: sum.lastLayer }) }}</li>
-					<li v-if="sum.extruder">{{ tx('sum_extruder', { count: sum.extruderCount, min: sum.extruder.min, max: sum.extruder.max }) }}</li>
-					<li v-if="sum.bed">{{ tx('sum_bed', { count: sum.bedCount, min: sum.bed.min, max: sum.bed.max }) }}</li>
-					<li v-if="sum.limitedCount">{{ tx('sum_limited', { n: sum.limitedCount }) }}</li>
+				<ul class="glv-chips mt-2" :aria-label="tx('summary_label')">
+					<li><v-chip small outlined>{{ txc('sum_changes', sum.count, { n: sum.count }) }}</v-chip></li>
+					<li><v-chip small outlined>{{ tx('sum_layers', { first: sum.firstLayer, last: sum.lastLayer }) }}</v-chip></li>
+					<li v-if="sum.extruder"><v-chip small outlined class="glv-chip-extruder">{{ txc('sum_extruder', sum.extruderCount, { count: sum.extruderCount, min: sum.extruder.min, max: sum.extruder.max }) }}</v-chip></li>
+					<li v-if="sum.bed"><v-chip small outlined class="glv-chip-bed">{{ txc('sum_bed', sum.bedCount, { count: sum.bedCount, min: sum.bed.min, max: sum.bed.max }) }}</v-chip></li>
+					<li v-if="sum.limitedCount"><v-chip small outlined>{{ txc('sum_limited', sum.limitedCount, { n: sum.limitedCount }) }}</v-chip></li>
 				</ul>
 
-				<div class="d-flex align-end flex-wrap mt-3" style="gap:12px" role="group" :aria-label="tx('filter_label')">
-					<div>
-						<div :id="uid + '-track'" class="text-caption">{{ tx('filter_track') }}</div>
+				<div class="glv-filters mt-3" role="group" :aria-label="tx('filter_label')">
+					<div class="glv-f">
+						<div :id="uid + '-track'" class="glv-fl">{{ tx('filter_track') }}</div>
 						<v-btn-toggle v-model="track" mandatory dense class="glv-toggle" :aria-labelledby="uid + '-track'">
-							<v-btn v-for="t in trackItems" :key="t.value" :value="t.value" class="glv-btn" :aria-label="t.text">{{ t.text }}</v-btn>
+							<v-btn v-for="t in trackItems" :key="t.value" :value="t.value" class="glv-btn" :aria-label="t.text"><v-icon small left aria-hidden="true">{{ t.icon }}</v-icon>{{ t.text }}</v-btn>
 						</v-btn-toggle>
 					</div>
-					<v-text-field v-model="layerFrom" type="number" min="0" inputmode="numeric" dense outlined hide-details class="glv-range" :label="tx('filter_from')" :aria-label="tx('filter_from')" />
-					<v-text-field v-model="layerTo" type="number" min="0" inputmode="numeric" dense outlined hide-details class="glv-range" :label="tx('filter_to')" :aria-label="tx('filter_to')" />
+					<div class="glv-f">
+						<label :for="uid + '-from'" class="glv-fl">{{ tx('filter_from') }}</label>
+						<v-text-field :id="uid + '-from'" v-model="layerFrom" type="number" min="0" inputmode="numeric" dense outlined hide-details class="glv-range" :placeholder="tx('all_layers')" persistent-placeholder :suffix="tx('layer_unit')" :aria-label="tx('filter_from')" />
+					</div>
+					<div class="glv-f">
+						<label :for="uid + '-to'" class="glv-fl">{{ tx('filter_to') }}</label>
+						<v-text-field :id="uid + '-to'" v-model="layerTo" type="number" min="0" inputmode="numeric" dense outlined hide-details class="glv-range" :placeholder="tx('all_layers')" persistent-placeholder :suffix="tx('layer_unit')" :aria-label="tx('filter_to')" />
+					</div>
 				</div>
 
 				<div class="text-caption mt-2" role="status" aria-live="polite">{{ tx('showing', { shown: visible.length, total: filtered.length }) }}</div>
@@ -69,33 +88,34 @@
 
 				<ol class="glv-list mt-2">
 					<li v-for="(c, i) in visible" :key="c.layer + ':' + i" class="glv-card" :aria-labelledby="uid + '-h' + i">
-						<h4 :id="uid + '-h' + i" class="glv-head text-subtitle-2">{{ heading(c) }}</h4>
+						<h4 :id="uid + '-h' + i" class="glv-head glv-h"><v-icon small aria-hidden="true">mdi-layers-outline</v-icon>{{ heading(c) }}</h4>
 						<div v-if="legend(c).length" class="glv-legend text-caption">
-							<span v-for="p in legend(c)" :key="p.track" class="glv-wrap"><v-icon x-small aria-hidden="true">{{ p.track === 'bed' ? 'mdi-radiator' : 'mdi-printer-3d-nozzle-outline' }}</v-icon> {{ p.text }}</span>
+							<v-chip v-for="p in legend(c)" :key="p.track" small outlined :class="'glv-chip-' + p.track"><v-icon x-small left aria-hidden="true">{{ p.track === 'bed' ? 'mdi-radiator' : 'mdi-printer-3d-nozzle-outline' }}</v-icon>{{ p.text }}</v-chip>
 						</div>
 
 						<div v-if="columnsOf(c)" class="glv-cols mt-2" role="group" :aria-label="tx('cols_label', { layer: c.layer })">
 							<div class="glv-col">
-								<div class="text-caption font-weight-medium">{{ tx('col_file') }}</div>
+								<div class="glv-ch"><v-icon small aria-hidden="true">mdi-file-document-outline</v-icon>{{ tx('col_file') }}</div>
 								<div v-for="g in columnsOf(c)" :key="g.track" class="text-body-2 glv-wrap">
 									<template v-if="g.notSet"><v-icon x-small aria-hidden="true">{{ g.track === 'bed' ? 'mdi-radiator' : 'mdi-printer-3d-nozzle-outline' }}</v-icon> {{ tx('track_' + g.track) }}: {{ tx('col_file_none') }}</template>
 									<template v-else><div v-for="z in g.zones" :key="z.name"><v-icon x-small aria-hidden="true">{{ g.track === 'bed' ? 'mdi-radiator' : 'mdi-printer-3d-nozzle-outline' }}</v-icon> {{ tx('zone_file_value', { name: z.name, file: z.file === null ? '-' : z.file }) }}</div></template>
 								</div>
 							</div>
+							<v-icon class="glv-arrow" aria-hidden="true">mdi-arrow-right-bold-outline</v-icon>
 							<div class="glv-col">
-								<div class="text-caption font-weight-medium">{{ tx('col_recipe') }}</div>
+								<div class="glv-ch"><v-icon small aria-hidden="true">mdi-flask-outline</v-icon>{{ tx('col_recipe') }}</div>
 								<div v-for="g in columnsOf(c)" :key="g.track" class="text-body-2 glv-wrap">
 									<div v-for="z in g.zones" :key="z.name"><v-icon x-small aria-hidden="true">{{ g.track === 'bed' ? 'mdi-radiator' : 'mdi-printer-3d-nozzle-outline' }}</v-icon> {{ z.name }}: {{ z.text }}</div>
 								</div>
 							</div>
 						</div>
 
-						<div class="text-caption mt-2">{{ tx('context_title') }}</div>
+						<div class="glv-ch mt-2"><v-icon small aria-hidden="true">mdi-format-list-numbered</v-icon>{{ tx('context_title') }}</div>
 						<div class="glv-code" role="region" tabindex="0" :aria-label="tx('context_label', { layer: c.layer })">
 							<div v-for="l in rowsOf(c).lines" :key="l.n" class="glv-line" :class="{ 'is-start': l.start, 'is-conflict': l.conflict }" :aria-current="l.start ? 'location' : null">
 								<span class="glv-n" aria-hidden="true">{{ l.n }}</span>
 								<span class="glv-text"><span class="sr-only">{{ tx('line_n', { n: l.n }) }} </span><span v-for="(tk, j) in l.tokens" :key="j" :class="'glv-t-' + tk.kind">{{ tk.text }}</span></span>
-								<span v-if="l.start" class="glv-tag">{{ tx(l.insert ? 'line_insert' : 'line_start') }}</span>
+								<span v-if="l.start" class="glv-tag glv-tag-insert">{{ tx(l.insert ? 'line_insert' : 'line_start') }}</span>
 								<span v-if="l.conflict" class="glv-tag glv-tag-warn">{{ tx('line_conflict') }}</span>
 							</div>
 						</div>
@@ -105,7 +125,7 @@
 						</div>
 
 						<div v-if="rowsOf(c).commands.length" class="glv-send mt-2" role="group" :aria-label="tx('send_title')">
-							<div class="text-caption font-weight-medium">{{ tx('send_title') }}</div>
+							<div class="glv-ch"><v-icon small aria-hidden="true">mdi-send-clock-outline</v-icon>{{ tx('send_title') }}</div>
 							<div class="glv-code glv-code-send" role="region" tabindex="0" :aria-label="tx('send_label', { layer: c.layer })">
 								<div v-for="(cmd, j) in rowsOf(c).commands" :key="j" class="glv-line">
 									<span class="glv-n" aria-hidden="true"><v-icon x-small>{{ cmd.track === 'bed' ? 'mdi-radiator' : 'mdi-printer-3d-nozzle-outline' }}</v-icon></span>
@@ -168,7 +188,7 @@
 //
 // Events: read (the person asks to read the job file again).
 
-import HelpTip from './HelpTip.vue' // vue/_shared36
+import PcHelp from './PcHelp.vue' // the "?" of the title, folded by the section
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared36
 import { normalize, noteKey, filterChanges, summary, buildRows, describeChange, formatZ, formatTemps, fileSummary, compareChange, conflictLines, tableRows, tokenizeLine } from './gcode-layer-view.js'
 
@@ -179,7 +199,7 @@ const TABLE_PAGE = 50
 let counter = 0
 
 export default {
-	components: { HelpTip, ErrorNotice },
+	components: { PcHelp, ErrorNotice },
 	props: {
 		preview: { type: Object, default: null },
 		loading: { type: Boolean, default: false },
@@ -214,7 +234,16 @@ export default {
 			return Math.max(0, this.tableList.length - this.tableLimit)
 		},
 		trackItems() {
-			return [{ value: 'all', text: this.tx('track_all') }, { value: 'extruder', text: this.tx('track_extruder') }, { value: 'bed', text: this.tx('track_bed') }]
+			return [{ value: 'all', text: this.tx('track_all'), icon: 'mdi-layers-outline' }, { value: 'extruder', text: this.tx('track_extruder'), icon: 'mdi-printer-3d-nozzle-outline' }, { value: 'bed', text: this.tx('track_bed'), icon: 'mdi-radiator' }]
+		},
+		// ONE warning in yellow (the first); the others are behind "more": the in-print line of the file, the notes of the service and the truncation
+		warns() {
+			if (!this.data) return [];
+			const out = [];
+			if (this.fileInfo.known && !this.fileInfo.none && this.fileInfo.inPrinting) out.push(this.tx('file_sets_in_print'));
+			this.noteKeys.forEach(k => out.push(this.noteText(k)));
+			if (this.data.truncated && this.noteKeys.indexOf('preview_truncated') < 0) out.push(this.tx('truncated'));
+			return out;
 		},
 		filtered() {
 			return this.data ? filterChanges(this.data.changes, { layerFrom: this.layerFrom, layerTo: this.layerTo, track: this.track }) : []
@@ -240,6 +269,10 @@ export default {
 	methods: {
 		tx(key, params) {
 			return this.$t(AREA + key, params)
+		},
+		// a phrase with its singular and its plural ("1 cambio" / "2 cambios"), by the plural of the catalog
+		txc(key, n, params) {
+			return this.$tc(AREA + key, n, params)
 		},
 		noteText(key) {
 			const k = noteKey(key)
@@ -284,13 +317,28 @@ export default {
 <style scoped>
 .glv { min-width: 0; max-width: 100%; }
 .glv-btn.v-btn:not(.v-btn--icon) { height: 44px; min-height: 44px; }
-.glv-range { max-width: 140px; }
+.glv-lead { font-size: 13px; opacity: 0.85; }
+.glv-h { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 14px; font-weight: 600; }
+.glv-ch { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; opacity: 0.85; }
+.glv-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin: 0; }
+.glv-stats > div { padding: 6px 10px; border: 1px solid var(--wf-line); border-radius: 8px; min-width: 0; }
+.glv-stats dt { font-size: 12px; opacity: 0.75; }
+.glv-stats dd { margin: 0; font-family: var(--tp-font-mono, monospace); font-size: 14px; font-weight: 600; }
+.glv-colors { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.glv-colors-hint { font-size: 12px; opacity: 0.75; }
+.glv-filters { display: flex; flex-flow: row wrap; justify-content: flex-start; align-items: flex-end; align-content: flex-start; gap: 12px; }
+.glv-f { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.glv-fl { font-size: 12px; opacity: 0.8; }
+.glv-range { width: 140px; flex: 0 1 140px; min-width: 0; }
 .glv-wrap { overflow-wrap: anywhere; }
-.glv-summary { list-style: none; margin: 0; padding: 0 0 0 10px; border-left: 3px solid var(--wf-line); font-size: 13px; }
+.glv-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.glv-chip-bed { border-color: var(--wf-warn) !important; }
+.glv-chip-extruder { border-color: var(--wf-info) !important; }
+.glv-more-sum { cursor: pointer; display: inline-flex; align-items: center; min-height: 44px; font-size: 12px; font-weight: 600; text-decoration: underline; }
 .glv-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-.glv-card { min-width: 0; padding: 10px; border: 1px solid var(--wf-line); border-radius: 6px; }
-.glv-head { margin: 0; overflow-wrap: anywhere; }
-.glv-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.glv-card { min-width: 0; padding: 10px; border: 1px solid var(--wf-line); border-radius: 8px; }
+.glv-head { overflow-wrap: anywhere; }
+.glv-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .glv-code { max-width: 100%; max-height: 260px; overflow: auto; border: 1px solid var(--wf-line); border-radius: 4px; font-family: var(--tp-font-mono, monospace); font-size: 12px; line-height: 1.5; }
 .glv-code:focus-visible { outline: 2px solid var(--wf-accent); outline-offset: 1px; }
 .glv-line { display: flex; align-items: flex-start; gap: 8px; padding: 0 8px; border-left: 4px solid transparent; }
@@ -298,29 +346,36 @@ export default {
 .glv-n { flex: none; min-width: 5ch; text-align: right; opacity: 0.7; user-select: none; }
 .glv-text { flex: 1 1 auto; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .glv-tag { flex: none; align-self: center; padding: 0 6px; border: 1px solid var(--wf-accent); border-radius: 4px; font-family: inherit; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.glv-tag-bed { border-color: var(--wf-warn); }
+.glv-tag-extruder { border-color: var(--wf-info); }
+.glv-tag-chamber { border-color: var(--wf-line-strong); }
+.glv-tag-insert { border-color: var(--wf-accent); color: var(--wf-accent); background: var(--wf-soft); }
 .glv-t-code, .glv-t-temp { font-weight: 700; }
 .glv-t-temp { text-decoration: underline; }
 .glv-t-conflict { font-weight: 700; text-decoration: underline wavy; }
 .glv-line.is-conflict { border-left-color: var(--wf-warn); background: var(--wf-soft); }
 .glv-tag-warn { border-color: var(--wf-warn); }
-.glv-tag-soft { border-color: var(--wf-line-strong); font-weight: 400; }
 .glv-code-file { max-height: 320px; }
 .glv-code-inline { font-family: var(--tp-font-mono, monospace); font-size: 12px; }
-.glv-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
-.glv-col { min-width: 0; padding-left: 8px; border-left: 3px solid var(--wf-line); }
+.glv-cols { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; gap: 8px; }
+.glv-col { min-width: 0; padding: 8px 10px; border: 1px solid var(--wf-line); border-radius: 8px; background: var(--wf-soft); }
+.glv-arrow { align-self: center; opacity: 0.7; }
 .glv-tablewrap { max-width: 100%; max-height: 360px; overflow: auto; border: 1px solid var(--wf-line); border-radius: 4px; margin-top: 4px; }
 .glv-tablewrap:focus-visible { outline: 2px solid var(--wf-accent); outline-offset: 1px; }
 .glv-table { border-collapse: collapse; width: 100%; font-size: 13px; }
 .glv-table th, .glv-table td { padding: 4px 8px; border-bottom: 1px solid var(--wf-line); text-align: left; white-space: nowrap; }
 .glv-table tr.is-differs th, .glv-table tr.is-differs td { font-weight: 700; background: var(--wf-soft); }
 .glv-t-comment { font-style: italic; opacity: 0.75; }
-.glv-send { padding-top: 8px; border-top: 2px dashed var(--wf-line-strong); }
+.glv-send { padding: 8px 10px; border: 2px dashed var(--wf-line-strong); border-radius: 8px; }
 .glv-code-send { margin-top: 4px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+@container pg (max-width: 640px) {
+	.glv-cols { grid-template-columns: minmax(0, 1fr); }
+	.glv-arrow { transform: rotate(90deg); justify-self: center; }
+	.glv-range { flex: 1 1 120px; width: auto; }
+}
 @media (max-width: 480px) {
 	.glv-card { padding: 8px; }
-	.glv-cols { grid-template-columns: 1fr; }
 	.glv-n { min-width: 4ch; }
-	.glv-range { max-width: none; flex: 1 1 120px; }
 }
 </style>

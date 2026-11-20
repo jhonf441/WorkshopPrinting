@@ -1,22 +1,23 @@
 <template>
-	<!-- Temperatures and print state of the job (moved from the Workbench's "Current job" card, 2026-10-21).
-	     READ ONLY: the numbers come from the object model DWC keeps; nothing is sent. Only in FFF mode. -->
+	<!-- The tracking card of the job (general redesign step 4): the file, the state, the progress and the facts (layer, Z, times as DWC reports them).
+	     READ ONLY: the numbers come from the object model DWC keeps; nothing is sent. The temperatures are NOT repeated here: they are in Status (one link).
+	     Only in FFF mode. -->
 	<v-card v-if="isFff" outlined class="pa-3 fff-status">
-		<div class="text-subtitle-2">{{ t('fff.temps_title') }}</div>
-		<div v-if="!panel.temps.length" class="text-body-2 grey--text">{{ t('fff.no_heaters') }}</div>
-		<div v-for="r in panel.temps" :key="r.key" class="fff-row">
-			<span class="grey--text">{{ r.name }}</span>
-			<b :style="{ color: r.color }">{{ r.value }}<span class="fff-chip grey--text">{{ r.chip }}</span></b>
+		<div class="pc-actions">
+			<h4 class="pc-card-title">{{ fileRow ? fileRow.value : t('fff.print_title') }}</h4>
+			<span class="wf-state" :class="running ? 'ok' : 'info'">{{ stateRow ? stateRow.value : '--' }}</span>
 		</div>
-		<div class="text-subtitle-2 mt-3">{{ t('fff.print_title') }}</div>
-		<template v-for="(r, i) in panel.print">
-			<div :key="'p' + i" class="fff-row">
-				<span class="grey--text">{{ r.label }}</span>
-				<b :style="r.color ? { color: r.color } : null">{{ r.value }}</b>
-			</div>
-			<div v-if="r.bar != null" :key="'b' + i" class="fff-bar"><div :style="{ width: r.bar.toFixed(1) + '%' }" /></div>
+		<template v-if="progressRow">
+			<div class="pc-progress mt-2" role="progressbar" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="Math.round(progressRow.bar)" :aria-label="t('fff.p_progress')"><i :style="{ width: progressRow.bar.toFixed(1) + '%' }" /></div>
+			<div class="text-body-2 mt-1">{{ progressRow.value }}</div>
 		</template>
-		<div v-if="panel.none" class="text-body-2 grey--text">{{ t('fff.p_none') }}</div>
+		<dl v-if="facts.length" class="pc-facts mt-3">
+			<div v-for="r in facts" :key="r.id"><dt>{{ r.label }}</dt><dd>{{ r.value }}</dd></div>
+		</dl>
+		<div v-if="facts.length" class="wf-field-msg is-hint mt-2">{{ t('fff.times_dwc') }}</div>
+		<div class="pc-actions mt-2">
+			<v-btn small text @click="$emit('goto', { section: 'state' })"><v-icon small left>mdi-thermometer</v-icon>{{ t('fff.see_temps') }}</v-btn>
+		</div>
 		<!-- the library's card of the job file (nothing when the library does not know it) -->
 		<gcode-info-card v-if="jobFile" :file="jobFile" class="mt-3" />
 	</v-card>
@@ -29,6 +30,9 @@ import { tzFffPanel } from './fff-temps.js'
 import { fffJobFile } from './fff-job.js'
 import GcodeInfoCard from './GcodeInfoCard.vue'
 
+// the facts of the card, in this order (ids of the rows of tzFffPanel); speed and flow are in Live adjustments, the file and the state are the head
+const FACTS = ['layer', 'z', 'elapsed', 'left']
+
 export default {
 	components: { GcodeInfoCard },
 	props: {
@@ -40,6 +44,25 @@ export default {
 		},
 		panel() {
 			return tzFffPanel(this.$store.state.machine.model, this.t);
+		},
+		row() {
+			return id => this.panel.print.find(r => r.id === id) || null;
+		},
+		fileRow() {
+			return this.row('file');
+		},
+		stateRow() {
+			return this.row('state');
+		},
+		progressRow() {
+			const r = this.row('progress');
+			return r && r.bar != null ? r : null;
+		},
+		running() {
+			return !!this.panel.inProgress;
+		},
+		facts() {
+			return FACTS.map(id => this.row(id)).filter(Boolean);
 		}
 	},
 	methods: {
@@ -49,29 +72,3 @@ export default {
 	}
 };
 </script>
-
-<style scoped>
-.fff-row {
-	display: flex;
-	gap: 8px;
-	align-items: center;
-	justify-content: space-between;
-	margin-top: 3px;
-}
-.fff-chip {
-	font-size: 11px;
-	margin-left: 6px;
-	font-weight: normal;
-}
-.fff-bar {
-	height: 6px;
-	border-radius: 3px;
-	background: rgba(128, 128, 128, 0.25);
-	margin-top: 3px;
-	overflow: hidden;
-}
-.fff-bar > div {
-	height: 100%;
-	background: #66bb6a;
-}
-</style>

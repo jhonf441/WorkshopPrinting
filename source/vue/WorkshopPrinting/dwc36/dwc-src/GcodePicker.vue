@@ -15,11 +15,11 @@
 			<v-btn icon class="gl-pick-browse" :disabled="disabled" :aria-label="tx('picker_open')" :title="tx('picker_open')" @click="open = true"><v-icon>mdi-folder-search-outline</v-icon></v-btn>
 			<help-tip v-if="showHelp" v-bind="help('picker')" />
 		</div>
-		<div v-if="onlyKinds" class="gl-pick-only" role="status">{{ tx('kinds.picker_only', { kinds: kindsText }) }}<v-btn x-small text class="gl-pick-widen" @click="setKinds([])">{{ tx('kinds.show_all') }}</v-btn><help-tip v-bind="helpKind('picker')" /></div>
+		<div v-if="onlyKinds" class="gl-pick-only" role="status">{{ tx('kinds.picker_only', { kinds: kindsText }) }}<v-btn x-small text class="gl-pick-widen" @click="setKinds([])">{{ tx('kinds.show_all') }}</v-btn><help-tip v-if="showHelp" v-bind="helpKind('picker')" /></div>
 		<div v-if="showLine && value && line" class="gl-pick-sub">{{ line }}</div>
-		<v-dialog v-model="open" max-width="760" :fullscreen="narrow" scrollable content-class="workshop-theme">
+		<v-dialog v-model="open" max-width="760" :fullscreen="narrow" scrollable content-class="workshop-theme impresion-dialog">
 			<v-card class="gl-pick-card">
-				<v-card-title class="text-subtitle-1">{{ tx('picker_title') }}</v-card-title>
+				<v-card-title class="pc-card-title">{{ tx('picker_title') }}</v-card-title>
 				<v-card-text class="gl-pick-body">
 					<gcode-lib-list v-if="open" compact :value="chosen ? chosen.path : value" :initial-kinds="kinds" :persist-kinds="false" @kinds="setKinds" @select="chosen = $event" @status="status = $event" />
 				</v-card-text>
@@ -193,9 +193,9 @@ export default {
 </script>
 
 <style scoped>
-.gl-pick-line { display: flex; align-items: center; gap: 4px; }
-.gl-pick-field { min-width: 240px; max-width: 100%; }
-.gl-pick-browse.v-btn { width: 44px; height: 44px; }
+.gl-pick-line { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.gl-pick-field { flex: 1 1 0; min-width: 0; max-width: 100%; }
+.gl-pick-browse.v-btn { flex: none; width: 44px; height: 44px; }
 .gl-pi-muted { opacity: 0.6; }
 .gl-pi-sub { font-size: 12px; }
 .gl-pick-only { font-size: 12px; margin-top: 2px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }

@@ -7,7 +7,7 @@
 			<template v-else>
 				<gcode-kind-badge :kind="kind" :tags="tags" :max="3" />
 				<div class="gl-card-nums">
-					<span v-for="r in numbers" :key="r.key"><span class="gl-k">{{ tx(r.labelKey || ('f_' + r.key)) }}</span> {{ r.value }}</span>
+					<span v-for="r in numbers" :key="r.key" class="wf-bignum" :class="{ 'is-long': r.key === 'bbox' }"><span class="wf-bignum-value">{{ r.value }}</span><span class="gl-k">{{ tx(r.labelKey || ('f_' + r.key)) }}</span></span>
 				</div>
 				<div v-if="notPrint" class="gl-card-note" role="note">{{ tx('kinds.not_a_print_short') }}</div>
 			</template>
@@ -141,13 +141,17 @@ export default {
 .gl-card { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border: 1px solid rgba(128, 128, 128, 0.35); border-radius: 8px; flex-wrap: wrap; }
 .gl-card-main { min-width: 0; flex: 1 1 160px; }
 .gl-card-name { font-weight: 600; overflow-wrap: anywhere; }
-.gl-card-nums { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.gl-card-nums { display: flex; flex-wrap: wrap; gap: 4px 20px; font-variant-numeric: tabular-nums; }
+.gl-card-nums .is-long > span:first-child { font-size: 16px; }
 .gl-card-sub { font-size: 12px; opacity: 0.75; }
-.gl-k { opacity: 0.65; }
+.gl-k { font-size: 12px; opacity: 0.7; }
 .gl-card-note { font-size: 12px; opacity: 0.85; margin-top: 2px; }
 .gl-card-prev { flex: 1 1 100%; min-width: 0; max-width: 320px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
 .gl-card-mini { position: relative; width: 100%; aspect-ratio: 4 / 3; max-height: 240px; min-height: 0; overflow: hidden; box-sizing: border-box; border-radius: 6px; }
 @supports not (aspect-ratio: 1) { .gl-card-mini { height: 180px; } }
-.gl-card-open.v-btn { min-height: 44px; opacity: 0.8; }
+.gl-card-open.v-btn { min-height: 44px; }
+.gl-card { min-width: 0; max-width: 100%; box-sizing: border-box; }
+/* in a narrow content the preview goes under the info, whole width, and never past the card */
+@container pg (max-width: 640px) { .gl-card-prev { flex-basis: 100%; max-width: 100%; } }
 .gl-card-full { flex: 1 1 100%; min-width: 0; height: clamp(260px, 50vh, 480px); overflow: hidden; }
 </style>

@@ -1,46 +1,56 @@
 <template>
 	<div class="rr mt-4">
 		<v-divider class="mb-3" />
-		<div class="d-flex align-center flex-wrap" style="gap:8px">
-			<span class="text-subtitle-1">{{ external ? $t('plugins.WorkshopPrinting.materials.apply_title') : tx('layer_recipes_run_title') }}</span>
-			<v-chip x-small outlined :color="live.phase === 'off' ? undefined : (live.phase === 'running' ? 'success' : 'warning')">{{ tx(live.key) }}</v-chip>
+		<div class="pc-actions">
+			<span class="pc-card-title">{{ external ? px('apply_title', { name: name }) : tx('layer_recipes_run_title') }}</span>
+			<!-- inside Prepare job the state is ONE pair of words with a dot (Applied / Not applied): neutral, never a color alone -->
+			<span v-if="external" class="wf-pill" role="status"><span class="wf-dot" :class="{ ok: armedNow && !stale }" aria-hidden="true"></span>{{ px(stale ? 'state_unknown' : (armedNow ? 'state_applied' : 'state_not_applied')) }}</span>
+			<v-chip v-else x-small outlined :color="live.phase === 'off' ? undefined : (live.phase === 'running' ? 'success' : 'warning')">{{ tx(live.key) }}</v-chip>
 			<help-tip v-bind="help()" />
 		</div>
-		<div class="text-caption grey--text mt-1">{{ tx('layer_recipes_run_lead') }}</div>
+		<div v-if="external" class="wf-field-msg is-hint mt-1">{{ px('apply_lead') }}</div>
+		<div v-else class="text-caption pc-muted mt-1">{{ tx('layer_recipes_run_lead') }}</div>
 		<error-notice v-if="failure" :error="failure" :action="tx('layer_recipes_run_acting')" retry class="mt-2" @retry="poll()" />
-		<lock-reason v-if="!canArm" op="layerrecipes.arm" need="technician" :action="tx('layer_recipes_run_arming')" class="mt-2" />
+		<!-- inside Prepare job the reason of Apply is said ONCE, under the stepper of the page (reasonId points to it): this panel does not repeat it -->
+		<lock-reason v-if="!canArm && !external" op="layerrecipes.arm" need="technician" :action="tx('layer_recipes_run_arming')" class="mt-2" />
 
 		<!-- the live state: the layer it is on, what each track applied, when the next change comes -->
 		<div class="rr-live mt-3" role="status" aria-live="polite">
-			<div v-if="status && status.armed" class="text-body-2">
-				<div>{{ tx('layer_recipes_run_recipe', { name: status.recipe, file: status.file }) }}</div>
+			<!-- the service stopped answering: what was read last is not claimed any more (an "Applied" that may have ended with a restart) -->
+			<div v-if="external && stale" class="wf-note is-warn" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ px('status_unknown') }}</span></div>
+			<div v-else-if="status && status.armed" class="text-body-2">
+				<div v-if="external && appliedOther">{{ px('applied_other', { recipe: status.recipe, file: status.file }) }}</div>
+				<div v-else>{{ external ? px('applied_for', { name: status.recipe, file: status.file }) : tx('layer_recipes_run_recipe', { name: status.recipe, file: status.file }) }}</div>
+				<div v-if="external">{{ tx(live.key) }}</div>
 				<div>{{ status.layer ? tx('pellet_layers_live_layer', { layer: status.layer }) : tx('pellet_layers_live_no_layer') }}</div>
 				<div v-for="k in trackKeys" :key="k" class="mt-1">
 					<strong>{{ tx('layer_recipes_track_' + k) }}:</strong>
 					<template v-if="status.tracks[k].applied">{{ tx('pellet_layers_live_applied', { temps: temps(status.tracks[k].applied) }) }}</template>
 					<template v-else>{{ tx('layer_recipes_run_nothing_yet') }}</template>
 					<template v-if="status.tracks[k].next"> - {{ tx('pellet_layers_live_next', { at: status.tracks[k].next.at, temps: temps(status.tracks[k].next.temps) }) }}</template>
-					<span v-if="status.tracks[k].limited" class="warning--text text-caption"> {{ tx('pellet_layers_live_limited') }}</span>
+					<span v-if="status.tracks[k].limited" class="text-caption wf-state warn"> {{ tx('pellet_layers_live_limited') }}</span>
 					<div v-if="status.tracks[k].overridden === true" class="wf-note is-warn" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ overriddenText(status.tracks[k]) }}</span></div>
 				</div>
 			</div>
+			<div v-else-if="external && offNote.kind !== 'none'" class="wf-note is-warn" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ offNote.text }}</span></div>
+			<div v-else-if="external" class="text-body-2">{{ offNote.text }}</div>
 			<div v-else-if="live.reason" class="wf-note is-warn" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ tx('pellet_layers_live_ended_why', { why: tx(live.reason.key, live.reason.params) }) }}</span></div>
-			<div v-else class="text-body-2 grey--text">{{ tx('layer_recipes_run_off_note') }}</div>
+			<div v-else class="text-body-2 pc-muted">{{ tx('layer_recipes_run_off_note') }}</div>
 		</div>
 
 		<!-- turn it on for ONE job: two taps; turning it off is safe (one tap) and leaves the temperatures as they are -->
-		<div class="d-flex align-end flex-wrap mt-3" style="gap:12px">
+		<div class="pc-actions pc-actions-end mt-3">
 			<wf-field v-if="!external" id="rr-file" :label="tx('pellet_layers_f_file')" :message="fileHint">
 				<gcode-picker id="rr-file" :value="fileName" :job-file="jobName" clearable :aria-label="tx('pellet_layers_f_file')" :disabled="!canArm || armedNow" @input="onFilePick" />
 			</wf-field>
-			<v-btn small class="rr-btn" :color="armed === 'arm' ? 'amber darken-3' : 'primary'" :loading="busy === 'arm'" :disabled="!canArm || armedNow || !canArmNow" @click="touch('arm', arm)">
-				<v-icon small left>mdi-fire</v-icon>{{ armed === 'arm' ? tx('layer_recipes_run_tap_again') : (external ? $t('plugins.WorkshopPrinting.materials.apply') : tx('layer_recipes_run_arm')) }}
+			<v-btn small class="rr-btn" :color="armed === 'arm' ? 'amber darken-3' : 'primary'" :aria-describedby="!canArm && reasonId ? reasonId : undefined" :loading="busy === 'arm'" :disabled="!canArm || armedNow || !canArmNow" @click="touch('arm', arm)">
+				<v-icon small left>mdi-fire</v-icon>{{ armed === 'arm' ? (external ? px('apply_tap_again') : tx('layer_recipes_run_tap_again')) : (external ? px(offNote.kind === 'none' ? 'apply' : 'apply_again') : tx('layer_recipes_run_arm')) }}
 			</v-btn>
-			<v-btn small outlined class="rr-btn" :loading="busy === 'disarm'" :disabled="!armedNow" @click="disarm()"><v-icon small left>mdi-stop-circle-outline</v-icon>{{ tx('pellet_layers_disarm') }}</v-btn>
+			<v-btn small outlined class="rr-btn" :loading="busy === 'disarm'" :disabled="!armedNow" @click="disarm()"><v-icon small left>mdi-stop-circle-outline</v-icon>{{ external ? px('unapply') : tx('pellet_layers_disarm') }}</v-btn>
 			<v-btn v-if="!external" small outlined class="rr-btn" :loading="busy === 'preview'" :disabled="!canPreview" @click="readPreview()"><v-icon small left>mdi-file-eye-outline</v-icon>{{ tx('layer_recipes_run_preview') }}</v-btn>
 		</div>
 		<div v-if="armReason" class="wf-note mt-1" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ armReason }}</span></div>
-		<v-alert v-if="msg" dense text :type="msgKind" class="mt-3 mb-0">{{ msg }}</v-alert>
+		<pc-result :text="msg || ''" :kind="msgKind" class="mt-3" />
 
 		<!-- what the file will do: the real lines around every layer where a temperature changes, and the exact commands (read only) -->
 		<gcode-layer-view v-if="previewShown && !external" class="mt-3" :preview="preview" :loading="busy === 'preview'" :error="previewError" :recipe-name="name" @read="readPreview()" />
@@ -50,10 +60,14 @@
 <script>
 'use strict'
 
-// The run of a saved recipe: arm it for ONE job file (two taps), the live state of each track, stop it (one tap, never blocked), and read what the file will do
+// The run of the saved changes during the print of a profile: arm them for ONE job file (two taps), the live state of each track, stop it (one tap, never blocked), and read what the file will do
 // (layerrecipes.preview shown by GcodeLayerView.vue: it only shows). The service applies the temperatures inside the limits of the recipe and of each heater.
+// Inside Prepare job (`fileOverride` given: the page owns the file) the words on screen are ONE pair, Apply / Remove, and the state is Applied / Not applied (texts of the
+// `prepare` group): "arm" is the word of the code and of the service, never of that screen.
 import { api } from './workshop-api.js'
 import { roleMixin } from './role-mixin.js' // vue/_shared36
+import { tapArmMixin } from './tap-arm-mixin.js' // the double tap of the page (4 s)
+import PcResult from './PcResult.vue' // the result of an action, one line
 import HelpTip from './HelpTip.vue' // vue/_shared36
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared36
 import LockReason from './LockReason.vue' // vue/_shared36
@@ -62,20 +76,27 @@ import GcodeLayerView from './GcodeLayerView.vue'
 import GcodePicker from './GcodePicker.vue' // the select of the G-code library (the job file)
 import { liveState, tempsText, fileForJob } from './pellet-layers.js'
 import { noteParams, KEY_PREFIX } from './layer-recipes.js'
+import { appliedState } from './prepare-steps.js'
+import { samePath } from './job-draft.js'
+
+const MISSES_STALE = 2
 
 export default {
-	mixins: [roleMixin],
+	mixins: [roleMixin, tapArmMixin],
 	sessionData: ['armed', 'msg', 'msgKind', 'status', 'preview'],
 	sessionErrors: ['failure', 'msg', 'msgKind'],
-	components: { HelpTip, ErrorNotice, LockReason, WfField, GcodeLayerView, GcodePicker },
+	components: { PcResult, HelpTip, ErrorNotice, LockReason, WfField, GcodeLayerView, GcodePicker },
 	props: {
 		name: { type: String, default: '' }, // the saved recipe ('' = none)
 		recipe: { type: Object, default: null }, // the saved recipe
 		dirty: { type: Boolean, default: false }, // the form has changes that are not saved
-		fileOverride: { type: String, default: null } // the page that owns the file field (Material and G-code) gives the file: this panel then has no file field, no preview and says Apply
+		fileOverride: { type: String, default: null }, // the page that owns the file field (Prepare job) gives the file: this panel then has no file field, no preview and says Apply
+		wasApplied: { type: Boolean, default: false }, // Prepare job: this page applied the changes of this file in this session (so "no longer applied" is worth saying)
+		beforeApply: { type: Function, default: null }, // Prepare job: asked right before Apply goes to the service; false (the reading is stale) stops it
+		reasonId: { type: String, default: '' } // the id of the element of the page that says why Apply is locked (aria-describedby of the button)
 	},
 	data() {
-		return { status: null, file: '', fileTouched: false, preview: null, previewShown: false, previewError: null, armed: null, armedTimer: null, busy: null, msg: null, msgKind: 'info', failure: null, timer: null }
+		return { status: null, file: '', fileTouched: false, preview: null, previewShown: false, previewError: null, busy: null, msg: null, msgKind: 'info', failure: null, timer: null, misses: 0 }
 	},
 	computed: {
 		model() {
@@ -103,8 +124,12 @@ export default {
 		fileName() {
 			return fileForJob(this.external ? this.fileOverride : this.file)
 		},
+		// two polls in a row without an answer (about 6 s): the last answer is old
+		stale() {
+			return this.misses >= MISSES_STALE
+		},
 		canArmNow() {
-			return !!this.fileName && !!this.name && !!this.recipe && !this.dirty && !!this.status
+			return !this.stale && !!this.fileName && !!this.name && !!this.recipe && !this.dirty && !!this.status
 		},
 		canPreview() {
 			return !!this.fileName && !!this.name && !!this.recipe && !this.dirty
@@ -112,9 +137,21 @@ export default {
 		fileHint() {
 			return this.fileName ? '' : this.tx('pellet_layers_file_missing')
 		},
+		// Prepare job: something is applied but not for this profile and file (the sentence says which; Remove is on, Apply is off)
+		appliedOther() {
+			return this.external && this.armedNow && appliedState(this.status, this.fileName, this.name) === 'other'
+		},
+		// Prepare job, nothing applied: why. kind 'ended' = the service turned it off for a reason that is a problem, for THIS file; 'gone' = this page applied it and it is not applied any more
+		// (a restart of the service leaves no reason); 'none' = never applied or removed by the person
+		offNote() {
+			const r = this.live.reason
+			if (r && this.live.warn && this.status && samePath(this.status.file, this.fileName) && !this.armedNow) return { kind: 'ended', text: this.px('applied_ended', { why: this.tx(r.key, r.params) }) }
+			if (this.wasApplied && !this.armedNow) return { kind: 'gone', text: this.px('applied_gone') }
+			return { kind: 'none', text: this.px('apply_off_note') }
+		},
 		armReason() {
 			if (this.armedNow) return ''
-			if (!this.recipe) return this.tx('layer_recipes_run_needs_saved')
+			if (!this.recipe) return this.external ? this.px('apply_loading') : this.tx('layer_recipes_run_needs_saved')
 			if (this.dirty) return this.tx('layer_recipes_run_needs_save')
 			if (this.external && !this.fileName) return this.tx('pellet_layers_file_missing')
 			if (!this.status) return this.tx('layer_recipes_run_no_status')
@@ -122,6 +159,26 @@ export default {
 		}
 	},
 	watch: {
+		// the page that owns the steps (Prepare job) wants to know when the changes are armed
+		armedNow: {
+			immediate: true,
+			handler(v) {
+				this.$emit('armed', v)
+			}
+		},
+		// and what the service has applied (for which file, of which profile, or why it turned off): the page compares it with what the person chose
+		status: {
+			immediate: true,
+			handler(v) {
+				this.$emit('status', v)
+			}
+		},
+		stale: {
+			immediate: true,
+			handler(v) {
+				this.$emit('stale', v)
+			}
+		},
 		jobName(v) {
 			if (!this.fileTouched) this.file = v
 		},
@@ -138,7 +195,6 @@ export default {
 	},
 	beforeDestroy() {
 		clearInterval(this.timer)
-		clearTimeout(this.armedTimer)
 	},
 	methods: {
 		// the file field is the select of the G-code library
@@ -149,7 +205,12 @@ export default {
 		tx(key, params) {
 			return this.$t(KEY_PREFIX + key, params || {})
 		},
+		// the words of Prepare job (Apply / Remove)
+		px(key, params) {
+			return this.$t('plugins.WorkshopPrinting.prepare.' + key, params || {})
+		},
 		help() {
+			if (this.external) return { title: this.px('help_apply_title'), what: this.px('help_apply_what'), why: this.px('help_apply_why'), ifMissing: this.px('help_apply_miss'), how: this.px('help_apply_how') }
 			return { title: this.tx('layer_recipes_help_run_title'), what: this.tx('layer_recipes_help_run_what'), why: this.tx('layer_recipes_help_run_why'), ifMissing: this.tx('layer_recipes_help_run_miss'), how: this.tx('layer_recipes_help_run_how') }
 		},
 		onSessionChange() {
@@ -174,25 +235,20 @@ export default {
 			try {
 				this.status = await api('layerrecipes.status', {}, { quiet: true })
 				this.failure = null
-			} catch (e) { /* the next poll tries again */ }
+				this.misses = 0
+			} catch (e) { this.misses++ /* the next poll tries again */ }
 		},
 		// arming heats nothing by itself but lets the service change temperatures during the job: two taps (the first arms the button for 4 s)
 		touch(id, fn) {
-			if (this.armed !== id) {
-				this.armed = id
-				clearTimeout(this.armedTimer)
-				this.armedTimer = setTimeout(() => { this.armed = null }, 4000)
-				return
-			}
-			this.armed = null
-			fn.call(this)
+			this.tapArm(id, () => fn.call(this))
 		},
 		async arm() {
 			if (!this.canArm || !this.canArmNow || this.armedNow) return
 			this.busy = 'arm'
+			if (this.beforeApply && (await this.beforeApply()) === false) { this.busy = null; return }
 			try {
 				this.status = await api('layerrecipes.arm', { name: this.name, file: this.fileName })
-				this.say('success', this.tx('layer_recipes_run_armed', { name: this.name }))
+				this.say('success', this.external ? this.px('applied_msg', { name: this.name }) : this.tx('layer_recipes_run_armed', { name: this.name }))
 			} catch (e) {
 				this.fail(e)
 			} finally {
@@ -204,7 +260,8 @@ export default {
 			this.busy = 'disarm'
 			try {
 				this.status = await api('layerrecipes.disarm', {})
-				this.say('success', this.tx('layer_recipes_run_disarmed'))
+				this.$emit('removed')
+				this.say('success', this.external ? this.px('unapplied_msg') : this.tx('layer_recipes_run_disarmed'))
 			} catch (e) {
 				this.fail(e)
 			} finally {

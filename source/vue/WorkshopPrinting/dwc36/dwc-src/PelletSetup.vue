@@ -1,28 +1,21 @@
 <template>
 	<!-- CONFIGURE the pellet extruder (technician). Not a second copy of the drawing: the panel (Operate) is for looking and for
 	     running; this is for what is WRITTEN: the zones and their order, the fans, the feeding, the motor and the layout of the panel. -->
-	<div>
-		<div class="wf-section-head">
-			<h3>{{ (currentTool && currentTool.name) || $t('plugins.WorkshopPrinting.pellet.setup_title') }}</h3>
-			<span v-if="currentTool" class="wf-pill">T{{ currentTool.number }}</span>
-			<p class="wf-lead">{{ $t('plugins.WorkshopPrinting.pellet.setup_intro') }}</p>
-		</div>
+	<pc-section icon="mdi-cog-outline" :title="$t('plugins.WorkshopPrinting.printing.pellet_and_zones')" :lead="$t('plugins.WorkshopPrinting.pellet.setup_intro')" role="technician">
+		<template v-if="currentTool" v-slot:right><v-chip small outlined>{{ currentTool.name || ('T' + currentTool.number) }}</v-chip></template>
 		<!-- ONE reason for every button of the setup that this person cannot press (writing the configuration is a technician's) -->
-		<lock-reason :min="needConfig" class="mt-2" />
-		<v-alert v-if="!isFff" dense text type="info" class="mt-3 mb-0">{{ $t('plugins.WorkshopPrinting.common.the_extruder_only_exists_in_fff') }}</v-alert>
+		<lock-reason :min="needConfig" class="mt-2" :subject="$t('plugins.WorkshopPrinting.subjects.pellet_setup')" />
+		<div v-if="!isFff" class="wf-note mt-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ $t('plugins.WorkshopPrinting.common.the_extruder_only_exists_in_fff') }}</span></div>
 		<template v-else>
-			<div v-if="!currentTool" class="text-body-2 grey--text mt-3">{{ $t('plugins.WorkshopPrinting.pellet.no_tool_defined') }}</div>
+			<div v-if="!currentTool" class="text-body-2 pc-muted mt-3">{{ $t('plugins.WorkshopPrinting.pellet.no_tool_defined') }}</div>
 			<template v-else>
-				<div class="wf-tabs" role="tablist" :aria-label="$t('plugins.WorkshopPrinting.pellet.sec_zones')">
-					<button v-for="s in sectionList" :key="s.id" type="button" role="tab" class="wf-tab" :class="{ on: section === s.id }" :aria-selected="section === s.id" @click="section = s.id">
-						<v-icon small>{{ s.icon }}</v-icon>{{ s.label }}
-					</button>
-				</div>
 				<error-notice v-if="failure" :error="failure" class="mt-3" />
-				<v-alert v-if="msg" dense text :type="msgKind" class="mt-3 mb-0">{{ msg }}</v-alert>
+				<pc-result :text="msg || ''" :kind="msgKind" class="mt-3" />
 
 				<!-- ===== Heat zones: order, steps, sensors ===== -->
-				<div v-show="section === 'zones'" class="mt-4">
+				<details class="pc-step pt-zone-step mt-3" :open="section === 'zones'" @toggle="onToggle('zones', $event)">
+					<summary><v-icon small aria-hidden="true">mdi-fire</v-icon><span class="pc-step-title">{{ $t('plugins.WorkshopPrinting.pellet.sec_zones') }}</span></summary>
+					<div class="pc-step-body">
 					<div class="wf-section-head">
 <v-icon class="pc-ico" small>mdi-fire</v-icon>
 <h3>{{ $t('plugins.WorkshopPrinting.pellet.sec_zones') }}</h3>
@@ -59,10 +52,10 @@
 							</div>
 						</div>
 					</div>
-					<div class="d-flex flex-wrap align-center mt-2" style="gap:8px">
+					<div class="pc-actions mt-2">
 						<v-btn x-small outlined :disabled="!canConfig" :title="$t('plugins.WorkshopPrinting.pellet.add_zone_tip')" @click="addZone()"><v-icon x-small left>mdi-plus</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.add_zone') }}</v-btn>
 						<v-btn x-small :color="changed ? 'primary' : ''" :disabled="!changed || !canConfig" :loading="saving" @click="saveStep()">{{ $t('plugins.WorkshopPrinting.pellet.save_steps') }}</v-btn>
-						<span class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.pellet.preheat_materials_uses_it') }}</span>
+						<span class="text-caption pc-muted">{{ $t('plugins.WorkshopPrinting.pellet.preheat_materials_uses_it') }}</span>
 					</div>
 					<div class="wf-sub">
 						<div class="wf-section-head">
@@ -80,10 +73,13 @@
 					<!-- the forms that write modefff.g: output and sensor of each zone, their limits and monitors (free connectors only) -->
 					<extruder-config ref="cfg" :tool="currentTool" @msg="(t, m) => { msgKind = t; msg = m; }" @error="e => { failure = e; }" />
 					</div>
-				</div>
+					</div>
+				</details>
 
 				<!-- ===== Fans ===== -->
-				<div v-show="section === 'fans'" class="mt-4">
+				<details class="pc-step pt-zone-step mt-3" :open="section === 'fans'" @toggle="onToggle('fans', $event)">
+					<summary><v-icon small aria-hidden="true">mdi-fan</v-icon><span class="pc-step-title">{{ $t('plugins.WorkshopPrinting.pellet.sec_fans') }}</span></summary>
+					<div class="pc-step-body">
 					<div class="wf-section-head">
 <v-icon class="pc-ico" small>mdi-fan</v-icon>
 <h3>{{ $t('plugins.WorkshopPrinting.pellet.sec_fans') }}</h3>
@@ -99,15 +95,21 @@
 					</div>
 					<v-btn small outlined class="mt-3" :disabled="!canConfig" @click="newFan = !newFan"><v-icon small left>mdi-fan-plus</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.add_fan') }}</v-btn>
 					<pellet-fan-add v-if="newFan && canConfig" class="mt-3" :tool="currentTool" :busy="busy" :configure="canConfig" :om-fans="model.fans || []" :zones="zones" @saved="reloadPending" @msg="say" />
-				</div>
+					</div>
+				</details>
 
 				<!-- ===== Hopper feeding ===== -->
-				<div v-show="section === 'feed'" class="mt-4">
+				<details class="pc-step pt-zone-step mt-3" :open="section === 'feed'" @toggle="onToggle('feed', $event)">
+					<summary><v-icon small aria-hidden="true">mdi-grain</v-icon><span class="pc-step-title">{{ $t('plugins.WorkshopPrinting.pellet.sec_feed') }}</span></summary>
+					<div class="pc-step-body">
 					<pellet-feed :config="feedRaw" :tool="currentTool" :busy="busy" :gp-in="gpIn" :gp-out="gpOut" :configure="canConfig" :can-operate="canOperate" @saved="feedSaved" @msg="say" @error="e => { failure = e; }" />
-				</div>
+					</div>
+				</details>
 
 				<!-- ===== Motor / extruder ===== -->
-				<div v-show="section === 'motor'" class="mt-4">
+				<details class="pc-step pt-zone-step mt-3" :open="section === 'motor'" @toggle="onToggle('motor', $event)">
+					<summary><v-icon small aria-hidden="true">mdi-engine</v-icon><span class="pc-step-title">{{ $t('plugins.WorkshopPrinting.pellet.sec_motor') }}</span></summary>
+					<div class="pc-step-body">
 					<div class="wf-section-head">
 <v-icon class="pc-ico" small>mdi-engine</v-icon>
 <h3>{{ $t('plugins.WorkshopPrinting.pellet.motor_title', { n: extruderNumber }) }}</h3>
@@ -121,20 +123,26 @@
 						<div><div class="k">{{ $t('plugins.WorkshopPrinting.pellet.spec_jerk') }}</div><div class="v">{{ ext.jerk }} mm/min</div></div>
 					</div>
 					<div v-if="ext" class="pc-tile-m mt-3">{{ $t('plugins.WorkshopPrinting.pellet.motor_runtime_values', { flow: Math.round((ext.factor || 1) * 100), pa: ext.pressureAdvance || 0 }) }}</div>
-					<div class="d-flex flex-wrap mt-3" style="gap:8px">
+					<div class="pc-actions mt-3">
 						<v-btn small outlined :title="$t('plugins.WorkshopPrinting.pellet.tune_flow_tip')" @click="$emit('goto', { section: 'extruder' })"><v-icon small left>mdi-scale-balance</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.tune_flow') }}</v-btn>
-						<v-btn small outlined @click="$emit('goto', { section: 'pellet' })"><v-icon small left>mdi-engine</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.open_panel') }}</v-btn>
+						<v-btn small outlined @click="$emit('goto', { section: 'tool' })"><v-icon small left>mdi-engine</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.open_panel') }}</v-btn>
 					</div>
 					<pellet-motor class="mt-3" :busy="busy" :configure="canConfig" :extruders="(model.move && model.move.extruders) || []" :index="extruderNumber" :cold-retract="(model.heat && model.heat.coldRetractTemperature) || 0" :targets="zones.map(z => z.target)" @saved="reloadPending" @msg="say" @goto="g => $emit('goto', g)" />
-				</div>
+					</div>
+				</details>
 
 				<!-- ===== Nozzle change: steps and what to redo with the new diameter ===== -->
-				<div v-show="section === 'nozzle'" class="mt-4">
+				<details class="pc-step pt-zone-step mt-3" :open="section === 'nozzle'" @toggle="onToggle('nozzle', $event)">
+					<summary><v-icon small aria-hidden="true">mdi-nut</v-icon><span class="pc-step-title">{{ $t('plugins.WorkshopPrinting.nozzle.sec_nozzle') }}</span></summary>
+					<div class="pc-step-body">
 					<nozzle-change :tool="currentTool" :zones="zones" :saved="nozzleSize" :busy="busy" :configure="canConfig" :ext="ext" :extruder="extruderNumber" @saved="v => { nozzleSize = v; }" @goto="g => $emit('goto', g)" />
-				</div>
+					</div>
+				</details>
 
 				<!-- ===== How the panel is drawn ===== -->
-				<div v-show="section === 'layout'" class="mt-4">
+				<details class="pc-step pt-zone-step mt-3" :open="section === 'layout'" @toggle="onToggle('layout', $event)">
+					<summary><v-icon small aria-hidden="true">mdi-view-dashboard-outline</v-icon><span class="pc-step-title">{{ $t('plugins.WorkshopPrinting.pellet.sec_layout') }}</span></summary>
+					<div class="pc-step-body">
 					<div class="wf-section-head">
 <v-icon class="pc-ico" small>mdi-view-dashboard-outline</v-icon>
 <h3>{{ $t('plugins.WorkshopPrinting.pellet.sec_layout') }}</h3>
@@ -144,16 +152,17 @@
 						<button type="button" class="pc-pickb" :class="{ on: layout.value === 'vertical' }" :disabled="!canConfig" @click="setLayout('vertical')"><span class="pc-draw"><i style="width:10px;height:26px" /></span>{{ $t('plugins.WorkshopPrinting.pellet.vertical') }}</button>
 						<button type="button" class="pc-pickb" :class="{ on: layout.value === 'horizontal' }" :disabled="!canConfig" @click="setLayout('horizontal')"><span class="pc-draw"><i style="width:40px;height:10px" /></span>{{ $t('plugins.WorkshopPrinting.pellet.horizontal') }}</button>
 					</div>
-				</div>
+					</div>
+				</details>
 
 				<!-- dragging or moving a zone changes which heater is the nozzle: it is explained and confirmed first -->
-				<v-dialog :value="!!ask" max-width="560" persistent>
+				<v-dialog :value="!!ask" max-width="560" persistent content-class="impresion-dialog">
 					<v-card v-if="ask" class="mt-3">
-						<v-card-title class="text-subtitle-1"><v-icon left color="warning">mdi-alert</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.reorder_title') }}</v-card-title>
+						<v-card-title class="pc-card-title"><v-icon left color="warning">mdi-alert</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.reorder_title') }}</v-card-title>
 						<v-card-text class="text-body-2">
 							<p>{{ $t('plugins.WorkshopPrinting.pellet.reorder_what', { name: ask.name, pos: ask.to + 1 }) }}</p>
 							<ol class="mb-2"><li v-for="(n, i) in ask.names" :key="i" :class="{ 'font-weight-bold': i === ask.to }">{{ n }}</li></ol>
-							<p v-if="ask.nozzleChanges" class="warning--text">{{ $t('plugins.WorkshopPrinting.pellet.reorder_nozzle', { name: ask.newNozzle }) }}</p>
+							<p v-if="ask.nozzleChanges" class="wf-state warn">{{ $t('plugins.WorkshopPrinting.pellet.reorder_nozzle', { name: ask.newNozzle }) }}</p>
 							<ul>
 								<li>{{ $t('plugins.WorkshopPrinting.pellet.reorder_i1') }}</li>
 								<li>{{ $t('plugins.WorkshopPrinting.pellet.reorder_i2') }}</li>
@@ -170,7 +179,7 @@
 				</v-dialog>
 			</template>
 		</template>
-	</div>
+	</pc-section>
 </template>
 
 <script>
@@ -189,6 +198,8 @@ import NozzleChange from './NozzleChange.vue'
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared
 import LockReason from './LockReason.vue' // vue/_shared36
 import { roleMixin } from './role-mixin.js' // what the role sees and may do (vue/_shared)
+import PcResult from './PcResult.vue' // the result of an action, one line
+import PcSection from './PcSection.vue' // the head of the section (icon, title, lead, role)
 import { NEED } from './print-sections.js'
 import { isFriendly } from './print-errors.js'
 import { layout, loadLayout, saveLayout } from './pellet-orientation.js'
@@ -198,7 +209,7 @@ export default {
 	mixins: [roleMixin],
 	sessionData: ['msg', 'msgKind', 'failure', 'ask', 'newFan'], // what the person who left did or was refused stays nowhere (ESTANDAR 3)
 	sessionErrors: ['msg', 'msgKind', 'failure'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
-	components: { LockReason, ExtruderConfig, PelletFeed, PelletFanAdd, PelletMotor, NozzleChange, ErrorNotice, Pid },
+	components: { PcResult, PcSection, LockReason, ExtruderConfig, PelletFeed, PelletFanAdd, PelletMotor, NozzleChange, ErrorNotice, Pid },
 	props: {
 		isFff: { type: Boolean, default: false },
 		currentTool: { type: Object, default: null },
@@ -215,6 +226,7 @@ export default {
 	},
 	computed: {
 		// the sections of the strip (the toggle it replaces had the same six): id, icon and name
+		// kept for the open / closed state of the sub-cards below (the strip of tabs they replace had the same six)
 		sectionList() {
 			const t = k => this.$t('plugins.WorkshopPrinting.' + k);
 			return [
@@ -281,6 +293,11 @@ export default {
 		loadLayout();
 	},
 	methods: {
+		// one sub-card open at a time (the zones one also mounts its PID table only while it is open)
+		onToggle(id, e) {
+			if (e.target.open) this.section = id;
+			else if (this.section === id) this.section = '';
+		},
 		// where a temperature falls on the bar of its zone (0 to its limit)
 		barPct(v, z) {
 			return Math.max(0, Math.min(100, ((Number(v) || 0) / (z.max || 300)) * 100));

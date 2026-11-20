@@ -107,17 +107,17 @@ export function tzFffPanel(om, t) {
     return { key: x.key, name: nameOf(x), value: txt, color: TZ_FFF_CLASS_COLOR[x.cssClass], chip: x.cssClass === "fault" ? t("fff.heat_fault") : t("fff.heat_" + x.cssClass) };
   });
   var st = p.state ? (TZ_FFF_STATES[p.state] ? t("fff.st_" + p.state) : p.state) : "--";
-  var print = [{ label: t("fff.p_state"), value: st, color: p.inProgress ? "#66bb6a" : null }];
+  var print = [{ id: "state", label: t("fff.p_state"), value: st, color: p.inProgress ? "#66bb6a" : null }];
   var none = !p.inProgress && !p.file;
   if (!none) {
-    if (p.file) print.push({ label: t("fff.p_file"), value: p.file });
-    if (p.progress !== null) print.push({ label: t("fff.p_progress"), value: Math.round(p.progress) + " %", bar: p.progress });
-    if (p.layer !== null) print.push({ label: t("fff.p_layer"), value: p.layers ? p.layer + " / " + p.layers : String(p.layer) });
-    if (p.z !== null) print.push({ label: t("fff.p_z"), value: p.z.toFixed(2) + " mm" });
-    if (p.elapsed !== null) print.push({ label: t("fff.p_elapsed"), value: tzFffDur(p.elapsed) });
-    if (p.remaining !== null) print.push({ label: t("fff.p_left"), value: tzFffDur(p.remaining) });
-    if (p.speed !== null) print.push({ label: t("fff.p_speed"), value: p.speed + " %" });
-    if (p.flow !== null) print.push({ label: t("fff.p_flow"), value: p.flow + " %" });
+    if (p.file) print.push({ id: "file", label: t("fff.p_file"), value: p.file });
+    if (p.progress !== null) print.push({ id: "progress", label: t("fff.p_progress"), value: Math.round(p.progress) + " %", bar: p.progress });
+    if (p.layer !== null) print.push({ id: "layer", label: t("fff.p_layer"), value: p.layers ? p.layer + " / " + p.layers : String(p.layer) });
+    if (p.z !== null) print.push({ id: "z", label: t("fff.p_z"), value: p.z.toFixed(2) + " mm" });
+    if (p.elapsed !== null) print.push({ id: "elapsed", label: t("fff.p_elapsed"), value: tzFffDur(p.elapsed) });
+    if (p.remaining !== null) print.push({ id: "left", label: t("fff.p_left"), value: tzFffDur(p.remaining) });
+    if (p.speed !== null) print.push({ id: "speed", label: t("fff.p_speed"), value: p.speed + " %" });
+    if (p.flow !== null) print.push({ id: "flow", label: t("fff.p_flow"), value: p.flow + " %" });
   }
-  return { sig: sig, temps: rows, print: print, none: none };
+  return { sig: sig, temps: rows, print: print, none: none, inProgress: p.inProgress };
 }

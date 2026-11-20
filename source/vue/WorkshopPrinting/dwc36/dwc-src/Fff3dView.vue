@@ -3,7 +3,7 @@
 	     The logic is in fff-3d-view.js; this component only owns the DOM. -->
 	<v-card outlined class="pa-2 fff-3d">
 		<div class="d-flex align-center flex-wrap" style="gap:6px">
-			<span class="text-subtitle-2 mr-auto">{{ t('fff.view3d_title') }}</span>
+			<span class="pc-card-title mr-auto">{{ t('fff.view3d_title') }}</span>
 			<v-btn small :color="open ? undefined : 'primary'" :outlined="open" @click="toggle()">{{ open ? t('fff.view3d_close') : t('fff.view3d_open') }}</v-btn>
 		</div>
 		<div v-show="open">
@@ -21,8 +21,8 @@
 				<v-btn x-small outlined @click="view('front')">{{ t('fff.view_front') }}</v-btn>
 				<v-btn v-if="prev" x-small outlined @click="bed()">{{ withBed ? t('fff.bed_hide') : t('fff.bed_show') }}</v-btn>
 			</div>
-			<div class="text-caption grey--text mt-1">{{ info }}</div>
-			<div class="text-caption grey--text">{{ t('fff.view3d_help') }}</div>
+			<div class="text-caption pc-muted mt-1">{{ info }}</div>
+			<div class="text-caption pc-muted">{{ t('fff.view3d_help') }}</div>
 		</div>
 	</v-card>
 </template>

@@ -1,12 +1,12 @@
 <template>
 	<div class="bzp">
 		<div class="d-flex align-center" style="gap:4px">
-			<div class="text-subtitle-1 font-weight-medium">{{ $t('plugins.WorkshopPrinting.bedZones.power_title') }}</div>
-			<help-tip :title="$t('plugins.WorkshopPrinting.bedZones.power_title')" :what="$t('plugins.WorkshopPrinting.bedZones.power_help_what')" :why="$t('plugins.WorkshopPrinting.bedZones.power_help_why')" :if-missing="$t('plugins.WorkshopPrinting.bedZones.power_help_miss')" :how="$t('plugins.WorkshopPrinting.bedZones.power_help_how')" />
+			<h4>{{ $t('plugins.WorkshopPrinting.bedZones.power_title') }}</h4>
+			<pc-help :title="$t('plugins.WorkshopPrinting.bedZones.power_title')" :what="$t('plugins.WorkshopPrinting.bedZones.power_help_what')" :why="$t('plugins.WorkshopPrinting.bedZones.power_help_why')" :if-missing="$t('plugins.WorkshopPrinting.bedZones.power_help_miss')" :how="$t('plugins.WorkshopPrinting.bedZones.power_help_how')" />
 		</div>
 		<p class="text-caption mt-1 mb-2">{{ $t('plugins.WorkshopPrinting.bedZones.power_intro') }}</p>
 
-		<div class="bzp-grid">
+		<div class="pc-field-row">
 			<wf-field v-for="f in numbers" :id="'bzp-' + f.key" :key="f.key" :label="$t('plugins.WorkshopPrinting.bedZones.power_f_' + f.key)">
 				<v-text-field :id="'bzp-' + f.key" :value="inputs[f.key]" dense outlined hide-details :suffix="f.unit" inputmode="decimal" :placeholder="$t('plugins.WorkshopPrinting.bedZones.power_optional')" :aria-label="$t('plugins.WorkshopPrinting.bedZones.power_f_' + f.key)" @change="set(f.key, $event)" />
 			</wf-field>
@@ -27,27 +27,28 @@
 		</div>
 
 		<template v-if="result.zones.length">
-			<v-simple-table dense class="bzp-table mt-3">
+			<div class="bzp-scroll mt-3" role="region" tabindex="0" :aria-label="$t('plugins.WorkshopPrinting.bedZones.power_table_label')">
+			<v-simple-table dense class="bzp-table">
 				<thead>
 					<tr>
 						<th>{{ $t('plugins.WorkshopPrinting.bedZones.col_zone') }}</th>
-						<th class="text-right">{{ $t('plugins.WorkshopPrinting.bedZones.power_col_mass') }}</th>
-						<th class="text-right">{{ $t('plugins.WorkshopPrinting.bedZones.power_col_energy') }}</th>
-						<th class="text-right">{{ $t('plugins.WorkshopPrinting.bedZones.power_col_hold') }}</th>
-						<th class="text-right">{{ $t('plugins.WorkshopPrinting.bedZones.power_col_wanted') }}</th>
-						<th v-if="hasPower" class="text-right">{{ $t('plugins.WorkshopPrinting.bedZones.power_col_time') }}</th>
-						<th v-if="hasPower" class="text-right">{{ $t('plugins.WorkshopPrinting.bedZones.power_col_margin') }}</th>
+						<th class="text-right" :title="$t('plugins.WorkshopPrinting.bedZones.power_col_mass_title')">{{ $t('plugins.WorkshopPrinting.bedZones.power_col_mass') }}</th>
+						<th class="text-right" :title="$t('plugins.WorkshopPrinting.bedZones.power_col_energy_title')">{{ $t('plugins.WorkshopPrinting.bedZones.power_col_energy') }}</th>
+						<th class="text-right" :title="$t('plugins.WorkshopPrinting.bedZones.power_col_hold_title')">{{ $t('plugins.WorkshopPrinting.bedZones.power_col_hold') }}</th>
+						<th class="text-right" :title="$t('plugins.WorkshopPrinting.bedZones.power_col_wanted_title')">{{ $t('plugins.WorkshopPrinting.bedZones.power_col_wanted') }}</th>
+						<th v-if="hasPower" class="text-right" :title="$t('plugins.WorkshopPrinting.bedZones.power_col_time_title')">{{ $t('plugins.WorkshopPrinting.bedZones.power_col_time') }}</th>
+						<th v-if="hasPower" class="text-right" :title="$t('plugins.WorkshopPrinting.bedZones.power_col_margin_title')">{{ $t('plugins.WorkshopPrinting.bedZones.power_col_margin') }}</th>
 					</tr>
 				</thead>
 				<tbody>
 					<tr v-for="z in result.zones" :key="z.n">
-						<td>{{ $t('plugins.WorkshopPrinting.bedZones.zone_n', { n: z.n }) }} <span class="grey--text text-caption">{{ z.area_cm2 }} cm2</span></td>
+						<td class="bzp-zone">{{ $t('plugins.WorkshopPrinting.bedZones.zone_n', { n: z.n }) }} <span class="pc-muted text-caption">{{ z.area_cm2 }} cm2</span></td>
 						<td class="text-right bzp-num">{{ z.mass }} kg</td>
 						<td class="text-right bzp-num">{{ z.energy_wh }} Wh</td>
 						<td class="text-right bzp-num">{{ z.hold }} W</td>
-						<td class="text-right bzp-num">{{ z.wanted }} W <span class="grey--text">({{ z.density_wcm2 }} W/cm2)</span></td>
+						<td class="text-right bzp-num">{{ z.wanted }} W <span class="pc-muted">({{ z.density_wcm2 }} W/cm2)</span></td>
 						<td v-if="hasPower" class="text-right bzp-num">{{ z.minutes === null ? '-' : z.minutes + ' min' }}</td>
-						<td v-if="hasPower" class="text-right bzp-num" :class="{ 'error--text': z.margin < 0 }">{{ z.margin }} W</td>
+						<td v-if="hasPower" class="text-right bzp-num"><span :class="{ 'wf-state err': z.margin < 0 }">{{ z.margin }} W</span></td>
 					</tr>
 					<tr class="font-weight-medium">
 						<td>{{ $t('plugins.WorkshopPrinting.bedZones.power_total') }}</td>
@@ -60,12 +61,13 @@
 					</tr>
 				</tbody>
 			</v-simple-table>
+			</div>
 			<div v-if="result.assumed.length" class="wf-note mt-3" role="note">
 				<v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon>
 				<span>{{ $t('plugins.WorkshopPrinting.bedZones.power_assumed', { list: assumedText }) }}</span>
 			</div>
 			<div v-if="!hasPower" class="text-caption mt-2">{{ $t('plugins.WorkshopPrinting.bedZones.power_no_heater') }}</div>
-			<div class="text-caption mt-1 grey--text">{{ $t('plugins.WorkshopPrinting.bedZones.power_disclaimer') }}</div>
+			<div class="text-caption mt-1 pc-muted">{{ $t('plugins.WorkshopPrinting.bedZones.power_disclaimer') }}</div>
 		</template>
 	</div>
 </template>
@@ -78,7 +80,7 @@
 // holds the typed inputs (the page keeps them, so the insulation test shares the room temperature) and writes the table. An estimate, not a limit.
 import { estimate, MATERIALS, DEFAULTS } from './bed-zones-power.js'
 import WfField from './WfField.vue' // vue/_shared36
-import HelpTip from './HelpTip.vue' // vue/_shared36
+import PcHelp from './PcHelp.vue' // the "?" of a row, drawn folded by the section
 
 const NUMBERS = [
 	{ key: 'ambient', unit: '°C' },
@@ -90,7 +92,7 @@ const NUMBERS = [
 const CUSTOMS = [{ key: 'density', unit: 'kg/m3' }, { key: 'cp', unit: 'J/(kg K)' }]
 
 export default {
-	components: { WfField, HelpTip },
+	components: { WfField, PcHelp },
 	props: {
 		rows: { type: Array, required: true }, // zoneRows(): the rect of every zone
 		inputs: { type: Object, required: true } // the typed inputs ('' = not given), kept by the page
@@ -122,6 +124,8 @@ export default {
 </script>
 
 <style scoped>
-.bzp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
 .bzp-num { font-family: var(--tp-font-mono, monospace); font-size: 12px; white-space: nowrap; }
+.bzp-scroll { max-width: 100%; overflow-x: auto; }
+.bzp-scroll:focus-visible { outline: 2px solid var(--wf-accent); outline-offset: 1px; }
+.bzp-table th, .bzp-zone { white-space: nowrap; }
 </style>

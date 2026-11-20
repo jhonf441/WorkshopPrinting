@@ -223,6 +223,12 @@ export function pickLabel(item) {
 	return parts.join(' - ')
 }
 
+// How many rules (points of a track) a recipe holds, for the one-line summary of a profile: 0 when it has none
+export function rulesCount(recipe) {
+	const tracks = (recipe && recipe.tracks) || {}
+	return Object.keys(tracks).reduce((n, k) => n + (tracks[k] && Array.isArray(tracks[k].points) ? tracks[k].points.length : 0), 0)
+}
+
 export function trackList(summary) {
 	return (summary && summary.tracks) || []
 }

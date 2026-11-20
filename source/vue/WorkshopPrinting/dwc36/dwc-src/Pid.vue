@@ -1,14 +1,17 @@
 <template>
-	<pc-section icon="mdi-chart-bell-curve" :title="$t('plugins.WorkshopPrinting.common.pid')" :bare="zonesOnly">
+	<pc-section icon="mdi-chart-bell-curve" :title="$t('plugins.WorkshopPrinting.common.pid')" role="technician" :bare="zonesOnly">
 		<help-guide v-if="!zonesOnly" :title="$t('plugins.WorkshopPrinting.common.how_it_works')">
 			<p>
 			{{ $t('plugins.WorkshopPrinting.pid.intro') }} <b>{{ $t('plugins.WorkshopPrinting.pid.do_not_leave') }}</b>
 			</p>
 		</help-guide>
-		<v-alert v-if="!isFff" dense text type="info" class="mt-3 mb-0">{{ $t('plugins.WorkshopPrinting.pid.the_nozzle_and_the_bed_only') }}</v-alert>
+		<div v-if="!isFff" class="wf-note mt-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ $t('plugins.WorkshopPrinting.pid.the_nozzle_and_the_bed_only') }}</span></div>
 		<template v-else>
 			<template v-if="!zonesOnly">
-			<v-row dense class="mt-3" align="center">
+			<!-- Level 4: it heats and cools by itself for minutes. The double tap below is the fallback when the page has no "Understood" box -->
+			<div class="wf-note is-warn mt-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ $t('plugins.WorkshopPrinting.pid.heats_for_real_note') }}</span></div>
+			<div class="pc-sub mt-3">
+			<v-row dense align="center">
 				<v-col cols="12" sm="4">
 					<v-btn-toggle v-model="which" mandatory dense color="primary">
 						<v-btn v-for="h in options" :key="h.id" small :value="h.id">{{ h.name }}</v-btn>
@@ -16,117 +19,59 @@
 				</v-col>
 				<v-col cols="6" sm="2"><v-text-field v-model.number="temp" :label="$t('plugins.WorkshopPrinting.pid.temperature_c')" type="number" dense outlined hide-details /></v-col>
 				<v-col cols="6" sm="3">
-					<v-btn small outlined color="error" :disabled="!can || !!inProgress" @click="touch()">
-						{{ armed ? $t('plugins.WorkshopPrinting.pid.tap_again_it_will_heat') : $t('plugins.WorkshopPrinting.pid.calibrate') }}
+					<v-btn small :color="isArmed('cal') ? 'amber darken-3' : 'primary'" :outlined="!isArmed('cal')" :disabled="!can || !!inProgress" @click="touch()">
+						{{ isArmed('cal') ? $t('plugins.WorkshopPrinting.pid.tap_again_it_will_heat') : $t('plugins.WorkshopPrinting.pid.calibrate') }}
 					</v-btn>
 				</v-col>
 			</v-row>
-			<div v-if="reasonNo" class="text-caption warning--text mt-1"><v-icon x-small color="warning" class="mr-1">mdi-lock-outline</v-icon>{{ reasonNo }}</div>
-			<div v-if="chosen && temp > chosen.max" class="text-caption error--text">{{ $t('plugins.WorkshopPrinting.pid.above_machine_limit', { max: chosen.max }) }}</div>
-			<div v-if="inProgress && !zActive" class="text-body-2 mt-2">
-				<v-progress-circular indeterminate size="16" width="2" class="mr-1" />
+			<div v-if="reasonNo" class="pc-why"><v-icon x-small aria-hidden="true">mdi-lock-outline</v-icon><span>{{ reasonNo }}</span></div>
+			<div v-if="chosen && temp > chosen.max" class="wf-state err mt-1">{{ $t('plugins.WorkshopPrinting.pid.above_machine_limit', { max: chosen.max }) }}</div>
+			<div v-if="inProgress && !zActive" class="wf-state info mt-2" role="status">
 				{{ $t('plugins.WorkshopPrinting.pid.tuning_in_progress', { name: inProgress.name, c: Math.round(inProgress.current) }) }}
 			</div>
 			<pid-tune-chart v-if="trace && trace.points.length > 1" :trace="trace" />
-			<div class="text-subtitle-2 mt-4 mb-1">{{ $t('plugins.WorkshopPrinting.pid.current_model_of', { name: chosen ? chosen.name.toLowerCase() : '...' }) }}</div>
-			<div class="text-body-2" style="font-family:var(--tp-font-mono, monospace)">{{ modelTxt || $t('plugins.WorkshopPrinting.common.reading') }}</div>
+			</div>
+			<div class="pc-sub mt-3">
+			<h4>{{ $t('plugins.WorkshopPrinting.pid.current_model_of', { name: chosen ? chosen.name.toLowerCase() : '...' }) }}
+				<pc-help :title="$t('plugins.WorkshopPrinting.pid.current_model_of', { name: chosen ? chosen.name.toLowerCase() : '...' })" :what="$t('plugins.WorkshopPrinting.pid.help_model_what')" :why="$t('plugins.WorkshopPrinting.pid.help_model_why')" :if-missing="$t('plugins.WorkshopPrinting.pid.help_model_missing')" :how="$t('plugins.WorkshopPrinting.pid.help_model_how')" />
+			</h4>
+			<div class="text-body-2" style="font-family:var(--tp-font-mono, monospace)">{{ modelTxt || (modelReading ? $t('plugins.WorkshopPrinting.common.reading') : $t('plugins.WorkshopPrinting.pid.model_none')) }}</div>
 			<template v-if="line">
 				<div class="text-body-2 mt-2">{{ $t('plugins.WorkshopPrinting.pid.line_for_modefff') }} <code>{{ line }}</code></div>
-				<div class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.pid.now_in_the_file') }} <code>{{ lineFile || $t('plugins.WorkshopPrinting.pid.not_read') }}</code></div>
-				<div class="d-flex flex-wrap mt-2" style="gap:8px">
-					<v-btn small :color="armedG ? 'amber darken-3' : 'primary'" :disabled="!lineFile || lineFile.trim().startsWith(line)" :loading="saving" @click="touchSave()">
-						{{ armedG ? $t('plugins.WorkshopPrinting.common.tap_again') : $t('plugins.WorkshopPrinting.common.save_to_modefff_g') }}
+				<div class="text-caption pc-muted">{{ $t('plugins.WorkshopPrinting.pid.now_in_the_file') }} <code>{{ lineFile || $t('plugins.WorkshopPrinting.pid.not_read') }}</code></div>
+				<div class="pc-actions mt-3">
+					<v-btn small :color="isArmed('save') ? 'amber darken-3' : 'primary'" :disabled="!lineFile || lineFile.trim().startsWith(line)" :loading="saving" @click="touchSave()">
+						{{ isArmed('save') ? $t('plugins.WorkshopPrinting.common.tap_again') : $t('plugins.WorkshopPrinting.common.save_to_modefff_g') }}
 					</v-btn>
 					<v-btn small text @click="readModel()">{{ $t('plugins.WorkshopPrinting.pid.read_again') }}</v-btn>
 				</div>
-				<div class="text-caption grey--text mt-1">
+				<div class="text-caption pc-muted mt-1">
 					{{ $t('plugins.WorkshopPrinting.pid.after_tuning_the_new_model_is') }}
 				</div>
 			</template>
+			</div>
 
 			<!-- 2026-10-11: how the selected heater's PID is and how it works,
 			     with the current values (read only; see PidDetail.vue) -->
-			<v-divider v-if="chosen" class="my-4" />
-			<pid-detail v-if="chosen" :om-heaters="heaters" :chosen="chosen" :reference="refTemp" :model-txt="modelTxt" @choose="which = $event" />
+			<pid-detail v-if="chosen" class="pc-sub mt-3" :om-heaters="heaters" :chosen="chosen" :reference="refTemp" :model-txt="modelTxt" @choose="which = $event" />
 
 			</template>
-			<!-- 2026-10-11: all the zones of a tool (pellet / several zones), one at a time,
-			     with the neighbours hot. Done by the service (API pid.start): it continues even if the page is closed. -->
-			<template v-if="toolsZones.length">
-				<v-divider v-if="!zonesOnly" class="my-4" />
-				<div class="d-flex align-center" style="gap:4px">
-					<div v-if="!zonesOnly" class="text-subtitle-1 font-weight-medium">{{ $t('plugins.WorkshopPrinting.pid.all_zones_automatic') }}</div>
-					<help-tip :title="$t('plugins.WorkshopPrinting.pid.all_zones_automatic')">
-						{{ $t('plugins.WorkshopPrinting.pid.in_a_barrel_with_several_zones') }} <b>{{ $t('plugins.WorkshopPrinting.pid.coupled') }}</b>{{ $t('plugins.WorkshopPrinting.pid.if_you_tune_a_zone_with') }}
-					</help-tip>
-				</div>
-				<v-row v-if="toolsZones.length > 1" dense class="mt-2">
-					<v-col cols="12">
-						<v-btn-toggle v-model="toolZ" mandatory dense color="primary">
-							<v-btn v-for="t in toolsZones" :key="t" small :value="t" :disabled="zActive">T{{ t }}</v-btn>
-						</v-btn-toggle>
-					</v-col>
-				</v-row>
-				<v-simple-table dense class="mt-2">
-					<thead>
-						<tr><th>{{ $t('plugins.WorkshopPrinting.common.zone') }}</th><th>{{ $t('plugins.WorkshopPrinting.common.now') }}</th><th>{{ $t('plugins.WorkshopPrinting.pid.target_c') }}</th><th>{{ $t('plugins.WorkshopPrinting.pid.result') }}</th></tr>
-					</thead>
-					<tbody>
-						<tr v-for="z in zonesSel" :key="z.id" :class="zCurrent === z.id ? 'zone-current' : ''">
-							<td>{{ z.name }}<span class="grey--text text-caption"> (H{{ z.id }})</span></td>
-							<td>{{ z.current != null ? Math.round(z.current) + ' °C' : '-' }}</td>
-							<td style="max-width:120px">
-								<v-text-field v-model.number="objZ[z.id]" type="number" dense hide-details :disabled="zActive"
-									:error="!tempZOk(z)" :suffix="$t('plugins.WorkshopPrinting.pid.limit_n', { n: z.max })" />
-							</td>
-							<td>
-								<v-chip x-small outlined :color="chipZ(z.id).color">{{ chipZ(z.id).text }}</v-chip>
-							</td>
-						</tr>
-					</tbody>
-				</v-simple-table>
-				<div v-if="zonesSel.some(z => !tempZOk(z))" class="text-caption error--text">{{ $t('plugins.WorkshopPrinting.pid.each_target_must_be_from_50') }}</div>
-				<div class="d-flex flex-wrap align-center mt-2" style="gap:8px">
-					<v-btn small outlined color="error" :disabled="!canZ" @click="touchZones()">
-						{{ armedZ ? $t('plugins.WorkshopPrinting.pid.tap_again_it_will_heat') : $t('plugins.WorkshopPrinting.pid.tune_all') }}
-					</v-btn>
-					<v-btn v-if="zActive" small outlined :loading="cancellingZ" @click="cancelZones()">
-						<v-icon small left>mdi-stop</v-icon>{{ $t('plugins.WorkshopPrinting.pid.cancel') }}
-					</v-btn>
-					<span v-if="!zActive && reasonNoZ" class="text-caption grey--text">{{ reasonNoZ }}</span>
-				</div>
-				<div v-if="zActive" class="text-body-2 mt-2">
-					<v-progress-circular indeterminate size="16" width="2" class="mr-1" />
-					{{ textPhaseZ }}
-					<span class="grey--text">({{ minutesZ }} min)</span>
-					<div class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.pid.to_stop_cancel_turns_the_zones') }}</div>
-				</div>
-				<v-alert v-if="zState && !zActive && zState.error" dense text :type="zState.phase === 'finished' ? 'warning' : 'error'" class="mt-2 mb-0">{{ zState.error }}</v-alert>
-				<div v-for="z in zErrors" :key="'e' + z.h" class="text-caption error--text">H{{ z.h }}: {{ z.error }}</div>
-				<template v-if="linesZ.length && !zActive">
-					<div class="text-subtitle-2 mt-3 mb-1">{{ $t('plugins.WorkshopPrinting.pid.new_lines_for_sys_modefff_g') }}</div>
-					<div v-for="l in linesZ" :key="l.h" class="text-body-2"><code>{{ l.line }}</code></div>
-					<div class="d-flex flex-wrap mt-2" style="gap:8px">
-						<v-btn small :color="armedZG ? 'amber darken-3' : 'primary'" :loading="savingZ" @click="touchSaveZones()">
-							{{ armedZG ? $t('plugins.WorkshopPrinting.common.tap_again') : $t('plugins.WorkshopPrinting.pid.save_all_to_modefff_g') }}
-						</v-btn>
-					</div>
-					<div class="text-caption grey--text mt-1">
-						{{ $t('plugins.WorkshopPrinting.pid.the_new_models_are_already_in') }}
-					</div>
-				</template>
-			</template>
+				<pid-zones-panel class="mt-3" :zones-only="zonesOnly" :tools-zones="toolsZones" :tool-z.sync="toolZ" :zones-sel="zonesSel" :obj-z="objZ" :z-active="zActive" :z-current="zCurrent" :z-state="zState"
+					:z-errors="zErrors" :lines-z="linesZ" :can-z="canZ" :reason-no-z="reasonNoZ" :text-phase="textPhaseZ" :minutes="minutesZ" :armed-z="isArmed('zones')" :armed-z-g="isArmed('savezones')"
+					:cancelling-z="cancellingZ" :saving-z="savingZ" :temp-z-ok="tempZOk" :chip-z="chipZ" @tune="touchZones()" @cancel="cancelZones()" @save="touchSaveZones()" />
 		</template>
-		<session-notice v-if="refusal" :kind="refusal" :needed="needConfig" class="mt-3" />
+		<session-notice v-if="refusal" :kind="refusal" :needed="needConfig" class="mt-3" :subject="$t('plugins.WorkshopPrinting.subjects.pid')" />
 		<error-notice v-if="failure" :error="failure" class="mt-3" />
-		<v-alert v-if="msg" dense text :type="msgKind" class="mt-3 mb-0">{{ msg }}</v-alert>
+		<pc-result :text="msg || ''" :kind="msgKind" class="mt-3" />
 	</pc-section>
 </template>
 
 <script>
 import i18n from '../../i18n'
-import HelpTip from './HelpTip.vue' // vue/_shared36
+import PcHelp from './PcHelp.vue' // the "?" of a row, drawn folded by the section
 import PcSection from './PcSection.vue' // the card with the header of the section (printing-design.css)
+import PcResult from './PcResult.vue' // the result of an action, one line
+import { tapArmMixin } from './tap-arm-mixin.js' // the double tap of the page (4 s)
 import HelpGuide from './HelpGuide.vue' // vue/_shared36
 
 'use strict'
@@ -136,6 +81,7 @@ import { api } from './workshop-api.js'
 import { MODE_FILE, CFG_FILE, MATERIALS_DEF, readText, writeText, readJson, changeLineMode, isError, markStartup, note } from './util.js'
 import PidDetail from './PidDetail.vue'
 import PidTuneChart from './PidTuneChart.vue'
+import PidZonesPanel from './PidZonesPanel.vue'
 import { fromService } from './pid-trace.js'
 import { lineSince, replaceM307Lines } from './mode-lines.js'
 import { rememberForNozzle } from './nozzle-store.js'
@@ -149,10 +95,10 @@ import { NEED } from './print-sections.js'
 
 
 export default {
-	mixins: [roleMixin],
-	sessionData: ['trace', 'msg', 'msgKind', 'failure', 'refusal', 'armed', 'armedG'], // what the person who left read, did or was refused stays nowhere (ESTANDAR 3)
+	mixins: [roleMixin, tapArmMixin],
+	sessionData: ['trace', 'msg', 'msgKind', 'failure', 'refusal', 'armed'], // what the person who left read, did or was refused stays nowhere (ESTANDAR 3)
 	sessionErrors: ['msg', 'msgKind', 'failure', 'refusal'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
-	components: { SessionNotice, HelpGuide, PidDetail: PidDetail, PidTuneChart, ErrorNotice, PcSection, HelpTip },
+	components: { SessionNotice, HelpGuide, PidDetail: PidDetail, PidTuneChart, PidZonesPanel, ErrorNotice, PcSection, PcResult, PcHelp },
 	props: {
 		isFff: { type: Boolean, default: false },
 		zonesOnly: { type: Boolean, default: false }, // only the all-zones tuning (mounted inside the pellet setup)
@@ -164,9 +110,9 @@ export default {
 		return {
 			// the real record of the tuning in progress (or the last one): the SERVICE takes it (dsf/pid_trace.py); here it is only read
 			trace: null, traceTick: 0, startedHere: null, destroyed: false, // startedHere: the target typed here, for when the board does not publish it
-			which: null, temp: 200, armed: false, armedG: false, timer: null, modelTxt: '', lineFile: '', saving: false, msg: null, msgKind: 'info', failure: null, refusal: '', wasCalibrating: false,
+			which: null, temp: 200, modelTxt: '', modelReading: false, lineFile: '', saving: false, msg: null, msgKind: 'info', failure: null, refusal: '', wasCalibrating: false,
 			// all the zones (2026-10-11): state published by the Pi (S"estado") and editable targets
-			toolZ: null, objZ: {}, zState: null, probing: null, armedZ: false, armedZG: false, cancellingZ: false,
+			toolZ: null, objZ: {}, zState: null, probing: null, cancellingZ: false,
 			savingZ: false, textMode: '', cfgImp: null
 		};
 	},
@@ -331,7 +277,6 @@ export default {
 	beforeDestroy() {
 		this.destroyed = true;
 		clearInterval(this._traceTimer);
-		clearTimeout(this.timer);
 		clearTimeout(this.probing);
 	},
 	methods: {
@@ -381,14 +326,10 @@ export default {
 			this.msgKind = 'error';
 			this.msg = text;
 		},
-		arm(flag) {
-			this[flag] = true;
-			clearTimeout(this.timer);
-			this.timer = setTimeout(() => { this.armed = false; this.armedG = false; this.armedZ = false; this.armedZG = false; }, 4000);
-		},
 		async readModel() {
 			const h = this.chosen;
 			if (!h || !this.isFff) return;
+			this.modelReading = true; // "Reading..." only while the board is being asked; with no answer the box says there is no connection
 			try {
 				const r = await this.sendCode({ code: `M307 H${h.id}`, log: false });
 				this.modelTxt = String(r || '').trim();
@@ -397,6 +338,8 @@ export default {
 				this.lineFile = l ? l.split(';')[0].trim() : '';
 			} catch (e) {
 				this.modelTxt = i18n.t('plugins.WorkshopPrinting.pid.could_not_read', { error: e.message || String(e) });
+			} finally {
+				this.modelReading = false;
 			}
 		},
 		// Level 4 (DESIGN.md): it heats and cools by itself for several minutes. Notice with
@@ -405,9 +348,7 @@ export default {
 		touch() {
 			const t = window.__workshop && window.__workshop.confirmLevel4;
 			if (!t) {
-				if (!this.armed) return this.arm('armed');
-				this.armed = false;
-				return this.calibrate();
+				return this.arm('cal', () => this.calibrate());
 			}
 			const h = this.chosen;
 			t({
@@ -439,9 +380,7 @@ export default {
 			}
 		},
 		touchSave() {
-			if (!this.armedG) return this.arm('armedG');
-			this.armedG = false;
-			this.save();
+			this.arm('save', () => this.save());
 		},
 		// ---- all the zones (2026-10-11) ----
 		nameZ(h) {
@@ -528,9 +467,7 @@ export default {
 		touchZones() {
 			const t = window.__workshop && window.__workshop.confirmLevel4;
 			if (!t) {
-				if (!this.armedZ) return this.arm('armedZ');
-				this.armedZ = false;
-				return this.calibrateZones();
+				return this.arm('zones', () => this.calibrateZones());
 			}
 			t({
 				title: i18n.t('plugins.WorkshopPrinting.pid.tune_all_zones_title', { n: this.toolZ }),
@@ -569,9 +506,7 @@ export default {
 			}
 		},
 		touchSaveZones() {
-			if (!this.armedZG) return this.arm('armedZG');
-			this.armedZG = false;
-			this.saveZones();
+			this.arm('savezones', () => this.saveZones());
 		},
 		// All the M307 lines at once: a single .bak copy and a single write.
 		// If a zone has no M307 line, it is added after the last M307.
@@ -622,13 +557,3 @@ export default {
 };
 </script>
 
-<style scoped>
-.zone-current {
-	background: rgba(198, 40, 40, 0.08);
-}
-.explica {
-	background: rgba(25, 118, 210, 0.08);
-	border-radius: 6px;
-	padding: 8px 12px;
-}
-</style>

@@ -1,52 +1,44 @@
 <template>
 	<div class="gl-list" :class="{ 'is-compact': compact }">
-		<!-- search and sort (the service filters and sorts: this page never has all the files) -->
-		<div class="gl-bar">
+		<!-- search, sort and kind in ONE row (the service filters and sorts: this page never has all the files); the folders are one select that only shows when there are any -->
+		<div class="gl-toolbar">
 			<v-text-field v-model="query" dense outlined hide-details clearable prepend-inner-icon="mdi-magnify" class="gl-search" :placeholder="tx('search')" :aria-label="tx('search')" />
-			<help-tip v-bind="help('search')" />
-		</div>
-		<div class="gl-bar">
 			<v-select v-model="sort" :items="sortItems" dense outlined hide-details class="gl-sort" :aria-label="tx('sort')" />
 			<v-btn icon class="gl-btn" :aria-label="desc ? tx('sort_desc') : tx('sort_asc')" :title="desc ? tx('sort_desc') : tx('sort_asc')" @click="desc = !desc"><v-icon>{{ desc ? 'mdi-sort-descending' : 'mdi-sort-ascending' }}</v-icon></v-btn>
 			<v-btn icon class="gl-btn" :aria-label="tx('reload')" :title="tx('reload')" @click="reload()"><v-icon>mdi-refresh</v-icon></v-btn>
-			<help-tip v-bind="help('sort')" />
+			<v-select :value="kinds" :items="kindItems" multiple dense outlined hide-details class="gl-sort" :label="tx('kind_label')" :placeholder="tx('kinds.all')" persistent-placeholder :aria-label="tx('kinds.filter')" @change="setKinds($event)" />
+			<v-select v-if="cur || dirs.length" :value="null" :items="folderItems" dense outlined hide-details class="gl-sort" prepend-inner-icon="mdi-folder-outline" :placeholder="tx('folder')" :aria-label="tx('folder')" @change="goFolder($event)" />
 		</div>
 
-		<gcode-kind-filter :value="kinds" :counts="counts" @input="setKinds" />
+		<div class="gl-body">
+			<div v-if="unsupported" class="wf-note is-warn" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ tx('service_old') }}</span></div>
+			<error-notice v-else-if="failure" :error="failure" :action="tx('listing')" retry class="ma-2" @retry="reload()" />
 
-		<!-- sub-folders of the folder shown, and the way back up -->
-		<div v-if="cur || dirs.length" class="gl-dirs">
-			<button v-if="cur" type="button" class="gl-dir" @click="up()"><v-icon small>mdi-arrow-up-left</v-icon>{{ tx('dir_up') }}</button>
-			<button v-for="d in dirs" :key="d" type="button" class="gl-dir" @click="enter(d)"><v-icon small>mdi-folder-outline</v-icon>{{ d }}</button>
-			<help-tip v-bind="help('folders')" />
-		</div>
+			<div v-if="pending > 0" class="gl-pending" role="status">
+				<span>{{ tx('indexing', { n: pending }) }}</span>
+				<v-progress-linear indeterminate height="3" />
+			</div>
 
-		<v-alert v-if="unsupported" dense text type="warning" class="ma-2" role="alert">{{ tx('service_old') }}</v-alert>
-		<error-notice v-else-if="failure" :error="failure" :action="tx('listing')" retry class="ma-2" @retry="reload()" />
+			<div v-if="empty" class="gl-empty" role="status">{{ query || kinds.length ? tx('no_match') : tx('empty') }}<div v-if="!query && !kinds.length" class="mt-1">{{ tx('empty_how') }}</div></div>
 
-		<div v-if="pending > 0" class="gl-pending" role="status">
-			<span>{{ tx('indexing', { n: pending }) }}</span>
-			<v-progress-linear indeterminate height="3" />
-		</div>
-
-		<div v-if="empty" class="gl-empty" role="status">{{ query || kinds.length ? tx('no_match') : tx('empty') }}</div>
-
-		<!-- only the visible rows exist in the DOM: the scroll area is as tall as the whole list, the rows sit at their position -->
-		<div v-show="!empty && !unsupported" ref="scroll" class="gl-scroll" role="listbox" :aria-label="tx('list_label')" @scroll.passive="onScroll">
-			<div class="gl-space" :style="{ height: total * rowHeight + 'px' }">
-				<div v-for="i in indexes" :key="i" class="gl-row" role="option" tabindex="0" :class="{ 'is-sel': rowAt(i) && rowAt(i).path === value, 'is-wait': !rowAt(i) }" :aria-selected="rowAt(i) && rowAt(i).path === value ? 'true' : 'false'" :style="{ top: i * rowHeight + 'px', height: rowHeight + 'px' }" @click="pick(rowAt(i))" @keydown.enter.prevent="pick(rowAt(i))" @keydown.space.prevent="pick(rowAt(i))">
-					<template v-if="rowAt(i)">
-						<gcode-thumb :key="rowAt(i).path + ':' + rowAt(i).state" :file="rowAt(i).path" :size="compact ? 40 : 48" />
-						<div class="gl-main">
-							<div class="gl-name" :title="rowAt(i).path">{{ rowAt(i).name }}</div>
-							<div v-if="chip(rowAt(i))" class="gl-sub">
-								<v-chip x-small outlined :color="chip(rowAt(i)).color"><v-icon x-small left>{{ chip(rowAt(i)).icon }}</v-icon>{{ tx('state_' + chip(rowAt(i)).kind) }}</v-chip>
-								<span v-if="rowAt(i).error" class="gl-err" :title="rowAt(i).error">{{ rowAt(i).error }}</span>
+			<!-- only the visible rows exist in the DOM: the scroll area is as tall as the whole list, the rows sit at their position -->
+			<div v-show="!empty && !unsupported" ref="scroll" class="gl-scroll" role="listbox" :aria-label="tx('list_label')" @scroll.passive="onScroll">
+				<div class="gl-space" :style="{ height: total * rowHeight + 'px' }">
+					<div v-for="i in indexes" :key="i" class="gl-row" role="option" tabindex="0" :class="{ 'is-sel': rowAt(i) && rowAt(i).path === value, 'is-wait': !rowAt(i) }" :aria-selected="rowAt(i) && rowAt(i).path === value ? 'true' : 'false'" :style="{ top: i * rowHeight + 'px', height: rowHeight + 'px' }" @click="pick(rowAt(i))" @keydown.enter.prevent="pick(rowAt(i))" @keydown.space.prevent="pick(rowAt(i))">
+						<template v-if="rowAt(i)">
+							<gcode-thumb :key="rowAt(i).path + ':' + rowAt(i).state" :file="rowAt(i).path" :size="compact ? 40 : 48" />
+							<div class="gl-main">
+								<div class="gl-name" :title="rowAt(i).path">{{ rowAt(i).name }}</div>
+								<div v-if="chip(rowAt(i))" class="gl-sub">
+									<v-chip x-small outlined :color="chip(rowAt(i)).color"><v-icon x-small left>{{ chip(rowAt(i)).icon }}</v-icon>{{ tx('state_' + chip(rowAt(i)).kind) }}</v-chip>
+									<span v-if="rowAt(i).error" class="gl-err" :title="rowAt(i).error">{{ rowAt(i).error }}</span>
+								</div>
+								<div v-else class="gl-sub"><gcode-kind-badge :kind="kindOfRow(rowAt(i))" :tags="tagsOf(rowAt(i))" :max="compact ? 0 : 2" />{{ lineOf(rowAt(i)) }}</div>
 							</div>
-							<div v-else class="gl-sub"><gcode-kind-badge :kind="kindOfRow(rowAt(i))" :tags="tagsOf(rowAt(i))" :max="compact ? 0 : 2" />{{ lineOf(rowAt(i)) }}</div>
-						</div>
-						<v-btn v-if="rowAt(i).state === 'error'" icon class="gl-btn" :aria-label="tx('retry')" :title="tx('retry')" @click.stop="retry(rowAt(i))"><v-icon>mdi-reload</v-icon></v-btn>
-					</template>
+							<v-chip v-if="!chip(rowAt(i))" x-small outlined color="success" class="gl-ready"><v-icon x-small left>mdi-check-circle-outline</v-icon>{{ tx('state_ready') }}</v-chip>
+								<v-btn v-if="rowAt(i).state === 'error'" icon class="gl-btn" :aria-label="tx('retry')" :title="tx('retry')" @click.stop="retry(rowAt(i))"><v-icon>mdi-reload</v-icon></v-btn>
+						</template>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -60,18 +52,16 @@
 // fetches only the pages the visible rows need and draws only those rows (gcode-lib-list.js). While the service reports `pending` files it asks again
 // the visible pages every few seconds (backing off) and stops by itself when nothing is pending. Reused by the library page and by the picker.
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared36
-import HelpTip from './HelpTip.vue' // vue/_shared36
 import GcodeThumb from './GcodeThumb.vue'
 import GcodeKindBadge from './GcodeKindBadge.vue'
-import GcodeKindFilter from './GcodeKindFilter.vue'
 import { lib } from './gcode-lib-shared.js'
 import { libText } from './gcode-lib-text.js'
 import { PAGE_SIZE, ROW_HEIGHT, SORTS, visibleRange, listArgs, createRowStore, pollDelay, stateChip, isUnsupported, childDir, parentDir } from './gcode-lib-list.js'
-import { rowKind, kindShortLine, loadFilter, saveFilter, normalizeFilter } from './gcode-lib-kinds.js'
+import { rowKind, kindShortLine, loadFilter, saveFilter, normalizeFilter, filterChips, kindMeta } from './gcode-lib-kinds.js'
 
 export default {
 	mixins: [libText],
-	components: { ErrorNotice, HelpTip, GcodeThumb, GcodeKindBadge, GcodeKindFilter },
+	components: { ErrorNotice, GcodeThumb, GcodeKindBadge },
 	props: {
 		value: { type: String, default: '' }, // the selected path
 		dir: { type: String, default: '' },
@@ -88,6 +78,15 @@ export default {
 		},
 		sortItems() {
 			return SORTS.map((s) => ({ text: this.tx('sort_' + s), value: s }))
+		},
+		// the folders as one select: the way up first, then each sub-folder
+		// the kinds of the "Tipo" select (the chips of before): the files of each one when the service counted them; nothing chosen = all
+		kindItems() {
+			return filterChips(this.kinds, this.counts).filter(c => c.id !== 'all').map(c => ({ text: this.tx('kinds.' + kindMeta(c.id).short) + (c.count !== null ? ' (' + c.count + ')' : ''), value: c.id }));
+		},
+		folderItems() {
+			const out = this.cur ? [{ text: this.tx('dir_up'), value: '..' }] : [];
+			return out.concat(this.dirs.map(d => ({ text: d, value: d })));
 		},
 		empty() {
 			return this.loaded && !this.failure && !this.unsupported && this.total === 0
@@ -216,14 +215,14 @@ export default {
 				this.loaded = true
 				if (isUnsupported(e)) this.unsupported = true
 				else if (!e || e.code !== 'cancelled') this.failure = e
-				this.$emit('status', { total: 0, pending: 0, unsupported: this.unsupported })
+				this.$emit('status', { total: 0, pending: 0, unsupported: this.unsupported, failed: !!this.failure })
 			})
 		},
 		// pending files: ask the visible pages again later (the service indexes in the background); nothing pending: stop, and refresh what is off screen once
 		noteStatus(out) {
 			const was = this.pending
 			this.pending = out.pending || 0
-			this.$emit('status', { total: this.total, pending: this.pending, unsupported: false, cacheBytes: out.cache_bytes || 0 })
+			this.$emit('status', { total: this.total, pending: this.pending, unsupported: false, cacheBytes: out.cache_bytes || 0, filtered: !!(this.query || this.kinds.length) })
 			const sig = this.pending + ':' + (out.rows || []).filter((r) => r.state === 'ready').length
 			this.quiet = sig === this.signature ? this.quiet + 1 : 0
 			this.signature = sig
@@ -236,6 +235,10 @@ export default {
 			if (typeof document !== 'undefined' && document.hidden) { this.pollTimer = setTimeout(() => this.poll(), 4000); return }
 			this.rows.markStale()
 			this.ensure()
+		},
+		goFolder(v) {
+			if (v === '..') this.up();
+			else if (v) this.enter(v);
 		},
 		enter(name) {
 			this.cur = childDir(this.shown || this.dir, name)
@@ -254,11 +257,11 @@ export default {
 
 <style scoped>
 .gl-list { display: flex; flex-direction: column; min-height: 0; height: 100%; }
-.gl-bar { display: flex; align-items: center; gap: 4px; padding: 4px 6px 0; }
-.gl-search, .gl-sort { min-width: 0; }
+.gl-body { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.gl-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 4px 6px 0; }
+.gl-search { flex: 1 1 160px; min-width: 0; }
+.gl-sort { flex: 0 1 150px; min-width: 110px; }
 .gl-btn.v-btn { width: 44px; height: 44px; }
-.gl-dirs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 4px 6px 0; }
-.gl-dir { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 12px; border-radius: 22px; border: 1px solid rgba(128, 128, 128, 0.4); background: transparent; color: inherit; font-size: 13px; cursor: pointer; }
 .gl-pending { padding: 4px 10px; font-size: 12px; opacity: 0.85; }
 .gl-empty { padding: 24px 12px; text-align: center; opacity: 0.7; }
 .gl-scroll { position: relative; flex: 1 1 auto; min-height: 120px; overflow-y: auto; -webkit-overflow-scrolling: touch; }

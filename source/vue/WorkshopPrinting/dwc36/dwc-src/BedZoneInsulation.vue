@@ -1,8 +1,8 @@
 <template>
 	<div class="bzi">
 		<div class="d-flex align-center" style="gap:4px">
-			<div class="text-subtitle-1 font-weight-medium">{{ $t('plugins.WorkshopPrinting.bedZones.insulation_title') }}</div>
-			<help-tip :title="$t('plugins.WorkshopPrinting.bedZones.insulation_title')" :what="$t('plugins.WorkshopPrinting.bedZones.insulation_help_what')" :why="$t('plugins.WorkshopPrinting.bedZones.insulation_help_why')" :if-missing="$t('plugins.WorkshopPrinting.bedZones.insulation_help_miss')" :how="$t('plugins.WorkshopPrinting.bedZones.insulation_help_how')" />
+			<h4>{{ $t('plugins.WorkshopPrinting.bedZones.insulation_title') }}</h4>
+			<pc-help :title="$t('plugins.WorkshopPrinting.bedZones.insulation_title')" :what="$t('plugins.WorkshopPrinting.bedZones.insulation_help_what')" :why="$t('plugins.WorkshopPrinting.bedZones.insulation_help_why')" :if-missing="$t('plugins.WorkshopPrinting.bedZones.insulation_help_miss')" :how="$t('plugins.WorkshopPrinting.bedZones.insulation_help_how')" />
 		</div>
 		<p class="text-caption mt-1 mb-2">{{ $t('plugins.WorkshopPrinting.bedZones.insulation_intro') }}</p>
 		<ol class="text-body-2 mb-3">
@@ -11,7 +11,7 @@
 			<li>{{ $t('plugins.WorkshopPrinting.bedZones.insulation_step_3') }}</li>
 		</ol>
 
-		<div class="d-flex align-end flex-wrap" style="gap:12px">
+		<div class="pc-actions pc-actions-end">
 			<v-btn-toggle v-model="kind" mandatory dense color="primary" class="bzi-toggle" :aria-label="$t('plugins.WorkshopPrinting.bedZones.insulation_kind')">
 				<v-btn small value="before" class="bzi-btn" :disabled="!!rec">{{ $t('plugins.WorkshopPrinting.bedZones.insulation_before') }}</v-btn>
 				<v-btn small value="after" class="bzi-btn" :disabled="!!rec">{{ $t('plugins.WorkshopPrinting.bedZones.insulation_after') }}</v-btn>
@@ -46,7 +46,7 @@
 			</thead>
 			<tbody>
 				<tr v-for="k in ['before', 'after']" v-show="runs[k]" :key="k">
-					<td>{{ $t('plugins.WorkshopPrinting.bedZones.insulation_' + k) }} <span v-if="runs[k] && typeof runs[k].zone === 'number'" class="grey--text text-caption">{{ $t('plugins.WorkshopPrinting.bedZones.zone_n', { n: runs[k].zone + 1 }) }}</span><span v-else-if="runs[k]" class="grey--text text-caption">{{ $t('plugins.WorkshopPrinting.bedZones.insulation_whole_bed') }}</span></td>
+					<td>{{ $t('plugins.WorkshopPrinting.bedZones.insulation_' + k) }} <span v-if="runs[k] && typeof runs[k].zone === 'number'" class="pc-muted text-caption">{{ $t('plugins.WorkshopPrinting.bedZones.zone_n', { n: runs[k].zone + 1 }) }}</span><span v-else-if="runs[k]" class="pc-muted text-caption">{{ $t('plugins.WorkshopPrinting.bedZones.insulation_whole_bed') }}</span></td>
 					<td class="text-right bzi-num">{{ runs[k] ? runs[k].fit.tau + ' min' : '' }}</td>
 					<td class="text-right bzi-num">{{ runs[k] ? runs[k].fit.rate + ' °C/min' : '' }}</td>
 					<td class="text-right bzi-num">{{ runs[k] ? runs[k].fit.minutes + ' min / ' + runs[k].fit.drop + ' °C' : '' }}</td>
@@ -57,7 +57,7 @@
 			<v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-check-circle-outline</v-icon>
 			<span>{{ verdict }}</span>
 		</div>
-		<div v-if="runs.before || runs.after" class="d-flex flex-wrap align-center mt-2" style="gap:8px">
+		<div v-if="runs.before || runs.after" class="pc-actions mt-2">
 			<span class="text-caption">{{ roomText }}</span>
 			<v-btn small text class="bzi-btn" @click="clearRuns()">{{ $t('plugins.WorkshopPrinting.bedZones.insulation_clear') }}</v-btn>
 		</div>
@@ -73,10 +73,10 @@
 import { addSample, fitCooling, compareRuns, lossWatts, bedTemperature, plateCapacity, SAMPLE_S, ASSUMED_ROOM } from './bed-zones-insulation.js'
 import { MATERIALS } from './bed-zones-power.js'
 import WfField from './WfField.vue' // vue/_shared36
-import HelpTip from './HelpTip.vue' // vue/_shared36
+import PcHelp from './PcHelp.vue' // the "?" of a row, drawn folded by the section
 
 export default {
-	components: { WfField, HelpTip },
+	components: { WfField, PcHelp },
 	props: {
 		rows: { type: Array, required: true }, // zoneRows(): the live temperature of every zone
 		inputs: { type: Object, default: () => ({}) }, // the inputs of the power card (room temperature, plate)

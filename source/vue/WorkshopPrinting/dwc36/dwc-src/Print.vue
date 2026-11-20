@@ -5,205 +5,37 @@
 			<v-chip v-if="tool" small outlined>{{ tool.name || ('T' + tool.number) }}</v-chip>
 			<template v-slot:startup><startup-panel plugin="WorkshopPrinting" :defs="noStartupRows" @state="startupPending = $event.pending" /></template>
 		</page-header>
-				<!-- Outside FFF (2026-10-10: "that it asks to activate or change mode to be used"):
-				     clear notice, what it changes and the button to change (double tap, only at rest) -->
-				<v-card v-if="!isFff && mode" outlined class="mb-3 pa-3 banner-mode">
-					<div class="d-flex align-center flex-wrap" style="gap:8px">
-						<v-icon color="warning">mdi-swap-horizontal-bold</v-icon>
-						<span class="text-subtitle-1 font-weight-medium">{{ $t('plugins.WorkshopPrinting.printing.3d_printing_needs_fff_mode') }}</span>
-						<v-chip x-small outlined>{{ $t('plugins.WorkshopPrinting.printing.now_mode', { mode: mode }) }}</v-chip>
-					</div>
-					<div class="text-body-2 mt-2">
-						{{ $t('plugins.WorkshopPrinting.printing.fff_mode_explain', { mode: mode }) }}
-					</div>
-					<div class="text-body-2 mt-1">
-						<b>{{ $t('plugins.WorkshopPrinting.printing.is_the_extruder_already_mounted') }}</b> {{ $t('plugins.WorkshopPrinting.printing.change_mode_with_the_button') }} <b>{{ mode === 'CNC' ? $t('plugins.WorkshopPrinting.printing.is_spindle_still_mounted') : $t('plugins.WorkshopPrinting.printing.is_laser_still_mounted') }}</b>
-						{{ ' ' }}<template v-if="canConfig">{{ $t('plugins.WorkshopPrinting.printing.use') }} <a href="#" @click.prevent="section = 'head'">{{ $t('plugins.WorkshopPrinting.printing.head_change') }}</a>{{ $t('plugins.WorkshopPrinting.printing.it_guides_you_to_remove_it') }}</template>
-					</div>
-					<!-- changing the mode is a technician's (F3-P): the others are told whom to ask instead of getting a button -->
-					<!-- ONE rule for every mode switch (mode-switch.js): the mode buttons of the bar ask the same one -->
-					<lock-reason :op="modeSwitchOp" :need="modeSwitchRole" class="mt-3 ask-technician" />
-					<div v-if="canSwitchMode" class="d-flex align-center flex-wrap mt-3" style="gap:8px">
-						<!-- changes the machine's configuration: amber double tap (DESIGN.md 5) -->
-						<v-btn small :color="armed === 'mode' ? 'amber darken-3' : 'primary'" :disabled="!!reasonNoMode" @click="arm('mode', changeAfff)">
-							<v-icon small left>mdi-printer-3d-nozzle</v-icon>{{ armed === 'mode' ? $t('plugins.WorkshopPrinting.printing.tap_again_switch_to_fff_mode') : $t('plugins.WorkshopPrinting.printing.switch_to_fff_mode') }}
-						</v-btn>
-						<v-btn small outlined @click="section = 'head'"><v-icon small left>mdi-swap-horizontal</v-icon>{{ $t('plugins.WorkshopPrinting.printing.head_change') }}</v-btn>
-						<div v-if="reasonNoMode" class="wf-note is-warn mb-0 mt-0" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ reasonNoMode }}</span></div>
-					</div>
-					<v-alert v-if="msg" dense text :type="msgKind" class="mt-2 mb-0">{{ msg }}</v-alert>
-				</v-card>
-		<div class="st-layout">
+					<!-- Outside FFF: ONE thin note (mode-gate: state elsewhere), the page stays for reading; what acts is off with its reason. The mode switch is in the bar -->
+					<!-- a machine set up WITHOUT 3D printing (profile answered, FFF off) is told so (mode-gate.js, state unused) -->
+					<session-notice v-if="fffUnused" class="mb-3" variant="section" kind="empty" :text="unusedText" />
+					<mode-notice v-else-if="!isFff && mode" class="mb-3" :needs="['FFF']" />
+		<!-- the tool the sections show (a machine with several tools): one thin strip for every section, under the header -->
+			<div v-if="tools.length > 1" class="pc-toolbar" role="group" :aria-label="$t('plugins.WorkshopPrinting.printing.tool_view')">
+				<span>{{ $t('plugins.WorkshopPrinting.printing.tool_view') }}</span>
+				<v-btn-toggle :value="tool ? tool.number : null" mandatory dense outlined color="primary" @change="v => { viewTool = v }">
+					<v-btn v-for="t in tools" :key="t.number" :value="t.number" small>{{ t.name || 'T' + t.number }}</v-btn>
+				</v-btn-toggle>
+			</div>
+			<div class="st-layout">
 				<side-tabs v-model="section" :items="tabItems" />
 				<div class="st-body" :style="{ '--wf-sec': secColor }">
-				<locked-cover v-if="lockedNow" :needed="lockedNow" />
+				<locked-cover v-if="lockedNow" :needed="lockedNow" :items="tabItems" :value="section" />
 				<v-tabs-items v-else v-model="section" class="transparent">
 					<!-- ===== Operate: Estado ===== -->
 					<v-tab-item value="state">
-						<pc-section icon="mdi-thermometer" :title="$t('plugins.WorkshopPrinting.common.status')">
-						<!-- cold extrusion allowed (level 4, 2026-10-11): fixed notice
-						     at the very top while it lasts, with the button to block it again -->
-						<v-alert v-if="coldAllowed" type="error" prominent class="mb-3">
-							<div class="font-weight-medium">{{ $t('plugins.WorkshopPrinting.printing.cold_extrusion_allowed') }}</div>
-							<div class="text-body-2">
-								{{ $t('plugins.WorkshopPrinting.printing.the_extruder_pushes_even_with_the') }}
-							</div>
-							<v-btn small class="mt-2" outlined :loading="coldSending" :disabled="!canOperate" @click="blockCold()">
-								<v-icon small left>mdi-lock</v-icon>{{ $t('plugins.WorkshopPrinting.printing.lock_cold_extrusion') }}
-							</v-btn>
-						</v-alert>
-						<div class="d-flex align-center flex-wrap mb-2" style="gap:16px">
-							<span class="text-body-2">{{ $t('plugins.WorkshopPrinting.printing.heated_bed_line', { state: bedText }) }}</span>
-							<span class="text-body-2">{{ $t('plugins.WorkshopPrinting.printing.heated_chamber_line', { state: chamberText }) }}</span>
-						</div>
-						<div v-if="!chamberIds.length" class="text-caption grey--text mb-3">{{ $t('plugins.WorkshopPrinting.printing.heated_chamber_none_help') }}</div>
-						<div v-if="tools.length > 1" class="d-flex align-center flex-wrap mb-2" style="gap:8px">
-							<span class="text-body-2">{{ $t('plugins.WorkshopPrinting.printing.tool_view') }}</span>
-							<v-btn-toggle :value="tool ? tool.number : null" mandatory dense outlined color="primary" @change="v => { viewTool = v }">
-								<v-btn v-for="t in tools" :key="t.number" :value="t.number" small>{{ t.name || 'T' + t.number }}</v-btn>
-							</v-btn-toggle>
-						</div>
-						<div v-if="tabItems.some(i => i.id === 'extruder')" class="d-flex align-center flex-wrap mb-3" style="gap:8px">
-							<span class="text-body-2">{{ $t('plugins.WorkshopPrinting.printing.extruder_type_now', { tool: toolName, kind: $t('plugins.WorkshopPrinting.extruder.kind_' + toolKind) }) }}</span>
-							<v-btn small outlined @click="goSection('extruder')">{{ $t('plugins.WorkshopPrinting.printing.change_extruder_type') }}</v-btn>
-						</div>
-						<div v-if="!heaters.length" class="text-body-2 grey--text">
-							{{ $t('plugins.WorkshopPrinting.printing.there_are_no_heaters_configured_now') }}
-						</div>
-						<v-row v-else dense>
-							<v-col v-for="h in heaters" :key="h.id" cols="12" sm="6" md="4">
-								<v-card outlined class="pa-3" :class="{ 'edge-fault': h.state === 'fault' || h.sensorBad }">
-									<div class="d-flex align-center">
-										<v-icon class="mr-2">{{ h.icon }}</v-icon>
-										<span class="text-h6">{{ h.name }}</span>
-										<v-spacer />
-										<v-chip small outlined :color="colorState(h)">{{ textState(h) }}</v-chip>
-									</div>
-									<div class="text-h4 my-1">{{ h.sensorBad ? '--' : fmt(h.current) }} °C</div>
-									<div class="text-body-2">
-										{{ $t('plugins.WorkshopPrinting.common.target') }} <b>{{ h.target > 0 ? fmt(h.target) + ' °C' : $t('plugins.WorkshopPrinting.common.off') }}</b>
-										<span class="grey--text ml-2">{{ $t('plugins.WorkshopPrinting.printing.limit_c', { max: fmt(h.max) }) }}</span>
-									</div>
-									<v-progress-linear :value="h.max && !h.sensorBad ? (h.current / h.max) * 100 : 0" :color="h.current > 50 ? 'amber darken-3' : 'grey'" height="6" rounded class="mt-2" />
-									<template v-if="h.state === 'fault' || h.sensorBad">
-										<div class="text-caption error--text mt-2">{{ h.explanation || $t('plugins.WorkshopPrinting.printing.the_heater_is_in_fault') }}</div>
-										<v-btn x-small outlined color="error" class="mt-1" :disabled="h.sensorBad || !canOperate" :title="h.sensorBad ? $t('plugins.WorkshopPrinting.printing.fix_the_sensor_first') : undefined" @click="deleteFault(h)">
-											{{ $t('plugins.WorkshopPrinting.printing.clear_fault_m562') }}
-										</v-btn>
-									</template>
-								</v-card>
-							</v-col>
-						</v-row>
-						<!-- temperature history (2026-10-11): sampled from the model every 2 s -->
-						<v-card v-if="heaters.length" outlined class="pa-3 mt-3">
-							<chart-state :series="seriesChart" :samples="samples" />
-						</v-card>
-						<div v-if="fans.length" class="mt-3">
-							<div class="text-subtitle-2 mb-1">{{ $t('plugins.WorkshopPrinting.common.fans') }}</div>
-							<div class="d-flex flex-wrap" style="gap:12px">
-								<div v-for="f in fans" :key="f.id" class="text-body-2">
-									<v-icon small class="mr-1">mdi-fan</v-icon>{{ f.name }}: <b>{{ Math.round(f.value * 100) }} %</b>
-									<span v-if="f.thermostatic" class="grey--text"> {{ $t('plugins.WorkshopPrinting.printing.automatic') }}</span>
-								</div>
-							</div>
-						</div>
-						<div v-if="isFff" class="d-flex flex-wrap mt-3" style="gap:8px">
-							<!-- apagar es seguro (nivel 1): un toque -->
-							<v-btn small outlined :disabled="!canOperate" @click="cool()">
-								<v-icon small left>mdi-snowflake</v-icon>{{ $t('plugins.WorkshopPrinting.printing.turn_off_all_heaters') }}
-							</v-btn>
-						</div>
-						<!-- How it is configured (2026-10-11): what the board's model says
-						     for each heater; "Read from the board" also asks for the output, the
-						     sensor, the model and the cap as RRF answers them -->
-						<div v-if="heaters.length" class="mt-4">
-							<div class="text-subtitle-2 mb-1"><v-icon small class="mr-1">mdi-cog-outline</v-icon>{{ $t('plugins.WorkshopPrinting.printing.how_it_is_configured') }}</div>
-							<v-expansion-panels multiple accordion>
-								<v-expansion-panel v-for="c in config" :key="c.id">
-									<v-expansion-panel-header>
-										<div class="d-flex align-center flex-wrap" style="gap:6px">
-											<v-icon small>{{ c.icon }}</v-icon>
-											<b>{{ c.name }}</b>
-											<span class="text-caption grey--text">{{ $t('plugins.WorkshopPrinting.printing.heater_sensor_limit', { id: c.id, sensor: c.sensor, max: fmt(c.max), pid: c.pidShort }) }}</span>
-										</div>
-									</v-expansion-panel-header>
-									<v-expansion-panel-content>
-										<v-simple-table dense class="table-config">
-											<tbody>
-												<tr><td>{{ $t('plugins.WorkshopPrinting.printing.belongs_to') }}</td><td>{{ c.belongsA }}</td></tr>
-												<tr><td>{{ $t('plugins.WorkshopPrinting.printing.output_m950') }}</td><td>{{ c.output || $t('plugins.WorkshopPrinting.printing.tap_read_from_the_board') }}</td></tr>
-												<tr><td>{{ $t('plugins.WorkshopPrinting.printing.sensor_m308') }}</td><td>{{ c.sensorTxt }}</td></tr>
-												<tr><td>{{ $t('plugins.WorkshopPrinting.common.limit_m143') }}</td><td>{{ c.stopTxt }}</td></tr>
-												<tr><td>{{ $t('plugins.WorkshopPrinting.printing.model_m307') }}</td><td>{{ c.modelTxt }}</td></tr>
-												<tr><td>{{ $t('plugins.WorkshopPrinting.common.control') }}</td><td>{{ c.pidTxt }}</td></tr>
-											</tbody>
-										</v-simple-table>
-										<div class="d-flex align-center flex-wrap mt-2" style="gap:8px">
-											<!-- solo pregunta (nivel 0-1): un toque -->
-											<v-btn x-small outlined :loading="readings[c.id] && readings[c.id].loading" @click="readConfig(c)">
-												<v-icon x-small left>mdi-download</v-icon>{{ $t('plugins.WorkshopPrinting.printing.read_from_the_board') }}
-											</v-btn>
-										</div>
-										<pre v-if="readings[c.id] && readings[c.id].text" class="response-board mt-2">{{ readings[c.id].text }}</pre>
-									</v-expansion-panel-content>
-								</v-expansion-panel>
-							</v-expansion-panels>
-						</div>
-
-						<!-- Cold extrusion (2026-10-11, request: "allow cold extrusions, but
-						     make it go through the safety protocol"). Allowing it is level 4
-						     (DESIGN.md 5): notice with a checkbox + active risk while it lasts.
-						     The state is read from the model: with M302 P1 RRF reports
-						     heat.coldExtrudeTemperature = 0 (Heat.cpp). -->
-						<v-card v-if="isFff" outlined class="pa-3 mt-4" :class="{ 'edge-fault': coldAllowed }">
-							<div class="d-flex align-center flex-wrap" style="gap:8px">
-								<v-icon :color="coldAllowed ? 'error' : 'success'">{{ coldAllowed ? 'mdi-lock-open-variant' : 'mdi-lock' }}</v-icon>
-								<span class="text-subtitle-1 font-weight-medium">{{ $t('plugins.WorkshopPrinting.printing.cold_extrusion') }}</span>
-								<v-chip small outlined :color="coldAllowed ? 'error' : coldAllowed === false ? 'success' : undefined">
-									{{ coldAllowed ? $t('plugins.WorkshopPrinting.printing.allowed') : coldAllowed === false ? $t('plugins.WorkshopPrinting.printing.locked') : $t('plugins.WorkshopPrinting.printing.no_data') }}
-								</v-chip>
-							</div>
-							<div class="text-body-2 mt-2">
-								<template v-if="coldAllowed">
-									{{ $t('plugins.WorkshopPrinting.printing.the_extruder_pushes_and_retracts_at') }}
-								</template>
-								<template v-else>
-									{{ $t('plugins.WorkshopPrinting.printing.locked_the_extruder_doesn_t_push') }} <b>{{ fmt(minExtCold) }} °C</b>
-									{{ $t('plugins.WorkshopPrinting.printing.nor_retract_below') }} <b>{{ fmt(minRetCold) }} °C</b>{{ $t('plugins.WorkshopPrinting.printing.it_is_the_normal_protection_it') }}
-								</template>
-							</div>
-							<div class="text-caption grey--text mt-1">
-								{{ $t('plugins.WorkshopPrinting.printing.relocks_on_restart') }} {{ textModeCold }}
-							</div>
-							<div class="d-flex align-center flex-wrap mt-3" style="gap:8px">
-								<v-btn v-if="coldAllowed" small color="primary" :loading="coldSending" :disabled="!canOperate" @click="blockCold()">
-									<v-icon small left>mdi-lock</v-icon>{{ $t('plugins.WorkshopPrinting.printing.lock_cold_extrusion') }}
-								</v-btn>
-								<!-- level 4: red; without the workshop's notice it falls back to the double tap -->
-								<v-btn v-else small :color="armed === 'cold' ? 'amber darken-3' : 'error'" :outlined="armed !== 'cold'" :disabled="coldAllowed == null || !canAllowCold" :loading="coldSending" @click="touchCold()">
-									<v-icon small left>mdi-lock-open-variant</v-icon>{{ armed === 'cold' ? $t('plugins.WorkshopPrinting.printing.tap_again_allow_cold_extrusion') : $t('plugins.WorkshopPrinting.printing.allow_cold_extrusion') }}
-								</v-btn>
-								<div v-else-if="coldAllowed == null" class="wf-note is-info mb-0 mt-0" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ $t('plugins.WorkshopPrinting.printing.no_data_from_the_board_yet') }}</span></div>
-							</div>
-						</v-card>
-						<!-- ONE reason for the whole tab (clear fault, turn off, cold extrusion), below the controls -->
-						<lock-reason :min="stateNeed" class="mt-3" />
-						<div v-if="isFff && extruder" class="text-caption grey--text mt-3">
-							{{ $t('plugins.WorkshopPrinting.printing.extruder_steps', { n: extruder.stepsPerMm }) }}
-						</div>
-						<v-alert v-if="msg" dense text :type="msgKind" class="mt-3 mb-0">{{ msg }}</v-alert>
-					</pc-section>
+						<state-section :is-fff="isFff" :heaters="heaters" :tools="tools" :tool="tool" :fans="fans" :extruder="extruder" :samples="samples" :series-chart="seriesChart" :cold-allowed="coldAllowed" :min-ext-cold="minExtCold" :min-ret-cold="minRetCold" @risk-touched="riskAttempt = Date.now()" />
 					</v-tab-item>
 					<!-- ===== Operate: bed zones, live part (the map, the setpoints, the zone table and the chart) ===== -->
 					<v-tab-item value="bed">
 						<pc-section icon="mdi-radiator" :title="$t('plugins.WorkshopPrinting.printing.bed_zones_live')" :lead="$t('plugins.WorkshopPrinting.bedZones.lead')">
-							<bed-zones part="live" :series="seriesChart" :samples="samples" :is-fff="isFff" @goto="goTo" />
+							<template v-if="bedBadge" v-slot:right><span class="wf-state" :class="bedBadge.kind" role="status">{{ $tc('plugins.WorkshopPrinting.bedZones.badge_' + bedBadge.key, bedBadge.m, bedBadge) }}</span></template>
+							<bed-zones part="live" :series="seriesChart" :samples="samples" :is-fff="isFff" @goto="goTo" @badge="bedBadge = $event" />
 						</pc-section>
 					</v-tab-item>
 
 					<!-- ===== Configure: bed zones, setup part (layout editor on the map, power estimate, insulation test, settings; the calibration assistant under it: the service preheats and tunes the zones and saves the results, always with the person present) ===== -->
 					<v-tab-item v-if="canConfig" value="bedsetup">
-						<pc-section icon="mdi-tune-variant" :title="$t('plugins.WorkshopPrinting.printing.bed_zones_setup')" :lead="$t('plugins.WorkshopPrinting.bedZones.setup_lead')">
+						<pc-section icon="mdi-tune-variant" :title="$t('plugins.WorkshopPrinting.printing.bed_zones_setup')" :lead="$t('plugins.WorkshopPrinting.bedZones.setup_lead')" role="technician">
 							<bed-zones part="setup" :series="seriesChart" :samples="samples" :is-fff="isFff" />
 							<bed-calibration />
 						</pc-section>
@@ -219,14 +51,17 @@
 						<head-change :mode="mode" :state="state" :homed="homed" :nozzle="nozzle" :modes="modeNames" />
 					</v-tab-item>
 
-					<!-- ===== Operate: the pellet panel (fans, motor test, feed now, heat a zone) ===== -->
-					<v-tab-item value="pellet">
-						<pellet :is-fff="isFff" :current-tool="tool" :heaters="heaters" :tools="tools" :fans="fans" @goto="goTo" />
-					</v-tab-item>
-
-					<!-- ===== Operate: the filament panel (heater, extruder flow, layer fan, hotend fan; filament tools only: hiddenIds) ===== -->
-					<v-tab-item value="hotend">
-						<filament-panel :is-fff="isFff" :tool="tool" :heaters="heaters" :fans="fans" :state="state" @goto="goTo" />
+					<!-- ===== Operate: the tool. One entry, the part by the kind of the tool seen: the pellet panel (fans, motor test, feed now, heat a zone), or the filament
+					     panel (heater, extruder flow, layer fan, hotend fan) with the load / unload under it. A viewer sees it read only (each part says why it is off) ===== -->
+					<v-tab-item value="tool">
+						<pc-section icon="mdi-printer-3d-nozzle" :title="$t('plugins.WorkshopPrinting.printing.tool')" :lead="$t('plugins.WorkshopPrinting.printing.tool_lead_' + toolKind)">
+							<template v-slot:right><v-chip small outlined>{{ toolName }}</v-chip><v-chip small outlined>{{ $t('plugins.WorkshopPrinting.extruder.kind_' + toolKind) }}</v-chip><v-btn v-if="tabItems.some(i => i.id === 'extruder')" x-small text @click="goSection('extruder')">{{ $t('plugins.WorkshopPrinting.printing.change_extruder_type') }}</v-btn></template>
+							<pellet v-if="toolKind === 'pellet'" :is-fff="isFff" :current-tool="tool" :heaters="heaters" :tools="tools" :fans="fans" @goto="goTo" />
+							<template v-else>
+								<filament-panel :is-fff="isFff" :tool="tool" :heaters="heaters" :fans="fans" :state="state" @goto="goTo" />
+								<filament-load :is-fff="isFff" :tool="tool" :nozzle="nozzle" :min-extrusion="minExtrusion" :state="state" />
+							</template>
+						</pc-section>
 					</v-tab-item>
 
 					<!-- ===== Configure: pellet zones (reorder, steps, feeding, outputs and sensors; writes modefff.g) ===== -->
@@ -234,14 +69,9 @@
 						<pellet-setup :is-fff="isFff" :current-tool="tool" :heaters="heaters" :fans="fans" :state="state" @goto="goTo" />
 					</v-tab-item>
 
-					<!-- ===== Prepare: Materiales (the material table and its preheat) ===== -->
-					<v-tab-item v-if="canOperate" value="materials">
-						<materiales :is-fff="isFff" :heaters="heaters" :tools="tools" :current-tool="tool" :state="state" />
-					</v-tab-item>
-
-					<!-- ===== Operate: load / unload filament (filament tools only: hiddenIds) ===== -->
-					<v-tab-item v-if="canOperate" value="filament">
-						<filament-load :is-fff="isFff" :tool="tool" :nozzle="nozzle" :min-extrusion="minExtrusion" :state="state" />
+					<!-- ===== Prepare: Profiles (the material profiles: list and editor, preheat) ===== -->
+					<v-tab-item v-if="canOperate" value="profiles">
+						<profiles :is-fff="isFff" :heaters="heaters" :tools="tools" :current-tool="tool" :state="state" @goto="goTo" />
 					</v-tab-item>
 
 					<!-- ===== Configure: Extrusor ===== -->
@@ -256,20 +86,20 @@
 
 					<!-- ===== 3D job: temperatures, print state and 3D view of a job (moved from the Workbench) ===== -->
 					<v-tab-item value="job">
-						<fff-job :is-fff="isFff" />
+						<fff-job :is-fff="isFff" @goto="goTo" />
 					</v-tab-item>
 
-					<!-- ===== Prepare: the material applied to a job file: what the file asks and what the material makes of it (read only), and Apply ===== -->
-					<v-tab-item value="layers">
-						<pc-section icon="mdi-layers-triple-outline" :title="$t('plugins.WorkshopPrinting.printing.layers_section')">
-							<layer-preview-page @goto="goTo" />
+					<!-- ===== Prepare: Prepare job: file, profile, what changes (read only), Preheat and Apply ===== -->
+					<v-tab-item value="prepare">
+						<pc-section icon="mdi-clipboard-list-outline" :title="$t('plugins.WorkshopPrinting.printing.prepare_job')">
+							<prepare-job ref="prepare" :is-fff="isFff" :heaters="heaters" :tools="tools" :current-tool="tool" :state="state" :tool-kind="toolKind" @goto="goTo" />
 						</pc-section>
 					</v-tab-item>
 
 					<!-- ===== Prepare: the G-code library: the slicing of every file (list, layer preview, info) from the parsed cache of the service ===== -->
 					<v-tab-item value="library">
 						<pc-section icon="mdi-bookshelf" :title="$t('plugins.WorkshopPrinting.printing.gcode_library')">
-							<gcode-library-page />
+							<gcode-library-page :is-fff="isFff" @goto="goTo" />
 						</pc-section>
 					</v-tab-item>
 				</v-tabs-items>
@@ -283,33 +113,29 @@ import i18n from '../../i18n'
 
 'use strict'
 
-import { mapActions } from 'vuex'
-import { api } from './workshop-api.js'
 import HeadChange from './HeadChange.vue'
 import PcSection from './PcSection.vue' // the card with the header of a section (printing-design.css)
-import materials from './Materials.vue'
+import Profiles from './Profiles.vue'
 import extruder from './Extruder.vue'
 import Pid from './Pid.vue'
 import Pellet from './Pellet.vue'
 import PelletSetup from './PelletSetup.vue'
-import LayerPreviewPage from './LayerPreviewPage.vue'
+import PrepareJob from './PrepareJob.vue'
 import GcodeLibraryPage from './GcodeLibraryPage.vue' // the G-code library (list + layer preview + info of every indexed file)
 import StartupPanel from './StartupPanel.vue' // start-up strip (vue/_shared)
 import PageHeader from './PageHeader.vue' // header of every page (vue/_shared)
 import { printModesMixin } from './print-modes-mixin.js' // which modes the machine uses: rows, entry, head change
 import StartupPrint from './PrintingStartup.vue' // the start-up assistant of the printing page (not the shared card, see HeadChange.vue)
-import ChartState from './ChartState.vue'
+import StateSection from './StateSection.vue' // the State section: heaters, chart, fans, configuration, cold extrusion
 import BedZones from './BedZones.vue' // the bed split in zones: map, setpoints, chart and settings (service op bedzones.*)
 import BedCalibration from './BedCalibration.vue' // calibration assistant of the zones: the service preheats, tunes and saves (with confirmation, Stop and a backup)
 import FffJob from './FffJob.vue' // 3D job tab: temperatures, print state, job control and 3D view (moved from the Workbench)
 import FilamentLoad from './FilamentLoad.vue' // load / unload filament (filament tools only)
-import { heaterConfigRows } from './heater-config.js' // the rows of "How it is configured"
-import { explainSensor, isSensorFault, isError, readText, MODE_FILE } from './util.js'
-import { coolCode } from './tool-codes.js' // heat, cool and extrusion codes: one module for every page
-import { pluginOf, pluginActive } from './workshop-ids.js' // Id nuevo o viejo del plugin (vue/_shared)
-import { machineFree } from './machine-free.js' // trabajo de archivo, pausado o en vivo (vue/_shared)
-import { ts } from './shared-t.js'
-import { serviceText, serviceDefaultKey } from './service-text.js'
+import { explainSensor, isSensorFault } from './util.js'
+import { pluginOf } from './workshop-ids.js' // the new or the old id of the plugin (vue/_shared)
+import { jobDraft, draftJobEnded } from './job-draft.js' // the job being prepared (file + profile), shared by the sections
+import { jobRunning } from './job-control.js'
+import { RISK_COLD, startColdRisk, endColdRisk } from './cold-risk.js' // the active risk of the cold extrusion (service risk.start / risk.end)
 
 const TAB_KEY = 'workshopPrintingSection';
 // History of the State chart (2026-10-11): one sample every 2 s, 10 min.
@@ -318,27 +144,25 @@ const SAMPLES_MAX = 300;
 // Series colors per heater (fixed order: the color follows the heater,
 // not its position in the visible list).
 const colors = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#9085e9', '#e66767', '#2a78d6'];
-// Riesgo activo de la extrusion en frio (API risk.start / risk.end of WorkshopService).
-const RISK_COLD = 'extrusion_cold';
-const riskColdIni = () => api('risk.start', { id: 'extrusion_cold', text: i18n.t('plugins.WorkshopPrinting.printing.risk_cold_extrusion', 'es'), text_en: i18n.t('plugins.WorkshopPrinting.printing.risk_cold_extrusion', 'en'), seconds: 3600 });
-const riskColdEnd = () => api('risk.end', { id: 'extrusion_cold' });
 
 import SideTabs from './SideTabs.vue'
 import { sectionColor } from './section-colors.js' // the color of the open section (top line of the card)
 import { roleMixin } from './role-mixin.js' // what the role sees and may do (vue/_shared)
 import { sideItems, sectionToShow, lockedSection, restoreSection, hiddenIds, NEED, SECTIONS } from './print-sections.js'
-import LockReason from './LockReason.vue' // vue/_shared36
-import { MODE_SWITCH_OP, MODE_SWITCH_ROLE } from './mode-switch.js' // the one rule of every mode switch (vue/_shared36)
+import SessionNotice from './SessionNotice.vue' // vue/_shared36
+import { modeGate } from './mode-gate.js' // vue/_shared36
+import { ts as tShared } from './shared-t.js' // vue/_shared36
+import { currentMode } from './current-mode.js' // the one rule of the real mode: state.machineMode, then global.selectedMode (vue/_shared36)
+import ModeNotice from './ModeNotice.vue' // vue/_shared36: the thin note outside FFF
 import LockedCover from './LockedCover.vue' // the cover of a section the role cannot open (vue/_shared36)
 import FilamentPanel from './FilamentPanel.vue'
 import { kindOfTool, loadExtruderKinds } from './extruder-kind.js' // pellets or filament of each tool: the pellet sections only show for a pellet tool
 
 export default {
 	mixins: [roleMixin, printModesMixin],
-	// what the person who left had read or done stays nowhere: the messages and the armed tap go, the files are read again (onSessionChange)
-	sessionData: ['armed', 'msg', 'msgKind', 'modeHasM302'],
-	sessionErrors: ['msg', 'msgKind'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
-	components: { PageHeader, SideTabs, LockedCover, LockReason, HeadChange: HeadChange, Materiales: materials, Extrusor: extruder, Pid, Pellet, PelletSetup, PrintingStartup: StartupPrint, StartupPanel: StartupPanel, ChartState, BedZones, BedCalibration, LayerPreviewPage, GcodeLibraryPage, FffJob, FilamentLoad, FilamentPanel, PcSection },
+	// what the person who left had chosen stays nowhere: the tool picked for the view goes back to the one of the machine (each section clears its own, role-mixin.js)
+	sessionData: ['viewTool'],
+	components: { SessionNotice, ModeNotice, PageHeader, SideTabs, LockedCover, HeadChange: HeadChange, Profiles, Extrusor: extruder, Pid, Pellet, PelletSetup, PrintingStartup: StartupPrint, StartupPanel: StartupPanel, StateSection, BedZones, BedCalibration, PrepareJob, GcodeLibraryPage, FffJob, FilamentLoad, FilamentPanel, PcSection },
 	data() {
 		let section = restoreSection(null);
 		try {
@@ -348,11 +172,15 @@ export default {
 			/* no critico */
 		}
 		return {
-			section, armed: null, armedTimer: null, msg: null, msgKind: 'info',
-			samples: [], readings: {},
+			section, samples: [],
+			// the tool the person picked for the view in the strip of the shell (null: the one the machine has now)
+			viewTool: null,
+			bedBadge: null, // the badge the live bed section tells (zones, all fine) for the head of its card
+			// the file of the job the machine is running, remembered while it runs (the model forgets it when the job ends)
+			jobFileSeen: '',
 			// cold extrusion: with M302 P1 the model reports 0 in both
 			// temperatures; the last real ones are remembered to show them
-			coldSending: false, lastMinExt: null, lastMinRet: null, riskAttempt: 0, modeHasM302: null,
+			lastMinExt: null, lastMinRet: null, riskAttempt: 0,
 			// what the start-up chip says (pending = rows still to do): the printer tests ask for it to be green
 			startupPending: 0,
 			noStartupRows: Object.freeze([])
@@ -366,7 +194,14 @@ export default {
 		coldAllowed() {
 			this.syncRisk();
 		},
+		jobFileNow: { immediate: true, handler(v) { if (v) this.jobFileSeen = v; } },
+		// the job of the draft finished or was cancelled: the draft is cleared (an old draft that comes back is worse than choosing again)
+		state(now, before) {
+			if (draftJobEnded(jobRunning(before), jobRunning(now), this.jobFileSeen, jobDraft.get().file)) jobDraft.clear();
+		},
 		section(v) {
+			// Prepare job reads the profiles again each time it is shown: a profile created or saved in Profiles is there when the person comes back
+			if (v === 'prepare') this.whenMounted('prepare', p => p.onActivate());
 			try {
 				localStorage.setItem(TAB_KEY, String(v));
 			} catch (e) {
@@ -375,19 +210,6 @@ export default {
 		}
 	},
 	computed: {
-		// what the machine declares: heaters of the bed (M140) and of the chamber (M141)
-		bedIds() {
-			return ((this.model.heat && this.model.heat.bedHeaters) || []).filter(n => n >= 0);
-		},
-		chamberIds() {
-			return ((this.model.heat && this.model.heat.chamberHeaters) || []).filter(n => n >= 0);
-		},
-		bedText() {
-			return this.bedIds.length ? i18n.t('plugins.WorkshopPrinting.printing.yes_heaters', { list: this.bedIds.map(n => 'H' + n).join(', ') }) : i18n.t('plugins.WorkshopPrinting.printing.no');
-		},
-		chamberText() {
-			return this.chamberIds.length ? i18n.t('plugins.WorkshopPrinting.printing.yes_heaters', { list: this.chamberIds.map(n => 'H' + n).join(', ') }) : i18n.t('plugins.WorkshopPrinting.printing.no');
-		},
 		toolKind() {
 			return this.tool ? kindOfTool(this.tool.number) : 'pellet';
 		},
@@ -401,34 +223,10 @@ export default {
 		tabItems() {
 			return sideItems(k => this.$t('plugins.WorkshopPrinting.' + k), this.isFff, op => this.canDo(op), hiddenIds(this.hideHead, this.toolKind));
 		},
-		// operator: heat, fans, preheat, lock cold extrusion; technician: what writes the configuration, changes the mode or the head,
-		// allows cold extrusion (NEED, print-sections.js). Without identity / users / an old service everything is shown (role-view.js)
+		// operator: heat, fans, preheat; technician: what writes the configuration, changes the mode or the head (NEED, print-sections.js).
+		// Without identity / users / an old service everything is shown (role-view.js)
 		canOperate() {
 			return this.atLeast(NEED.operate);
-		},
-		needOperate() {
-			return NEED.operate;
-		},
-		needCold() {
-			return NEED.cold;
-		},
-		// the role the controls of the state tab need, for its one reason: operate; with cold extrusion on the page (FFF) the higher one once operate is met
-		stateNeed() {
-			if (!this.canOperate) return NEED.operate;
-			return this.isFff && !this.canAllowCold ? NEED.cold : '';
-		},
-		needConfig() {
-			return NEED.configure;
-		},
-		// switching the mode: the one rule of mode-switch.js (the bar's mode buttons ask the same one)
-		modeSwitchOp() {
-			return MODE_SWITCH_OP;
-		},
-		modeSwitchRole() {
-			return MODE_SWITCH_ROLE;
-		},
-		canSwitchMode() {
-			return this.canDo(MODE_SWITCH_OP);
 		},
 		// every section with its role
 		allSections() {
@@ -441,23 +239,27 @@ export default {
 		canConfig() {
 			return this.atLeast(NEED.configure);
 		},
-		canAllowCold() {
-			return this.atLeast(NEED.cold);
-		},
 		model() {
 			return this.$store.state.machine.model;
 		},
 		mode() {
-			return (this.model.state && this.model.state.machineMode) || '';
+			return currentMode(this.model);
 		},
 		isFff() {
 			return this.mode === 'FFF';
 		},
+		// the machine does not use FFF at all (the profile is answered and FFF is off)
+		fffUnused() {
+			return modeGate(['FFF'], this.mode, this.modeState).state === 'unused';
+		},
+		unusedText() {
+			return tShared('mode_unused');
+		},
 		state() {
 			return (this.model.state && this.model.state.status) || '';
 		},
-		reasonNoMode() {
-			return this.calcReasonNoMode();
+		jobFileNow() {
+			return (this.model.job && this.model.job.file && this.model.job.file.fileName) || '';
 		},
 		homed() {
 			const ax = (this.model.move && this.model.move.axes) || [];
@@ -546,10 +348,6 @@ export default {
 				current: h.sensorBad ? null : h.current, target: h.target, max: h.max
 			}));
 		},
-		// the rows of "How it is configured" (heater-config.js)
-		config() {
-			return heaterConfigRows({ heaters: this.heaters, model: this.model, tools: this.tools, readings: this.readings, fmt: this.fmt, t: (k, p) => i18n.t('plugins.WorkshopPrinting.' + k, p) });
-		},
 		// REAL state of M302: with P1 RRF reports coldExtrudeTemperature = 0
 		// (Heat.cpp: coldExtrude ? 0 : extrusionMinTemp). null: model not loaded.
 		coldAllowed() {
@@ -565,11 +363,6 @@ export default {
 			const h = this.model.heat || {};
 			return h.coldRetractTemperature > 0 ? h.coldRetractTemperature : this.lastMinRet;
 		},
-		textModeCold() {
-			if (this.modeHasM302 === true) return i18n.t('plugins.WorkshopPrinting.printing.reloading_fff_mode_also_locks_it');
-			if (this.modeHasM302 === false) return i18n.t('plugins.WorkshopPrinting.printing.changing_or_reloading_fff_mode_does');
-			return '';
-		},
 		// risks open in the Pi service (null: service without data)
 		risksPi() {
 			const p = pluginOf(this.model.plugins, 'service');
@@ -584,31 +377,18 @@ export default {
 		loadExtruderKinds();
 		this.sample();
 		this.timerSample = setInterval(this.sample, SAMPLE_MS);
-		// if modefff.g sets M302 (without P1), reloading the mode blocks it again
 		this.recheckModes();
-		readText(MODE_FILE).then(t => {
-			this.modeHasM302 = t.split(/\r?\n/).some(l => {
-				const c = l.split(';')[0];
-				return /^\s*M302\b/i.test(c) && !/P1/i.test(c);
-			});
-		}).catch(() => {});
 	},
 	beforeDestroy() {
-		clearTimeout(this.armedTimer);
 		clearInterval(this.timerSample);
 	},
 	methods: {
-		...mapActions('machine', ['sendCode']),
 		// the person signed in / out or the role changed: what was read with the old session is read again
-		onSessionChange() {
+		onSessionChange(kind) {
 			loadExtruderKinds();
 			this.recheckModes();
-			readText(MODE_FILE).then(t => {
-				this.modeHasM302 = t.split(/\r?\n/).some(l => {
-					const c = l.split(';')[0];
-					return /^\s*M302/i.test(c) && !/P1/i.test(c);
-				});
-			}).catch(() => {});
+			// what the person who left was preparing does not stay for the next one
+			if (kind === 'signed-out' || kind === 'role-changed') jobDraft.clear();
 		},
 		// the open section when the mode or the role changes
 		fitSection() {
@@ -617,11 +397,19 @@ export default {
 			if (s !== this.section) this.section = s;
 		},
 		goSection(id) {
+			// the head change has no entry in the bar of a one-mode machine (hideHead) but its page still opens: the banner and the "first switch to FFF"
+			// button of the tests send people there, so a hidden entry must not turn them back
+			if (id === 'head' && this.hideHead && this.canConfig) {
+				this.section = 'head';
+				return;
+			}
 			this.section = sectionToShow(id, this.isFff, op => this.canDo(op), hiddenIds(this.hideHead, this.toolKind));
 		},
 		// a shortcut of the pellet panel: another section and, in PID, the heater to tune
 		goTo(g) {
 			this.goSection(g.section);
+			// arriving at Prepare job from another section (the files, the profiles): the focus goes to the first step that is not done
+			if (g.focus && g.section === 'prepare') this.whenMounted('prepare', p => p.focusCurrent());
 			if (g.heater == null) return;
 			// the section mounts after the change: wait for it (up to 2 s) before picking the heater
 			let n = 0;
@@ -631,6 +419,16 @@ export default {
 				else if (++n < 20) setTimeout(pick, 100);
 			};
 			this.$nextTick(pick);
+		},
+		// a section mounts after the change of tab: wait for its ref (up to 2 s) and then do something with it
+		whenMounted(ref, fn) {
+			let n = 0;
+			const tryIt = () => {
+				const c = this.$refs[ref];
+				if (c) fn(c);
+				else if (++n < 20) setTimeout(tryIt, 100);
+			};
+			this.$nextTick(tryIt);
 		},
 		// A sample of all the zones: [current, target] per heater.
 		// Frozen array: Vue does not make it reactive (300 samples x zones).
@@ -646,189 +444,21 @@ export default {
 			if (this.buf.length > SAMPLES_MAX) this.buf.splice(0, this.buf.length - SAMPLES_MAX);
 			this.samples = Object.freeze(this.buf.slice());
 		},
-		// Asks the board for the output, the sensor, the model and the cap (read only).
-		async readConfig(c) {
-			this.$set(this.readings, c.id, { loading: true, text: '', output: '' });
-			const parts = [];
-			let output = '';
-			for (const code of [`M950 H${c.id}`, `M308 S${c.sensor}`, `M307 H${c.id}`, `M143 H${c.id}`]) {
-				try {
-					const r = String(await this.sendCode({ code, log: false }) || '').trim();
-					parts.push(code + '\n  ' + (r || i18n.t('plugins.WorkshopPrinting.printing.no_response')));
-					if (code.startsWith('M950')) {
-						const m = r.match(/pin\s+([^\s,]+)/i);
-						if (m) output = m[1];
-					}
-				} catch (e) {
-					parts.push(code + '\n  ' + i18n.t('plugins.WorkshopPrinting.printing.could_not_read', { error: e.message || String(e) }));
-				}
-			}
-			this.$set(this.readings, c.id, { loading: false, text: parts.join('\n'), output: output || i18n.t('plugins.WorkshopPrinting.printing.see_the_m950_reply_below') });
-		},
-		// Level 4 (DESIGN.md 5): notice with warnings and an "Understood" checkbox. Without the
-		// workshop's notice (window.__workshop did not load) it falls back to the double tap.
-		touchCold() {
-			const t = window.__workshop && window.__workshop.confirmLevel4;
-			if (!t) return this.arm('cold', this.allowCold);
-			t({
-				title: i18n.t('plugins.WorkshopPrinting.printing.allow_cold_extrusion'),
-				notices: [
-					i18n.t('plugins.WorkshopPrinting.printing.the_extruder_will_push_even_with'),
-					i18n.t('plugins.WorkshopPrinting.printing.with_cold_or_half_melted_material'),
-					i18n.t('plugins.WorkshopPrinting.printing.use_it_to_test_the_motor'),
-					i18n.t(pluginActive(this.$store, 'lights') ? 'plugins.WorkshopPrinting.printing.while_it_lasts_the_red_bar' : 'plugins.WorkshopPrinting.printing.while_it_lasts_the_red_bar_no_lights')
-				],
-				understood: i18n.t('plugins.WorkshopPrinting.printing.understood_the_extruder_can_move_while'),
-				button: i18n.t('plugins.WorkshopPrinting.printing.allow')
-			}).then(ok => { if (ok) this.allowCold(); });
-		},
-		async allowCold() {
-			this.coldSending = true;
-			try {
-				const r = await this.sendCode({ code: 'M302 P1', log: true });
-				if (isError(r)) throw new Error(r);
-				this.riskAttempt = Date.now();
-				await riskColdIni().catch(() => {});
-				this.msgKind = 'warning';
-				this.msg = i18n.t('plugins.WorkshopPrinting.printing.cold_extrusion_allowed_lock_it_again');
-			} catch (e) {
-				this.msgKind = 'error';
-				this.msg = i18n.t('plugins.WorkshopPrinting.printing.could_not_allow', { error: e.message || String(e) });
-			} finally {
-				this.coldSending = false;
-			}
-		},
-		// Volver a bloquear devuelve la proteccion (nivel 1): un toque.
-		async blockCold() {
-			this.coldSending = true;
-			try {
-				const r = await this.sendCode({ code: 'M302 P0', log: true });
-				if (isError(r)) throw new Error(r);
-				this.riskAttempt = Date.now();
-				await riskColdEnd().catch(() => {});
-				this.msgKind = 'success';
-				this.msg = i18n.t('plugins.WorkshopPrinting.printing.cold_extrusion_locked_again');
-			} catch (e) {
-				this.msgKind = 'error';
-				this.msg = i18n.t('plugins.WorkshopPrinting.printing.could_not_lock', { error: e.message || String(e) });
-			} finally {
-				this.coldSending = false;
-			}
-		},
 		// The active risk follows the board's REAL state while this page
 		// is open: if it was allowed by console or the risk expired (D3600) it
 		// is opened again; if the board restarted, it is closed. One attempt per minute.
 		syncRisk() {
 			const r = this.risksPi;
 			if (!r || this.coldAllowed == null || Date.now() - this.riskAttempt < 60000) return;
-			const abierto = r.some(e => e && e.id === RISK_COLD);
-			if (this.coldAllowed && !abierto) {
+			const open = r.some(e => e && e.id === RISK_COLD);
+			if (this.coldAllowed && !open) {
 				this.riskAttempt = Date.now();
-				riskColdIni().catch(() => {});
-			} else if (!this.coldAllowed && abierto) {
+				startColdRisk().catch(() => {});
+			} else if (!this.coldAllowed && open) {
 				this.riskAttempt = Date.now();
-				riskColdEnd().catch(() => {});
-			}
-		},
-		fmt(v) {
-			return v == null || isNaN(v) ? '--' : Number(v).toFixed(0);
-		},
-		textState(h) {
-			if (h.sensorBad) return i18n.t('plugins.WorkshopPrinting.common.no_sensor');
-			return { off: i18n.t('plugins.WorkshopPrinting.printing.st_off'), active: i18n.t('plugins.WorkshopPrinting.printing.st_heating'), standby: i18n.t('plugins.WorkshopPrinting.common.standby'), fault: i18n.t('plugins.WorkshopPrinting.printing.st_fault'), tuning: i18n.t('plugins.WorkshopPrinting.printing.st_tuning') }[h.state] || h.state;
-		},
-		colorState(h) {
-			// DESIGN.md 2: falla = error, calibrando = aviso, calentando = ambar (calienta), resto gris
-			return h.state === 'fault' || h.sensorBad ? 'error' : h.state === 'tuning' ? 'warning' : h.state === 'active' ? 'amber darken-3' : h.state === 'standby' ? 'amber darken-1' : 'grey darken-1';
-		},
-		arm(id, fn) {
-			if (this.armed !== id) {
-				this.armed = id;
-				clearTimeout(this.armedTimer);
-				this.armedTimer = setTimeout(() => { this.armed = null; }, 4000);
-				return;
-			}
-			this.armed = null;
-			fn();
-		},
-		async deleteFault(h) {
-			try {
-				await this.sendCode({ code: `M562 P${h.id}`, log: true });
-				this.msgKind = 'success';
-				this.msg = i18n.t('plugins.WorkshopPrinting.printing.fault_cleared', { name: h.name });
-			} catch (e) {
-				this.msgKind = 'error';
-				this.msg = i18n.t('plugins.WorkshopPrinting.common.couldn_t') + (e.message || e);
-			}
-		},
-		// Change mode: never with a file job nor with the live job
-		// (motion audit, finding 7), nor with the machine busy.
-		calcReasonNoMode() {
-			if (['processing', 'paused', 'pausing', 'resuming', 'simulating', 'cancelling'].includes(this.state)) return i18n.t('plugins.WorkshopPrinting.common.a_job_is_running_wait_for');
-			const ml = machineFree(this.model, { t: ts, serviceText, serviceDefaultKey, purpose: 'settings' });
-			if (ml.code === 'live') return ml.reason + '.';
-			if (this.state === 'busy') return i18n.t('plugins.WorkshopPrinting.common.the_machine_is_busy_moving_or');
-			// 'off' (the supply is off) is allowed: changing the mode moves nothing and the board loads its configuration all the same
-			if (this.state && !['idle', 'off'].includes(this.state)) return i18n.t('plugins.WorkshopPrinting.printing.machine_not_idle', { state: this.state });
-			return '';
-		},
-		async changeAfff() {
-			if (!this.canSwitchMode) return; // changing the mode: the one rule of mode-switch.js
-			if (this.calcReasonNoMode()) return; // se vuelve a mirar al tocar
-			try {
-				// the owner's macro when this machine has it; otherwise RRF's own FFF mode (a new install has no macros/mode/selectfff.g:
-				// M98 on a missing file only logs an error in DWC, it answers nothing, so the page used to say "loaded" and nothing changed)
-				// only a macro with at least one line that runs counts: the service writes it as an example, all commented, and that does nothing
-				const hasMacro = await readText('0:/macros/mode/selectfff.g').then(t => t.split('\n').some(l => { const x = l.trim(); return x !== '' && x.charAt(0) !== ';'; }), () => false);
-				const r = await this.sendCode({ code: hasMacro ? 'M98 P"0:/macros/mode/selectfff.g"' : 'M451', log: true });
-				if (/error/i.test(r || '')) throw new Error(r);
-				if (!hasMacro && this.model.global && typeof this.model.global.has === 'function' && this.model.global.has('selectedMode')) await this.sendCode({ code: 'set global.selectedMode = "FFF"', log: true });
-				// the board needs a moment to apply M451 and the model a moment to show it: wait for it up to 10 s instead of a fixed 1.5 s
-				for (let waited = 0; !this.isFff && waited < 10000; waited += 500) await new Promise(done => setTimeout(done, 500));
-				if (!this.isFff) throw new Error(i18n.t('plugins.WorkshopPrinting.printing.mode_not_changed', { mode: this.mode || '?' }));
-				this.msgKind = 'success';
-				this.msg = i18n.t('plugins.WorkshopPrinting.printing.fff_mode_loaded_check_in_status');
-				setTimeout(() => { if (this.isFff) this.section = 'state'; }, 1500);
-			} catch (e) {
-				this.msgKind = 'error';
-				this.msg = i18n.t('plugins.WorkshopPrinting.printing.could_not_change_mode', { error: e.message || String(e) });
-			}
-		},
-		async cool() {
-			const codes = this.tools.map(t => coolCode(t.number));
-			if (this.heaters.some(h => h.paper === 'bed')) codes.push('M140 S0');
-			if (this.heaters.some(h => h.paper === 'camera')) codes.push('M141 S0');
-			try {
-				for (const c of codes) await this.sendCode({ code: c, log: true });
-				this.msgKind = 'success';
-				this.msg = i18n.t('plugins.WorkshopPrinting.printing.heaters_off_the_automatic_fans_keep');
-			} catch (e) {
-				this.msgKind = 'error';
-				this.msg = i18n.t('plugins.WorkshopPrinting.printing.could_not_turn_off', { error: e.message || String(e) });
+				endColdRisk().catch(() => {});
 			}
 		}
 	}
 };
 </script>
-
-<style scoped>
-.banner-mode {
-	border-color: var(--wf-warn, #fb8c00) !important;
-}
-.edge-fault {
-	border-color: #e53935 !important;
-}
-.table-config td:first-child {
-	white-space: nowrap;
-	color: var(--tp-faint, #9e9e9e);
-	width: 1%;
-}
-.response-board {
-	font-size: 12px;
-	white-space: pre-wrap;
-	word-break: break-word;
-	padding: 6px 8px;
-	border: 1px solid rgba(128, 128, 128, 0.3);
-	border-radius: 4px;
-}
-</style>

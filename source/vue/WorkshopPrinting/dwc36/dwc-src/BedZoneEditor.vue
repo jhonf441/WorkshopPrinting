@@ -1,6 +1,6 @@
 <template>
 	<div class="bze">
-		<div class="text-subtitle-2 mb-1">{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_title') }}</div>
+		<h4>{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_title') }}</h4>
 		<help-guide :title="$t('plugins.WorkshopPrinting.bedZones.zones_layout_guide_title')" :what="$t('plugins.WorkshopPrinting.bedZones.zones_layout_guide_what')" :why="$t('plugins.WorkshopPrinting.bedZones.zones_layout_guide_why')" :if-missing="$t('plugins.WorkshopPrinting.bedZones.zones_layout_guide_miss')" :how="$t('plugins.WorkshopPrinting.bedZones.zones_layout_guide_how')" />
 
 		<!-- no geometry yet: the map shows the simple grid; drawing the real bed is a choice of the technician -->
@@ -12,7 +12,7 @@
 		</template>
 
 		<template v-else>
-			<div class="d-flex align-center flex-wrap mt-3" style="gap:8px">
+			<div class="pc-actions mt-3">
 				<div class="bze-group" role="group" :aria-label="$t('plugins.WorkshopPrinting.bedZones.zones_layout_group_align')">
 					<v-btn v-for="a in aligns" :key="a.edge" icon class="bze-tool" :disabled="saving" :title="tip('align_' + a.edge)" :aria-label="tip('align_' + a.edge)" @click="act({ type: 'align', edge: a.edge })">
 						<v-icon>{{ a.icon }}</v-icon>
@@ -28,18 +28,18 @@
 						<v-icon>{{ q.icon }}</v-icon>
 					</v-btn>
 				</div>
-				<help-tip v-bind="help('aids')" />
+				<pc-help v-bind="help('aids')" />
 				<v-btn small outlined class="bze-act" :disabled="saving || !edit.config.zones.length" :aria-pressed="edit.arrange ? 'true' : 'false'" @click="act({ type: edit.arrange ? 'arrangeClose' : 'arrangeOpen' })">
 					<v-icon small left>mdi-auto-fix</v-icon>{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange') }}
 				</v-btn>
-				<help-tip v-bind="help('arrange')" />
+				<pc-help v-bind="help('arrange')" />
 			</div>
 
 			<!-- the tidy-up: one explicit action with a preview (outlines and arrows on the map, the list here); nothing changes until Apply -->
 			<div v-if="edit.arrange" class="bze-arrange mt-3" role="group" :aria-label="$t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange_title')">
-				<div class="text-subtitle-2">{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange_title') }}</div>
+				<h4>{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange_title') }}</h4>
 				<p class="text-caption mt-1 mb-2">{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange_intro') }}</p>
-				<div class="d-flex flex-wrap align-center" style="gap:8px">
+				<div class="pc-actions">
 					<v-btn-toggle :value="edit.arrange.options.order" mandatory dense color="primary" class="bze-toggle" :aria-label="$t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange_order')" @change="act({ type: 'arrangeOption', name: 'order', value: $event })">
 						<v-btn small value="keep" class="bze-wide" :disabled="saving">{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange_keep') }}</v-btn>
 						<v-btn small value="best" class="bze-wide" :disabled="saving">{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange_best') }}</v-btn>
@@ -49,7 +49,7 @@
 						<v-btn small value="corner" class="bze-wide" :disabled="saving">{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange_corner') }}</v-btn>
 					</v-btn-toggle>
 				</div>
-				<div class="bze-grid mt-3">
+				<div class="pc-field-row mt-3">
 					<wf-field id="bze-arr-gap" :label="$t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange_f_gap')">
 						<v-text-field id="bze-arr-gap" :key="'ag' + bump" :value="edit.arrange.options.gap === null ? '' : edit.arrange.options.gap" :placeholder="$t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange_f_gap_auto')" dense outlined hide-details suffix="mm" inputmode="decimal" :disabled="saving" :aria-label="$t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange_f_gap')" @change="typed({ type: 'arrangeOption', name: 'gap', value: $event })" />
 					</wf-field>
@@ -80,7 +80,7 @@
 						<span>{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange_nofit', { missing: missingText }) }} {{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange_nofit_hint') }}</span>
 					</div>
 					<template v-if="plan.fits && plan.changed">
-						<div class="text-subtitle-2 mt-3">{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange_moves') }}</div>
+						<h4 class="mt-3">{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange_moves') }}</h4>
 						<ul class="bze-moves text-caption">
 							<li v-for="m in plan.moves" :key="m.index">{{ moveText(m) }}</li>
 						</ul>
@@ -88,7 +88,7 @@
 					</template>
 				</div>
 
-				<div class="d-flex flex-wrap mt-3" style="gap:8px">
+				<div class="pc-actions mt-3">
 					<v-btn small color="primary" class="bze-act" :disabled="saving || !plan || !plan.fits || !plan.changed" @click="act({ type: 'arrangeApply' })">{{ shrinking ? $t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange_shrink_apply') : $t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange_apply') }}</v-btn>
 					<v-btn v-if="plan && !plan.fits && plan.ok && !edit.arrange.shrink" small outlined class="bze-act" :disabled="saving" @click="act({ type: 'arrangeShrink' })">{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange_shrink') }}</v-btn>
 					<v-btn v-if="edit.arrange.shrink" small outlined class="bze-act" :disabled="saving" @click="act({ type: 'arrangeBack' })">{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_arrange_shrink_back') }}</v-btn>
@@ -96,7 +96,7 @@
 				</div>
 			</div>
 
-			<div class="d-flex align-center flex-wrap mt-2" style="gap:8px">
+			<div class="pc-actions mt-2">
 				<v-btn-toggle :value="edit.alignTo" mandatory dense color="primary" :aria-label="$t('plugins.WorkshopPrinting.bedZones.zones_layout_align_to')" @change="act({ type: 'alignTo', value: $event })">
 					<v-btn small value="selection" class="bze-wide" :disabled="saving">{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_align_selection') }}</v-btn>
 					<v-btn small value="reference" class="bze-wide" :disabled="saving">{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_align_reference') }}</v-btn>
@@ -104,7 +104,7 @@
 				<span class="text-caption" aria-live="polite">{{ targetText }}</span>
 			</div>
 
-			<div class="d-flex align-center flex-wrap mt-2" style="gap:8px">
+			<div class="pc-actions mt-2">
 				<v-btn small outlined class="bze-act" :disabled="saving || !edit.undo.length" @click="act({ type: 'undo' })">
 					<v-icon small left>mdi-undo</v-icon>{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_undo') }}
 				</v-btn>
@@ -118,9 +118,9 @@
 				<v-switch :input-value="edit.guides" dense hide-details class="mt-0 pt-0" :label="$t('plugins.WorkshopPrinting.bedZones.zones_layout_guides')" :disabled="saving" @change="act({ type: 'guides', value: !!$event })" />
 			</div>
 
-			<div class="bze-grid mt-3">
+			<div class="pc-field-row mt-3">
 				<wf-field id="bze-bed-w" :label="$t('plugins.WorkshopPrinting.bedZones.zones_layout_f_bed_width')">
-					<template #help><help-tip v-bind="help('bed')" /></template>
+					<template #help><pc-help v-bind="help('bed')" /></template>
 					<v-text-field id="bze-bed-w" :key="'bw' + bump" :value="geometry.bed.width" dense outlined hide-details suffix="mm" inputmode="decimal" :disabled="saving" :aria-label="$t('plugins.WorkshopPrinting.bedZones.zones_layout_f_bed_width')" @change="typed({ type: 'bed', side: 'width', value: $event })" />
 				</wf-field>
 				<wf-field id="bze-bed-l" :label="$t('plugins.WorkshopPrinting.bedZones.zones_layout_f_bed_length')" :message="bedProblem" level="error">
@@ -151,7 +151,7 @@
 				<div class="text-caption mt-1">{{ $t('plugins.WorkshopPrinting.bedZones.zones_layout_covered', { pct: coverage, area: coveredArea }) }}</div>
 
 			<!-- the zone chosen last (the reference): the same numbers as the drag, typed -->
-			<div class="text-subtitle-2 mt-3">{{ chosen ? $t('plugins.WorkshopPrinting.bedZones.zones_layout_selected', { n: chosenIndex + 1 }) : $t('plugins.WorkshopPrinting.bedZones.zones_layout_pick') }}</div>
+			<h4 class="mt-3">{{ chosen ? $t('plugins.WorkshopPrinting.bedZones.zones_layout_selected', { n: chosenIndex + 1 }) : $t('plugins.WorkshopPrinting.bedZones.zones_layout_pick') }}</h4>
 			<div v-if="chosen" class="bze-grid mt-1">
 				<wf-field v-for="f in rectFields" :id="'bze-r-' + f" :key="f" :label="$t('plugins.WorkshopPrinting.bedZones.zones_layout_f_' + f)">
 					<v-text-field :id="'bze-r-' + f" :key="f + chosenIndex + bump" :value="chosen[f]" dense outlined hide-details suffix="mm" inputmode="decimal" :disabled="saving" :aria-label="$t('plugins.WorkshopPrinting.bedZones.zones_layout_f_' + f)" @change="typed({ type: 'field', name: f, value: $event })" />
@@ -175,10 +175,10 @@
 		</template>
 
 		<ul v-if="serverErrors.length" class="bze-errors mt-2">
-			<li v-for="(e, i) in serverErrors" :key="i" class="text-caption error--text">{{ e }}</li>
+			<li v-for="(e, i) in serverErrors" :key="i" class="text-caption wf-state err">{{ e }}</li>
 		</ul>
 
-		<div class="d-flex flex-wrap mt-3" style="gap:8px">
+		<div class="pc-actions mt-3">
 			<v-btn small color="primary" :loading="saving" :disabled="!canSave" @click="$emit('save')">{{ $t('plugins.WorkshopPrinting.common.save') }}</v-btn>
 			<v-btn small outlined :disabled="saving" @click="$emit('cancel')">{{ $t('plugins.WorkshopPrinting.bedZones.cancel') }}</v-btn>
 		</div>
@@ -194,7 +194,7 @@
 // Every icon button has its label as tooltip and accessible name and is 44 px wide.
 import { bedFromModel } from './bed-zones-layout.js'
 import WfField from './WfField.vue' // vue/_shared36
-import HelpTip from './HelpTip.vue' // vue/_shared36
+import PcHelp from './PcHelp.vue' // the "?" of a row, drawn folded by the section
 import HelpGuide from './HelpGuide.vue' // vue/_shared36
 
 const HELPED = ['bed', 'aids', 'arrange']
@@ -217,7 +217,7 @@ const EQUALS = [
 ]
 
 export default {
-	components: { WfField, HelpTip, HelpGuide },
+	components: { WfField, PcHelp, HelpGuide },
 	props: {
 		edit: { type: Object, required: true }, // the state of the session (startEdit of bed-zones-edit.js)
 		problems: { type: Array, default: () => [] }, // editProblems(): {field, key, n?, other?}
@@ -323,7 +323,6 @@ export default {
 .bze-group { align-items: center; }
 .bze-num { font-family: var(--tp-font-mono, monospace); font-size: 12px; white-space: nowrap; }
 .bze-summary { max-width: 460px; }
-.bze-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
 .bze-arrange { border: 1px solid var(--wf-line, rgba(128, 128, 128, 0.3)); border-radius: 8px; padding: 12px; background: var(--wf-soft, transparent); }
 .bze-arrange .v-btn { white-space: normal; }
 .bze-toggle { flex-wrap: wrap; max-width: 100%; }

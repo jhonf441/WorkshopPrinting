@@ -2,33 +2,34 @@
 	<!-- Filament extruder panel (N-1, 2026-11-06): the Operate card of a FILAMENT tool, the twin of the pellet panel. Four parts in a grid, the same
 	     cards and states as the rest of the page: hotend heater, extruder (flow), layer fan, hotend fan. A pellet tool never sees it
 	     (print-sections.js hiddenIds). Heating is a double tap (DESIGN.md 5 level 2), cooling and fans one tap (level 1). Operator's (NEED.operate). -->
-	<pc-section icon="mdi-printer-3d-nozzle" :title="$t('plugins.WorkshopPrinting.printing.filament_panel')">
-		<template v-slot:help>
+	<div class="tool-part">
+		<div class="pc-actions">
+			<h4 class="pc-card-title">{{ $t('plugins.WorkshopPrinting.printing.filament_panel') }}</h4>
 			<help-tip :title="$t('plugins.WorkshopPrinting.printing.filament_panel')">
 				<p class="mb-1">{{ t('fpanel.help_what') }}</p>
 				<p class="mb-1">{{ t('fpanel.help_fans') }}</p>
 				<p class="mb-0">{{ t('fpanel.help_where') }}</p>
 			</help-tip>
-		</template>
-		<lock-reason :min="needOperate" class="mt-2" />
-		<v-alert v-if="!isFff" dense text type="info" class="mt-3 mb-0">{{ t('fpanel.only_fff') }}</v-alert>
-		<div v-else-if="!tool" class="text-body-2 grey--text mt-3">{{ t('fpanel.no_tool') }}</div>
+		</div>
+		<lock-reason :min="needOperate" class="mt-2" :subject="$t('plugins.WorkshopPrinting.subjects.filament')" />
+		<div v-if="!isFff" class="wf-note mt-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ t('fpanel.only_fff') }}</span></div>
+		<div v-else-if="!tool" class="text-body-2 pc-muted mt-3">{{ t('fpanel.no_tool') }}</div>
 		<template v-if="isFff && tool">
-			<div class="text-subtitle-2 mt-3">{{ t('fpanel.of_tool', { name: toolName }) }}</div>
+			<h4 class="mt-3">{{ t('fpanel.of_tool', { name: toolName }) }}</h4>
 			<v-row dense class="mt-1">
 				<!-- 1. hotend heater -->
 				<v-col cols="12" md="6">
 					<v-card outlined class="pa-3 fp-card">
-						<div class="d-flex align-center flex-wrap" style="gap:8px">
+						<div class="pc-actions">
 							<v-icon small>mdi-printer-3d-nozzle-heat</v-icon>
-							<span class="text-subtitle-1">{{ t('fpanel.heater') }}</span>
+							<span class="pc-card-title">{{ t('fpanel.heater') }}</span>
 							<v-chip x-small outlined :color="heaterColor">{{ t('fpanel.heat_' + heaterTone) }}</v-chip>
 						</div>
 						<template v-if="heater">
-							<div class="text-h4 my-1">{{ heater.sensorBad ? '--' : Math.round(heater.current) }} °C</div>
+							<div class="pc-read">{{ heater.sensorBad ? '--' : Math.round(heater.current) }} °C</div>
 							<div class="text-body-2">{{ $t('plugins.WorkshopPrinting.common.target') }} <b>{{ heater.target > 0 ? Math.round(heater.target) + ' °C' : t('fpanel.off') }}</b>
-								<span class="grey--text ml-2">{{ t('fpanel.limit', { max: heater.max }) }}</span></div>
-							<div class="d-flex align-center flex-wrap mt-3" style="gap:8px">
+								<span class="pc-muted ml-2">{{ t('fpanel.limit', { max: heater.max }) }}</span></div>
+							<div class="pc-actions mt-3">
 								<input v-model.number="temp" type="number" step="5" min="0" :max="heater.max" class="field" :disabled="!canOperate" /> °C
 								<v-btn small :color="armed === 'heat' ? 'amber darken-3' : 'primary'" :disabled="!canOperate || !!heatWhy || sending" @click="arm('heat', heatUp)">
 									<v-icon small left>mdi-fire</v-icon>{{ armed === 'heat' ? t('fpanel.heat_again', { temp }) : t('fpanel.heat') }}
@@ -37,37 +38,36 @@
 							</div>
 							<div v-if="heatWhy" class="wf-note is-info mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ whyText(heatWhy) }}</span></div>
 						</template>
-						<div v-else class="text-caption grey--text mt-2">{{ t('fpanel.no_heater') }}</div>
+						<div v-else class="text-caption pc-muted mt-2">{{ t('fpanel.no_heater') }}</div>
 					</v-card>
 				</v-col>
 				<!-- 2. extruder: flow here; loading and unloading is the Load material section -->
 				<v-col cols="12" md="6">
 					<v-card outlined class="pa-3 fp-card">
-						<div class="d-flex align-center flex-wrap" style="gap:8px">
+						<div class="pc-actions">
 							<v-icon small>mdi-screw-lag</v-icon>
-							<span class="text-subtitle-1">{{ t('fpanel.extruder') }}</span>
+							<span class="pc-card-title">{{ t('fpanel.extruder') }}</span>
 							<v-chip x-small outlined>E{{ extruderNumber }}</v-chip>
 						</div>
-						<div class="text-h4 my-1">{{ flowNow }} %</div>
-						<div class="text-body-2 grey--text">{{ t('fpanel.flow_now') }}</div>
-						<div class="d-flex align-center flex-wrap mt-3" style="gap:8px">
+						<div class="pc-read">{{ flowNow }} %</div>
+						<div class="text-body-2 pc-muted">{{ t('fpanel.flow_now') }}</div>
+						<div class="pc-actions mt-3">
 							<input v-model.number="flow" type="number" step="5" min="10" max="300" class="field" :disabled="!canOperate" /> %
 							<v-btn small outlined :disabled="!canOperate || !flowOk || sending" @click="applyFlow()"><v-icon small left>mdi-check</v-icon>{{ t('fpanel.flow_apply') }}</v-btn>
-							<v-btn small outlined @click="$emit('goto', { section: 'filament' })"><v-icon small left>mdi-tray-arrow-down</v-icon>{{ t('fpanel.go_load') }}</v-btn>
 						</div>
-						<div class="text-caption grey--text mt-2">{{ t('fpanel.flow_note') }}</div>
+						<div class="text-caption pc-muted mt-2">{{ t('fpanel.flow_note') }}</div>
 					</v-card>
 				</v-col>
 				<!-- 3. layer fan: set by hand, one tap -->
 				<v-col cols="12" md="6">
 					<v-card outlined class="pa-3 fp-card">
-						<div class="d-flex align-center flex-wrap" style="gap:8px">
+						<div class="pc-actions">
 							<v-icon small>mdi-fan</v-icon>
-							<span class="text-subtitle-1">{{ t('fpanel.layer_fan') }}</span>
+							<span class="pc-card-title">{{ t('fpanel.layer_fan') }}</span>
 						</div>
-						<div v-if="!groups.layer.length" class="text-caption grey--text mt-2">{{ t('fpanel.no_layer_fan') }}</div>
+						<div v-if="!groups.layer.length" class="text-caption pc-muted mt-2">{{ t('fpanel.no_layer_fan') }}</div>
 						<div v-for="f in groups.layer" :key="f.id" class="mt-2">
-							<div class="text-body-2">{{ f.name }} <span class="grey--text">M106 P{{ f.id }} · {{ fanLine(f) }}</span></div>
+							<div class="text-body-2">{{ f.name }} <span class="pc-muted">M106 P{{ f.id }} · {{ fanLine(f) }}</span></div>
 							<v-slider :value="levels[f.id] != null ? levels[f.id] : Math.round(f.value * 100)" :min="0" :max="100" step="5" dense hide-details thumb-label :disabled="!canOperate || sending"
 								@input="v => $set(levels, f.id, v)" @end="setFan(f)" />
 							<div class="d-flex flex-wrap mt-1" style="gap:6px">
@@ -81,27 +81,27 @@
 				<!-- 4. hotend fan: the board runs it (thermostatic); only shown, with a warning when it is off and the hotend is hot -->
 				<v-col cols="12" md="6">
 					<v-card outlined class="pa-3 fp-card">
-						<div class="d-flex align-center flex-wrap" style="gap:8px">
+						<div class="pc-actions">
 							<v-icon small>mdi-fan-chevron-down</v-icon>
-							<span class="text-subtitle-1">{{ t('fpanel.hotend_fan') }}</span>
+							<span class="pc-card-title">{{ t('fpanel.hotend_fan') }}</span>
 						</div>
-						<div v-if="!groups.hotend.length" class="text-caption grey--text mt-2">{{ t('fpanel.no_hotend_fan') }}</div>
+						<div v-if="!groups.hotend.length" class="text-caption pc-muted mt-2">{{ t('fpanel.no_hotend_fan') }}</div>
 						<div v-for="f in groups.hotend" :key="f.id" class="mt-2">
-							<div class="text-body-2">{{ f.name }} <span class="grey--text">M106 P{{ f.id }} · {{ fanLine(f) }}</span> <v-chip x-small outlined>{{ t('fpanel.fan_auto') }}</v-chip></div>
+							<div class="text-body-2">{{ f.name }} <span class="pc-muted">M106 P{{ f.id }} · {{ fanLine(f) }}</span> <v-chip x-small outlined>{{ t('fpanel.fan_auto') }}</v-chip></div>
 							<div v-if="warn(f)" class="wf-note is-warn mt-1" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ t('fpanel.hotend_fan_warn') }}</span></div>
 						</div>
-						<div v-if="groups.hotend.length" class="text-caption grey--text mt-2">{{ t('fpanel.hotend_fan_note') }}</div>
+						<div v-if="groups.hotend.length" class="text-caption pc-muted mt-2">{{ t('fpanel.hotend_fan_note') }}</div>
 					</v-card>
 				</v-col>
 			</v-row>
-			<div v-if="groups.others.length" class="text-caption grey--text mt-2">{{ t('fpanel.other_fans', { list: groups.others.map(f => f.name + ' ' + Math.round(f.value * 100) + ' %').join(', ') }) }}</div>
-			<v-alert v-if="msg" dense text :type="msgKind" class="mt-3 mb-0">{{ msg }}</v-alert>
+			<div v-if="groups.others.length" class="text-caption pc-muted mt-2">{{ t('fpanel.other_fans', { list: groups.others.map(f => f.name + ' ' + Math.round(f.value * 100) + ' %').join(', ') }) }}</div>
+			<pc-result :text="msg || ''" :kind="msgKind" class="mt-3 d-block" />
 		</template>
-	</pc-section>
+	</div>
 </template>
 
 <script>
-import PcSection from './PcSection.vue' // the card with the header of the section (printing-design.css)
+import PcResult from './PcResult.vue' // the result next to the action
 'use strict'
 
 import HelpTip from './HelpTip.vue' // vue/_shared36
@@ -116,13 +116,14 @@ import { machineFree } from './machine-free.js' // job (file, paused or live) an
 import { ts } from './shared-t.js'
 import { serviceText, serviceDefaultKey } from './service-text.js'
 import { NEED } from './print-sections.js'
+import { tapArmMixin } from './tap-arm-mixin.js' // the double tap of the page (4 s)
 import { roleMixin } from './role-mixin.js' // what the role may do (vue/_shared)
 
 export default {
-	mixins: [roleMixin],
+	mixins: [roleMixin, tapArmMixin],
 	sessionData: ['armed', 'msg', 'msgKind'], // what the person who left did or was refused stays nowhere (ESTANDAR 3)
 	sessionErrors: ['msg', 'msgKind'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
-	components: { PcSection, HelpTip, LockReason },
+	components: { PcResult, HelpTip, LockReason },
 	props: {
 		isFff: { type: Boolean, default: false },
 		tool: { type: Object, default: null },
@@ -131,7 +132,7 @@ export default {
 		state: { type: String, default: '' }
 	},
 	data() {
-		return { temp: 200, flow: 100, levels: {}, armed: null, armedTimer: null, sending: false, msg: null, msgKind: 'info' };
+		return { temp: 200, flow: 100, levels: {}, sending: false, msg: null, msgKind: 'info' };
 	},
 	computed: {
 		canOperate() {
@@ -206,16 +207,6 @@ export default {
 		},
 		warn(f) {
 			return hotendFanWarning(f, this.heater, 60);
-		},
-		arm(id, fn) {
-			if (this.armed !== id) {
-				this.armed = id;
-				clearTimeout(this.armedTimer);
-				this.armedTimer = setTimeout(() => { this.armed = null; }, 4000);
-				return;
-			}
-			this.armed = null;
-			fn();
 		},
 		async run(codes, okText) {
 			if (!this.canOperate || this.sending || !codes.length) return false;

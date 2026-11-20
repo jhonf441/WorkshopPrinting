@@ -8,7 +8,7 @@
 
 
 
-Page `/Plugins/Printing` ("3D printing"). Heaters, extruder, materials and the 3D job (FFF mode): state, preheat and configuration, head change guide, printer tests, pellet zones and feed, extruder flow, nozzle change and PID calibration (M303). It is made for pellet extruders and also works with a filament extruder (see *Extruder type*).
+Page `/Plugins/Printing` ("3D printing"). Heaters, extruder, materials and the current job (FFF mode): state, preheat and configuration, head change guide, printer tests, pellet zones and feed, extruder flow, nozzle change and PID calibration (M303). It is made for pellet extruders and also works with a filament extruder (see *Extruder type*).
 
 Version documented: 2.15.x on DWC 3.6.3.
 
@@ -22,7 +22,7 @@ Version documented: 2.15.x on DWC 3.6.3.
 
 ## 3. Functions
 
-The page is "3D printing" (side menu: Plugins > Printing). Its side bar has two groups: "Operate" (Status, Pellet panel, Materials, Load material, 3D job) and "Configure" (Printer tests, Head change, Pellet setup, Extruder, PID). With a filament extruder the Pellet panel and Pellet setup entries are hidden; with a pellet extruder Load material is hidden (see Extruder type). The temperatures and values in the pictures are examples.
+The page is "3D printing" (side menu: Plugins > Printing). Its side bar has two groups: "Operate" (Status, Pellet panel, Materials, Load material, Current job) and "Configure" (Printer tests, Head change, Pellet setup, Extruder, PID). With a filament extruder the Pellet panel and Pellet setup entries are hidden; with a pellet extruder Load material is hidden (see Extruder type). The temperatures and values in the pictures are examples.
 
 ### Page header and side bar
 
@@ -147,18 +147,18 @@ Picture 9: the material table.
 - How: 1. choose the material (its nozzle temperature comes from the Materials table; "Tool temperature" uses the target the tool already has) and press Heat twice; wait for "ready". 2. press Load or Unload twice. When the board has the filament macros (`0:/filaments/<name>/load.g` and `unload.g`) the buttons run M701 / M702 (M701 only with a material chosen, since its name is the folder; with "Tool temperature" Load moves directly); otherwise they move the extruder directly (M83 + G1 E) with the length (1 to 800 mm) and the speed (1 to 20 mm/s) you type; unloading pushes 3 mm first to soften the tip. 3. Cool down if you are not printing now (it turns the heaters off and clears the active and standby temperatures of the tool, `M568 S0 R0 A0`, so nothing heats it again when the tool is selected later).
 - Watch out: the extruder never moves while the nozzle is below the cold extrusion temperature of the board, with a job running, or when the nozzle reads no temperature; Heat and Cool down are not offered either with a job running or the machine busy (the temperatures of a job come from the file). The reason is written next to the buttons.
 
-#### 3D job
-![3D job running](img/11-job-running.png)
+#### Current job
+![Current job running](img/11-job-running.png)
 
 Picture 11: a job in progress.
 
 - What: the temperatures, the state of the print (file, progress, layer, height, elapsed and remaining time, speed and extrusion factors) and a file list with a 3D view.
-- Where: Operate > 3D job (picture 11).
+- Where: Operate > Current job (picture 11).
 - How: the state follows the job the machine is running.
 
 #### Job control
-- What: the controls of the print in progress, in the 3D job section under the print state: Pause (M25), Resume (M24) and Cancel (M0, two taps, only while paused, like DWC); Z baby-stepping (M290) in steps of 0.02 and 0.05 mm (two taps per step) with the sum the board applies and "Reset to 0" (two taps); the speed factor (M220, 10 to 300 %) and the flow factor of each extruder of the tool (M221 D, 10 to 300 %).
-- Where: Operate > 3D job (operator; a viewer sees the values with the buttons grey).
+- What: the controls of the print in progress, in the Current job section under the print state: Pause (M25), Resume (M24) and Cancel (M0, two taps, only while paused, like DWC); Z baby-stepping (M290) in steps of 0.02 and 0.05 mm (two taps per step) with the sum the board applies and "Reset to 0" (two taps); the speed factor (M220, 10 to 300 %) and the flow factor of each extruder of the tool (M221 D, 10 to 300 %).
+- Where: Operate > Current job (operator; a viewer sees the values with the buttons grey).
 - How: the Z steps and the percentages work only while a job runs (a printing or paused file job, or a live job); with no job their buttons are grey and the card says so. They apply at once and stay applied after the job ends, until you put them back, the board restarts or a file changes them: with no job running the card warns about what a job left applied (Z sum, speed, flow), and "Reset to 0" and "100 %" are always available to put it back before the next job. The Z sum is capped at 2 mm either way: more than that is a wrong Z offset, not a correction. A live job has its controls in the Jog bar.
 
 #### 3D view

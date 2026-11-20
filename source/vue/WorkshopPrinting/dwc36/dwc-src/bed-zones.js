@@ -73,6 +73,15 @@ export function zoneRows(model, config) {
 	return rows
 }
 
+// The one badge of the live section ("6 zones, all fine"): the zones that count are the active ones; null when there is none.
+//   -> { key: 'fine' | 'alert', n, m, kind }   fine: m zones, none flagged; alert: n of the m zones flagged (alertKey says why)
+export function zoneBadge(rows) {
+	const on = (rows || []).filter(r => r.active)
+	if (!on.length) return null
+	const bad = on.filter(r => r.alert).length
+	return bad ? { key: 'alert', n: bad, m: on.length, kind: 'err' } : { key: 'fine', n: 0, m: on.length, kind: 'ok' }
+}
+
 // Why a zone is flagged, as the key of the area bedZones (the page translates it); '' when it is fine
 export function alertKey(row) {
 	if (row.fault) return 'alert_fault'

@@ -1,11 +1,11 @@
 <template>
 	<v-card outlined class="pl-card pa-3" aria-labelledby="pl-title">
-		<div class="d-flex align-center flex-wrap" style="gap:8px">
+		<div class="pc-actions">
 			<v-icon small>mdi-layers-triple-outline</v-icon>
-			<span id="pl-title" class="text-subtitle-1">{{ tx('pellet_layers_title') }}</span>
+			<span id="pl-title" class="pc-card-title">{{ tx('pellet_layers_title') }}</span>
 			<v-chip x-small outlined :color="live.phase === 'off' ? undefined : (live.phase === 'running' ? 'success' : 'warning')">{{ tx(live.key) }}</v-chip>
 		</div>
-		<div class="text-caption grey--text mt-1">{{ tx('pellet_layers_lead') }}</div>
+		<div class="text-caption pc-muted mt-1">{{ tx('pellet_layers_lead') }}</div>
 
 		<help-guide :title="$t('plugins.WorkshopPrinting.common.how_it_works')" class="mt-2">
 			<p>{{ tx('pellet_layers_guide_1') }}</p>
@@ -19,22 +19,22 @@
 
 		<!-- the live state: what layer it is on, what was applied, when the next change comes -->
 		<div class="pl-live mt-3" role="status" aria-live="polite">
-			<div class="text-subtitle-2">{{ tx('pellet_layers_live_title') }}</div>
+			<h4>{{ tx('pellet_layers_live_title') }}</h4>
 			<div v-if="status && status.armed" class="text-body-2">
 				<div>{{ tx('pellet_layers_live_profile', { name: status.profile, file: status.file }) }}</div>
 				<div>{{ status.layer ? tx('pellet_layers_live_layer', { layer: status.layer }) : tx('pellet_layers_live_no_layer') }}
 					<template v-if="status.applied"> - {{ tx('pellet_layers_live_applied', { temps: appliedText }) }}</template>
 				</div>
 				<div v-if="status.next">{{ tx('pellet_layers_live_next', { at: status.next.at, temps: nextText }) }}</div>
-				<div v-else class="grey--text">{{ tx('pellet_layers_live_no_next') }}</div>
-				<div v-if="status.limited && status.limited.length" class="warning--text text-caption">{{ tx('pellet_layers_live_limited') }}</div>
+				<div v-else class="pc-muted">{{ tx('pellet_layers_live_no_next') }}</div>
+				<div v-if="status.limited && status.limited.length" class="text-caption wf-state warn">{{ tx('pellet_layers_live_limited') }}</div>
 			</div>
 			<div v-else-if="live.reason" class="wf-note is-warn" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ tx('pellet_layers_live_ended_why', { why: tx(live.reason.key, live.reason.params) }) }}</span></div>
-			<div v-else class="text-body-2 grey--text">{{ tx('pellet_layers_live_off_note') }}</div>
+			<div v-else class="text-body-2 pc-muted">{{ tx('pellet_layers_live_off_note') }}</div>
 		</div>
 
 		<!-- turn it on for ONE job: two taps; turning it off is safe (one tap) and leaves the temperatures as they are -->
-		<div class="d-flex align-end flex-wrap mt-2" style="gap:12px">
+		<div class="pc-actions pc-actions-end mt-2">
 			<wf-field id="pl-file" :label="tx('pellet_layers_f_file')" :message="fileHint">
 				<template #help><help-tip v-bind="help('file')" /></template>
 				<gcode-picker id="pl-file" :value="fileName" :job-file="jobName" clearable :show-help="false" :aria-label="tx('pellet_layers_f_file')" :disabled="!canArm || armedNow" @input="onFilePick" />
@@ -46,12 +46,12 @@
 		</div>
 		<lock-reason v-if="!canArm" op="pelletlayers.arm" need="technician" :action="tx('pellet_layers_arming')" class="mt-2" />
 		<div v-else-if="armReason" class="wf-note is-info mt-1" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ armReason }}</span></div>
-		<v-alert v-if="msg" dense text :type="msgKind" class="mt-3 mb-0">{{ msg }}</v-alert>
+		<pc-result :text="msg || ''" :kind="msgKind" class="mt-3" />
 
 		<v-divider class="my-3" />
 
 		<!-- the profile: name, mode, limits, points -->
-		<div class="d-flex align-end flex-wrap" style="gap:12px">
+		<div class="pc-actions pc-actions-end">
 			<wf-field id="pl-pick" :label="tx('pellet_layers_f_profile')">
 				<template #help><help-tip v-bind="help('profile')" /></template>
 				<v-select id="pl-pick" v-model="picked" :items="pickItems" dense outlined hide-details style="min-width:200px" :aria-label="tx('pellet_layers_f_profile')" @change="choose" />
@@ -62,7 +62,7 @@
 		</div>
 
 		<div v-if="draft" class="mt-3">
-			<div class="d-flex align-end flex-wrap" style="gap:12px">
+			<div class="pc-actions pc-actions-end">
 				<wf-field id="pl-mode" :label="tx('pellet_layers_f_mode')">
 					<template #help><help-tip v-bind="help('mode')" /></template>
 					<v-select id="pl-mode" v-model="draft.mode" :items="modeItems" dense outlined hide-details style="max-width:170px" :aria-label="tx('pellet_layers_f_mode')" :disabled="!canEdit" />
@@ -86,7 +86,7 @@
 			</div>
 
 			<div class="d-flex align-center mt-3" style="gap:6px">
-				<span class="text-subtitle-2">{{ tx('pellet_layers_points') }}</span>
+				<span class="pc-card-title">{{ tx('pellet_layers_points') }}</span>
 				<help-tip v-bind="help('points')" />
 			</div>
 			<div class="pl-scroll">
@@ -131,25 +131,25 @@
 				<div class="text-body-2 pl-legend">
 					<span v-for="ln in chart.lines" :key="'k' + ln.heater"><i class="pl-key" :style="{ borderTopColor: ln.color }" />{{ tx('pellet_layers_col_zone', { n: ln.zone + 1, h: ln.heater }) }}</span>
 				</div>
-				<div class="text-caption grey--text">{{ tx('pellet_layers_chart_help', { x: draft.axis === 'z' ? tx('pellet_layers_col_z') : tx('pellet_layers_col_layer') }) }}</div>
+				<div class="text-caption pc-muted">{{ tx('pellet_layers_chart_help', { x: draft.axis === 'z' ? tx('pellet_layers_col_z') : tx('pellet_layers_col_layer') }) }}</div>
 			</div>
 
 			<!-- preview against the loaded job -->
-			<div class="d-flex align-center flex-wrap mt-3" style="gap:8px">
-				<span class="text-subtitle-2">{{ tx('pellet_layers_preview') }}</span>
+			<div class="pc-actions mt-3">
+				<span class="pc-card-title">{{ tx('pellet_layers_preview') }}</span>
 				<help-tip v-bind="help('preview')" />
 				<v-btn small outlined :loading="busy === 'preview'" :disabled="!jobPath" @click="readJob()"><v-icon small left>mdi-eye-outline</v-icon>{{ tx('pellet_layers_preview_read') }}</v-btn>
 			</div>
-			<div v-if="!jobPath" class="text-caption grey--text mt-1">{{ tx('pellet_layers_preview_no_job') }}</div>
+			<div v-if="!jobPath" class="text-caption pc-muted mt-1">{{ tx('pellet_layers_preview_no_job') }}</div>
 			<div v-if="preview" class="text-body-2 mt-1">{{ tx('pellet_layers_preview_summary', { layers: preview.layers, file: previewFile }) }}</div>
 			<div v-for="w in warnings" :key="w.key + JSON.stringify(w.params)" class="wf-note is-warn mt-1" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ tx(w.key, w.params) }}</span></div>
 
 			<!-- save / delete: saving never heats anything -->
-			<div class="d-flex flex-wrap mt-3" style="gap:8px">
+			<div class="pc-actions mt-3">
 				<v-btn small color="primary" :loading="busy === 'save'" :disabled="!canEdit || !!errors.length || !nameOk" @click="save()"><v-icon small left>mdi-content-save-outline</v-icon>{{ tx('pellet_layers_save') }}</v-btn>
 				<v-btn small outlined :color="armed === 'remove' ? 'amber darken-3' : undefined" :loading="busy === 'remove'" :disabled="!canEdit || !isSaved" @click="touch('remove', remove)"><v-icon small left>mdi-delete-outline</v-icon>{{ armed === 'remove' ? tx('pellet_layers_tap_again_remove') : tx('pellet_layers_remove') }}</v-btn>
 			</div>
-			<div class="text-caption grey--text mt-1">{{ tx('pellet_layers_save_note') }}</div>
+			<div class="text-caption pc-muted mt-1">{{ tx('pellet_layers_save_note') }}</div>
 		</div>
 	</v-card>
 </template>
@@ -159,6 +159,8 @@
 
 import { api } from './workshop-api.js'
 import { roleMixin } from './role-mixin.js' // vue/_shared36
+import { tapArmMixin } from './tap-arm-mixin.js' // the double tap of the page (4 s)
+import PcResult from './PcResult.vue' // the result of an action, one line
 import HelpGuide from './HelpGuide.vue' // vue/_shared36
 import HelpTip from './HelpTip.vue' // vue/_shared36
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared36
@@ -173,11 +175,11 @@ import {
 const HELP = ['profile', 'mode', 'axis', 'max_temp', 'max_step', 'max_spread', 'points', 'preview', 'file']
 
 export default {
-	mixins: [roleMixin],
+	mixins: [roleMixin, tapArmMixin],
 	// what the person who left read, did or was refused stays nowhere (role-mixin.js)
 	sessionData: ['armed', 'msg', 'msgKind'],
 	sessionErrors: ['failure', 'msg', 'msgKind'],
-	components: { HelpGuide, HelpTip, ErrorNotice, LockReason, WfField, GcodePicker },
+	components: { PcResult, HelpGuide, HelpTip, ErrorNotice, LockReason, WfField, GcodePicker },
 	props: {
 		tool: { type: Object, default: null } // the current tool of the page (its heaters are the zones of the profile)
 	},
@@ -187,7 +189,7 @@ export default {
 			maxPoints: MAX_POINTS,
 			list: [], picked: '', name: '', draft: null, saved: null,
 			status: null, preview: null, previewFile: '', file: '', fileTouched: false,
-			armed: null, armedTimer: null, busy: null, msg: null, msgKind: 'info', failure: null, timer: null
+			busy: null, msg: null, msgKind: 'info', failure: null, timer: null
 		}
 	},
 	computed: {
@@ -298,7 +300,6 @@ export default {
 	},
 	beforeDestroy() {
 		clearInterval(this.timer)
-		clearTimeout(this.armedTimer)
 	},
 	methods: {
 		// the file field is the select of the G-code library
@@ -391,14 +392,7 @@ export default {
 		},
 		// level 2 (DESIGN.md 5): the first tap arms the button (amber, 4 s), the second does it
 		touch(id, fn) {
-			if (this.armed !== id) {
-				this.armed = id
-				clearTimeout(this.armedTimer)
-				this.armedTimer = setTimeout(() => { this.armed = null }, 4000)
-				return
-			}
-			this.armed = null
-			fn.call(this)
+			this.tapArm(id, () => fn.call(this))
 		},
 		async save() {
 			if (!this.canEdit || this.errors.length || !this.nameOk) return

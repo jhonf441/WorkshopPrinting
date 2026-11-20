@@ -1,23 +1,24 @@
+<!-- lock-reason-in-parent: the ONE reason of this group is drawn by MaterialLayers.vue, so the controls below are disabled without repeating it -->
 <template>
 	<section class="rt" :aria-labelledby="'rt-title-' + track">
 		<div class="d-flex align-center" style="gap:6px">
 			<v-icon small>{{ track === 'bed' ? 'mdi-radiator' : 'mdi-printer-3d-nozzle-outline' }}</v-icon>
-			<span :id="'rt-title-' + track" class="text-subtitle-2">{{ tx('layer_recipes_track_' + track) }}</span>
+			<span :id="'rt-title-' + track" class="pc-card-title">{{ tx('layer_recipes_track_' + track) }}</span>
 		</div>
 
 		<!-- the zones this track drives: the heaters of the tool (extruder) or the zones of the bed that the person picks -->
 		<div v-if="track === 'bed'" class="mt-2">
 			<div class="text-caption">{{ tx('layer_recipes_bed_zones') }}</div>
-			<div class="d-flex flex-wrap" style="gap:4px 16px">
+			<div class="pc-actions">
 				<v-checkbox v-for="z in zones" :key="z.heater" :input-value="draft.zones.indexOf(z.heater) >= 0" dense hide-details class="mt-0 pt-0" :disabled="!canEdit" :label="tx('layer_recipes_zone_label', { n: z.n, h: z.heater })" @change="toggleZone(z.heater, !!$event)" />
 			</div>
-			<div v-if="!zones.length" class="text-caption grey--text">{{ tx('layer_recipes_no_bed_zones') }}</div>
+			<div v-if="!zones.length" class="text-caption pc-muted">{{ tx('layer_recipes_no_bed_zones') }}</div>
 			<div v-if="fieldError('zones')" class="wf-field-msg is-error">{{ fieldError('zones') }}</div>
 		</div>
 		<div v-else class="text-caption mt-2">{{ tx('layer_recipes_extruder_zones', { tool: draft.tool, list: draft.heaters.join(', ') }) }}</div>
 
 		<!-- the ready-made shapes: pick one, set its few numbers, apply: the points below are filled in and stay editable -->
-		<div class="d-flex align-end flex-wrap mt-3" style="gap:12px">
+		<div class="pc-actions pc-actions-end mt-3">
 			<wf-field :id="'rt-shape-' + track" :label="tx('layer_recipes_shape')">
 				<v-select :id="'rt-shape-' + track" v-model="shape" :items="shapeItems" dense outlined hide-details style="min-width:220px" :disabled="!canEdit" :aria-label="tx('layer_recipes_shape')" />
 			</wf-field>
@@ -26,9 +27,9 @@
 			</wf-field>
 			<v-btn small outlined class="rt-btn" :disabled="!canEdit || !shapeReady" @click="$emit('shape', { shape, opts: numericOpts })"><v-icon small left>mdi-chart-line</v-icon>{{ tx('layer_recipes_shape_apply') }}</v-btn>
 		</div>
-		<div class="text-caption grey--text mt-1">{{ tx('layer_recipes_shape_' + shape + '_help') }}</div>
+		<div class="text-caption pc-muted mt-1">{{ tx('layer_recipes_shape_' + shape + '_help') }}</div>
 
-		<div class="d-flex align-end flex-wrap mt-3" style="gap:12px">
+		<div class="pc-actions pc-actions-end mt-3">
 			<wf-field :id="'rt-mode-' + track" :label="tx('pellet_layers_f_mode')">
 				<v-select :id="'rt-mode-' + track" v-model="draft.mode" :items="modeItems" dense outlined hide-details style="max-width:170px" :disabled="!canEdit" :aria-label="tx('pellet_layers_f_mode')" />
 			</wf-field>

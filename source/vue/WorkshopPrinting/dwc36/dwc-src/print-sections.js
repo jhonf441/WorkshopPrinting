@@ -1,8 +1,8 @@
 'use strict'
 
 // The sections of the 3D printing page (side bar, vue/_shared/SideTabs.vue). Pure (no Vue): test/sections.test.js.
-// Three groups, in this order: OPERATE (what a person does while printing: state, 3D job, filament load, pellet / filament panels, the
-// live bed zones), PREPARE (getting a job ready: the G-code library, the material applied to a file, the material table) and CONFIGURE
+// Three groups, in this order: OPERATE (what a person does while printing: state, the current job, the tool (pellet panel, or filament panel and load, by the
+// kind of the tool), the live bed zones), PREPARE (getting a job ready: the G-code library, the profiles, the job to prepare) and CONFIGURE
 // (what changes the machine's configuration: printer tests, head change, pellet zones, bed zone setup, extruder, PID).
 // label / group: keys relative to plugins.WorkshopPrinting, translated when the bar is drawn.
 //
@@ -17,32 +17,30 @@ export const GROUP_CONFIGURE = 'printing.group_configure';
 
 export const SECTIONS = [
 	// OPERATE: what a person does while printing
-	{ id: 'state', icon: 'mdi-thermometer', label: 'common.status', group: GROUP_OPERATE, fff: true },
+	{ id: 'state', icon: 'mdi-thermometer', label: 'common.status', group: GROUP_OPERATE, fff: false },
 	{ id: 'job', icon: 'mdi-cube-outline', label: 'fff.tab', group: GROUP_OPERATE, fff: true },
-	{ id: 'filament', icon: 'mdi-tray-arrow-down', label: 'printing.filament_load', group: GROUP_OPERATE, min: 'operator', fff: true },
-	{ id: 'pellet', icon: 'mdi-grain', label: 'printing.pellet_panel', group: GROUP_OPERATE, fff: true },
-	{ id: 'hotend', icon: 'mdi-printer-3d-nozzle', label: 'printing.filament_panel', group: GROUP_OPERATE, fff: true },
-	{ id: 'bed', icon: 'mdi-radiator', label: 'printing.bed_zones_live', group: GROUP_OPERATE, fff: true },
-	// PREPARE: getting a job ready (the file, the material applied to it, the material table)
-	{ id: 'library', icon: 'mdi-bookshelf', label: 'printing.gcode_library', group: GROUP_PREPARE, fff: true },
-	{ id: 'layers', icon: 'mdi-layers-triple-outline', label: 'printing.layers_section', group: GROUP_PREPARE, fff: true },
-	{ id: 'materials', icon: 'mdi-flask-outline', label: 'printing.materials', group: GROUP_PREPARE, min: 'operator', fff: true },
+	// ONE entry for the tool: the pellet panel, or the filament panel with the load, by the kind of the tool seen (no minimum role: a viewer sees it read only)
+	{ id: 'tool', icon: 'mdi-printer-3d-nozzle', label: 'printing.tool', group: GROUP_OPERATE, fff: true },
+	{ id: 'bed', icon: 'mdi-radiator', label: 'printing.bed_zones_live', group: GROUP_OPERATE, fff: false },
+	// PREPARE: getting a job ready, in the order of the flow: the files, the profile (the material), then the job (file + profile + what changes)
+	{ id: 'library', icon: 'mdi-bookshelf', label: 'printing.gcode_library', group: GROUP_PREPARE, fff: false },
+	{ id: 'profiles', icon: 'mdi-flask-outline', label: 'printing.profiles', group: GROUP_PREPARE, min: 'operator', fff: false },
+	{ id: 'prepare', icon: 'mdi-clipboard-list-outline', label: 'printing.prepare_job', group: GROUP_PREPARE, fff: true },
 	// CONFIGURE: what changes the machine's configuration (technician)
 	{ id: 'tests', icon: 'mdi-clipboard-check-outline', label: 'printing.printer_tests', group: GROUP_CONFIGURE, min: 'technician', fff: true },
 	{ id: 'head', icon: 'mdi-swap-horizontal', label: 'printing.head_change', group: GROUP_CONFIGURE, min: 'technician', fff: false },
 	{ id: 'zones', icon: 'mdi-cog-outline', label: 'printing.pellet_and_zones', group: GROUP_CONFIGURE, min: 'technician', fff: true },
-	{ id: 'bedsetup', icon: 'mdi-tune-variant', label: 'printing.bed_zones_setup', group: GROUP_CONFIGURE, min: 'technician', fff: true },
+	{ id: 'bedsetup', icon: 'mdi-tune-variant', label: 'printing.bed_zones_setup', group: GROUP_CONFIGURE, min: 'technician', fff: false },
 	{ id: 'extruder', icon: 'mdi-scale-balance', label: 'printing.extruder', group: GROUP_CONFIGURE, min: 'technician', fff: true },
 	{ id: 'pid', icon: 'mdi-chart-bell-curve', label: 'common.pid', group: GROUP_CONFIGURE, min: 'technician', fff: true }
 ];
 
-// ids of the sections that do not apply to this machine: the head change on a machine that uses one mode only, the pellet sections
-// (panel and setup) on a filament extruder, the filament load and the filament panel on a pellet extruder
+// ids of the sections that do not apply to this machine: the head change on a machine that uses one mode only, and the pellet zones (setup) on a filament extruder.
+// The tool entry never hides: it shows the part that fits the kind of the tool.
 export function hiddenIds(hideHead, kind) {
 	const ids = [];
 	if (hideHead) ids.push('head');
-	if (kind === 'filament') ids.push('pellet', 'zones');
-	else ids.push('filament', 'hotend');
+	if (kind === 'filament') ids.push('zones');
 	return ids;
 }
 
@@ -64,7 +62,8 @@ export function restoreSection(stored) {
 	return SECTIONS.some(x => x.id === s) ? s : SECTIONS[0].id;
 }
 
-// Outside FFF only the sections that do not need the extruder are usable (the head change)
+// Outside FFF only the sections that do not need the extruder are usable: the ones that only READ or edit files (status, live bed zones, library, profiles,
+// bed zones setup: their buttons that heat or move carry their own mode guard, mode-gate.js) and the head change. `fff: true` = the section is the extruder itself.
 export function sectionUsable(section, isFff) {
 	return isFff || !section.fff;
 }

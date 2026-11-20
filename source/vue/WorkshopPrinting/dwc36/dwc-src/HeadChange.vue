@@ -1,56 +1,68 @@
 <template>
-	<pc-section icon="mdi-swap-horizontal" :title="$t('plugins.WorkshopPrinting.printing.head_change')">
+	<pc-section icon="mdi-swap-horizontal" :title="$t('plugins.WorkshopPrinting.printing.head_change')" role="technician">
 		<help-guide :title="$t('plugins.WorkshopPrinting.common.how_it_works')">
 			<p>
 			{{ $t('plugins.WorkshopPrinting.headChange.wizard_to_change_the_head_steps') }}
 			</p>
 		</help-guide>
 
-		<div class="d-flex flex-wrap align-center mt-3" style="gap:8px">
-			<span class="text-body-2">{{ $t('plugins.WorkshopPrinting.headChange.switch_from') }} <b>{{ nameMode(origin) || '...' }}</b> {{ $t('plugins.WorkshopPrinting.headChange.to') }}</span>
-			<v-btn v-if="origin !== mode && mode" x-small text @click="beginOfNew()">{{ $t('plugins.WorkshopPrinting.headChange.start_over_from', { mode: nameMode(mode) }) }}</v-btn>
-			<v-btn-toggle v-model="destination" mandatory dense color="primary">
-				<v-btn v-for="m in targets" :key="m" small :value="m">{{ nameMode(m) }}</v-btn>
-			</v-btn-toggle>
+		<!-- ONE notice at the top: the steps really move the machine and turn things off -->
+		<div class="wf-note is-warn mt-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ $t('plugins.WorkshopPrinting.headChange.moves_for_real_note') }}</span></div>
+
+		<div class="pc-sub mt-3">
+			<div class="pc-actions">
+				<span class="text-body-2">{{ $t('plugins.WorkshopPrinting.headChange.switch_from') }} <b>{{ nameMode(origin) || '...' }}</b> {{ $t('plugins.WorkshopPrinting.headChange.to') }}</span>
+				<v-btn-toggle v-model="destination" mandatory dense color="primary">
+					<v-btn v-for="m in targets" :key="m" small :value="m">{{ nameMode(m) }}</v-btn>
+				</v-btn-toggle>
+				<v-btn v-if="origin !== mode && mode" small text @click="beginOfNew()">{{ $t('plugins.WorkshopPrinting.headChange.start_over_from', { mode: nameMode(mode) }) }}</v-btn>
+			</div>
+			<template v-if="steps.length">
+				<div class="text-body-2 mt-3">{{ $t('plugins.WorkshopPrinting.commissioning.n_of_total_steps_done', { n: doneCount, total: steps.length }) }}</div>
+				<div class="pc-progress mt-1" role="progressbar" aria-valuemin="0" :aria-valuemax="steps.length" :aria-valuenow="doneCount" :aria-label="$t('plugins.WorkshopPrinting.commissioning.n_of_total_steps_done', { n: doneCount, total: steps.length })"><i :style="{ width: (doneCount / steps.length) * 100 + '%' }" /></div>
+			</template>
 		</div>
 
-		<div class="mt-3">
-			<div v-for="(p, k) in steps" :key="destination + k" class="step" :class="{ done: done(k), current: k === next }">
-				<div class="step-num">
-					<v-icon v-if="done(k)" small color="white">mdi-check</v-icon>
+		<ol class="hc-steps mt-3">
+			<li v-for="(p, k) in steps" :key="destination + k" class="hc-step" :class="{ done: done(k), current: k === next }" :aria-current="k === next ? 'step' : null">
+				<div class="hc-num">
+					<v-icon v-if="done(k)" x-small>mdi-check</v-icon>
 					<span v-else>{{ k + 1 }}</span>
 				</div>
-				<div class="step-body">
+				<div class="hc-body">
 					<div class="text-body-2" :class="{ 'font-weight-medium': k === next }">{{ p.text }}</div>
-					<div v-if="p.detail" class="text-caption grey--text">{{ p.detail }}</div>
+					<div v-if="p.detail" class="text-caption hc-detail">{{ p.detail }}</div>
 					<div class="mt-1">
 						<v-checkbox v-if="p.kind === 'manual'" :input-value="done(k)" :disabled="k > next" dense hide-details class="mt-0"
 							:label="p.check || $t('plugins.WorkshopPrinting.headChange.done')" @change="mark(k, $event)" />
-						<template v-else-if="p.kind === 'action'">
-							<v-btn x-small :color="armed === k ? 'amber darken-3' : done(k) ? '' : 'primary'" :outlined="done(k)"
+						<div v-else-if="p.kind === 'action'" class="pc-actions">
+							<v-btn small :color="isArmed(k) ? 'amber darken-3' : done(k) ? '' : 'primary'" :outlined="done(k) && !isArmed(k)"
 								:disabled="k > next || busy || !!block(p) || (p.can && !p.can())" @click="touch(k)">
-								{{ armed === k ? $t('plugins.WorkshopPrinting.common.tap_again') : done(k) ? $t('plugins.WorkshopPrinting.headChange.again') : p.button }}
+								{{ isArmed(k) ? $t('plugins.WorkshopPrinting.common.tap_again') : done(k) ? $t('plugins.WorkshopPrinting.headChange.again') : p.button }}
 							</v-btn>
-							<span v-if="k === next && block(p)" class="text-caption warning--text ml-2">{{ block(p) }}</span>
-							<span v-else-if="p.can && !p.can() && p.because" class="text-caption warning--text ml-2">{{ p.because() }}</span>
-						</template>
-						<div v-else-if="p.kind === 'auto'" class="text-caption" :class="p.ok() ? 'success--text' : 'warning--text'">
+							<span v-if="k === next && block(p)" class="wf-state warn">{{ block(p) }}</span>
+							<span v-else-if="p.can && !p.can() && p.because" class="wf-state warn">{{ p.because() }}</span>
+						</div>
+						<div v-else-if="p.kind === 'auto'" class="wf-state" :class="p.ok() ? 'ok' : 'warn'">
 							{{ p.state() }}
 						</div>
 					</div>
 				</div>
-			</div>
-		</div>
-		<v-alert v-if="msg" dense text :type="msgKind" class="mt-3 mb-0">{{ msg }}</v-alert>
-		<v-alert v-if="next >= steps.length" dense text type="success" class="mt-3 mb-0">
+			</li>
+		</ol>
+		<pc-result :text="msg || ''" :kind="msgKind" class="mt-3" />
+		<div v-if="steps.length && next >= steps.length" class="wf-state ok mt-3">
 			{{ $t('plugins.WorkshopPrinting.headChange.ready_machine_in_mode', { mode: nameMode(destination) }) }}
-		</v-alert>
+		</div>
 	</pc-section>
 </template>
 
 <script>
 import i18n from '../../i18n'
 import PcSection from './PcSection.vue' // the card with the header of the section (printing-design.css)
+import PcResult from './PcResult.vue' // the result of an action, one line
+import { tapArmMixin } from './tap-arm-mixin.js' // the double tap of the page (4 s)
+import { resultMixin } from './action-result.js' // msg / msgKind / say()
 import HelpGuide from './HelpGuide.vue' // vue/_shared36
 
 'use strict'
@@ -68,7 +80,8 @@ const MACRO_MODE = { FFF: '0:/macros/mode/selectfff.g', Laser: '0:/macros/mode/s
 const cold = 50; // °C: below it the nozzle can be removed
 
 export default {
-	components: { HelpGuide, PcSection },
+	mixins: [tapArmMixin, resultMixin],
+	components: { HelpGuide, PcSection, PcResult },
 	props: {
 		mode: { type: String, default: '' },
 		state: { type: String, default: '' },
@@ -78,7 +91,7 @@ export default {
 		modes: { type: Array, default: null }
 	},
 	data() {
-		return { origin: '', destination: null, doneMap: {}, armed: null, armedTimer: null, busy: false, msg: null, msgKind: 'info' };
+		return { origin: '', destination: null, doneMap: {}, busy: false };
 	},
 	computed: {
 		targets() {
@@ -89,6 +102,8 @@ export default {
 			return ax.find(a => a && a.letter === 'Z') || null;
 		},
 		steps() {
+			// no destination while the mode is not known: no steps (a step with MACRO_MODE[null] would run M98 on a macro that does not exist)
+			if (!this.destination || !this.origin) return [];
 			const aFFF = this.destination === 'FFF';
 			const hasWorkbench = pluginActive(this.$store, 'workbench'); // the lists, not the route: DWC 3.6 cannot remove the route of a plugin that was stopped
 			const since = this.origin === 'FFF'; // the mode it started with (does not change when changing mode)
@@ -146,6 +161,11 @@ export default {
 			});
 			return p;
 		},
+		doneCount() {
+			let n = 0;
+			for (let k = 0; k < this.steps.length; k++) if (this.done(k)) n++;
+			return n;
+		},
 		next() {
 			for (let k = 0; k < this.steps.length; k++) {
 				if (!this.done(k)) return k;
@@ -160,14 +180,11 @@ export default {
 		},
 		destination() {
 			this.doneMap = {};
-			this.msg = null;
+			this.clearResult();
 		}
 	},
 	created() {
 		if (this.mode) this.beginOfNew();
-	},
-	beforeDestroy() {
-		clearTimeout(this.armedTimer);
 	},
 	methods: {
 		...mapActions('machine', ['sendCode']),
@@ -175,7 +192,7 @@ export default {
 			this.origin = this.mode;
 			this.destination = this.mode === 'FFF' ? 'Laser' : 'FFF';
 			this.doneMap = {};
-			this.msg = null;
+			this.clearResult();
 		},
 		nameMode(m) {
 			return { FFF: i18n.t('plugins.WorkshopPrinting.headChange.fff_printing'), Laser: i18n.t('plugins.WorkshopPrinting.headChange.laser'), CNC: 'CNC' }[m] || m;
@@ -217,28 +234,19 @@ export default {
 			const p = this.steps[k];
 			const moves = p.codes.some(c => /^G(1|28)\b/m.test(c)); // m: the G1 may come after a G91 in the same block
 			const cv = this.confirmLive(p);
-			if ((moves || cv) && this.armed !== k) {
-				this.armed = k;
-				if (cv) {
-					this.msgKind = 'warning';
-					this.msg = p.text + ': ' + cv.reason + i18n.t('plugins.WorkshopPrinting.headChange.tap_again_to_confirm');
-				}
-				clearTimeout(this.armedTimer);
-				this.armedTimer = setTimeout(() => { this.armed = null; }, 4000);
-				return;
-			}
-			this.armed = null;
-			this.run(k, p);
+			if (!moves && !cv) return this.run(k, p);
+			// the first tap arms (with the reason when a live job is open but still); the second runs
+			if (cv && !this.isArmed(k)) this.say(p.text + ': ' + cv.reason + i18n.t('plugins.WorkshopPrinting.headChange.tap_again_to_confirm'), 'warning');
+			this.arm(k, () => this.run(k, p));
 		},
 		async run(k, p) {
 			const b = this.block(p); // se vuelve a mirar al tocar
 			if (b) {
-				this.msgKind = 'error';
-				this.msg = p.text + ': ' + b;
+				this.say(p.text + ': ' + b, 'error');
 				return;
 			}
 			this.busy = true;
-			this.msg = null;
+			this.clearResult();
 			try {
 				for (const c of p.codes) {
 					const r = await this.sendCode({ code: c, log: true });
@@ -246,8 +254,7 @@ export default {
 				}
 				this.$set(this.doneMap, k, true);
 			} catch (e) {
-				this.msgKind = 'error';
-				this.msg = p.text + ': ' + (e.message || e);
+				this.say(p.text + ': ' + (e.message || e), 'error');
 			} finally {
 				this.busy = false;
 			}
@@ -257,42 +264,46 @@ export default {
 </script>
 
 <style scoped>
-.explica {
-	background: rgba(25, 118, 210, 0.08);
-	border-radius: 6px;
-	padding: 8px 12px;
+.hc-steps {
+	list-style: none;
+	margin: 0;
+	padding: 0;
 }
-.step {
+.hc-step {
 	display: flex;
-	gap: 10px;
-	padding: 8px 0;
-	border-bottom: 1px solid rgba(128, 128, 128, 0.15);
-	opacity: 0.6;
+	gap: 12px;
+	padding: 10px 0;
+	border-bottom: 1px solid var(--wf-line);
 }
-.step.current,
-.step.done {
-	opacity: 1;
+.hc-step:last-child {
+	border-bottom: 0;
 }
-.step-num {
+.hc-step:not(.current):not(.done) .hc-body {
+	opacity: 0.7;
+}
+.hc-step.current {
+	box-shadow: inset 3px 0 0 var(--wf-sec-now);
+	padding-left: 10px;
+}
+.hc-num {
 	flex: none;
-	width: 24px;
-	height: 24px;
+	width: 26px;
+	height: 26px;
 	border-radius: 50%;
-	background: #546e7a;
-	color: #fff;
+	border: 1px solid var(--wf-line-strong);
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	font-size: 12px;
-	font-weight: 700;
+	font-weight: 600;
 }
-.step.current .step-num {
-	background: #1976d2;
+.hc-step.done .hc-num {
+	border-color: var(--wf-ok);
 }
-.step.done .step-num {
-	background: #2e7d32;
+.hc-detail {
+	opacity: 0.7;
 }
-.step-body {
+.hc-body {
 	flex: 1;
 	min-width: 0;
 }

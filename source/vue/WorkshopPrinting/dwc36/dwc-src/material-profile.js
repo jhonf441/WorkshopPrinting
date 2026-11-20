@@ -101,6 +101,7 @@ export function cleanList(list) {
 		const c = Object.assign({}, m)
 		delete c._from
 		delete c._open
+		delete c._copyOf
 		return cleanZones(c)
 	})
 }
@@ -121,16 +122,23 @@ export function nameProblems(list) {
 	return out
 }
 
-// What saving the list does to the recipes linked by name. `_from` of each entry is the name it was loaded with (absent = a new material); `recipes` the names of
-// the saved recipes; `originals` the names the list was loaded with. Returns { rename: [{from, to}], remove: [name], clash: [to] }: a material renamed moves its
-// recipe; a material taken out takes its recipe; a rename onto a name that already has a recipe is a clash (nothing is moved and the person is told).
+// What saving the list does to the layer changes linked by name. `_from` of each entry is the name it was loaded with (absent = a new profile); `_copyOf` the name
+// of the saved profile a duplicate was made from; `recipes` the names of the stored layer changes; `originals` the names the list was loaded with.
+// Returns { rename: [{from, to}], remove: [name], copy: [{from, to}], clash: [to] }: a profile renamed moves its layer changes; a profile taken out takes them;
+// a duplicate of a profile that has them gets a copy under its own name; a rename or copy onto a name that already has some is a clash (nothing is moved and the person is told).
 export function linkPlan(list, recipes, originals) {
 	const have = {}
 	recipes.forEach(r => { have[String(r).toLowerCase()] = r })
 	const rename = []
 	const clash = []
+	const copy = []
 	list.forEach(m => {
-		if (!m._from) return
+		if (!m._from) {
+			const src = m._copyOf ? have[String(m._copyOf).toLowerCase()] : ''
+			const dst = String(m.name || '').trim()
+			if (src) { if (have[dst.toLowerCase()]) clash.push(dst); else copy.push({ from: src, to: dst }) }
+			return
+		}
 		const to = String(m.name || '').trim()
 		const was = have[String(m._from).toLowerCase()]
 		if (!was || was === to) return
@@ -138,7 +146,7 @@ export function linkPlan(list, recipes, originals) {
 		rename.push({ from: was, to })
 	})
 	const remove = removedNames(originals || [], list).map(n => have[String(n).toLowerCase()]).filter(Boolean)
-	return { rename, remove, clash }
+	return { rename, remove, copy, clash }
 }
 
 // The recipe that belongs to a material, by name (case-insensitive): the name as the service has it, or ''
