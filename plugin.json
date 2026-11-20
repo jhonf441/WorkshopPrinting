@@ -2,7 +2,7 @@
   "id": "WorkshopPrinting",
   "name": "3D Printing",
   "author": "jhonf441",
-  "version": "2.34.7",
+  "version": "2.34.8",
   "license": "GPL-3.0-or-later",
   "homepage": "https://github.com/jhonf441/WorkshopPrinting",
   "tags": [
@@ -33,9 +33,9 @@
     "permissions.json"
   ],
   "dwcFiles": [
-    "css/WorkshopPrinting.ae6c4d46.css",
-    "css/WorkshopPrinting.ae6c4d46.css.gz",
-    "js/WorkshopPrinting.6c40e92a.js",
-    "js/WorkshopPrinting.6c40e92a.js.gz"
+    "css/WorkshopPrinting.8f36abca.css",
+    "css/WorkshopPrinting.8f36abca.css.gz",
+    "js/WorkshopPrinting.3e2aa033.js",
+    "js/WorkshopPrinting.3e2aa033.js.gz"
   ]
 }

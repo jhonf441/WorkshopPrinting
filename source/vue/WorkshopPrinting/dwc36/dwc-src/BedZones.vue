@@ -188,7 +188,7 @@
 		</v-card>
 
 		<!-- what the geometry says: the power estimate and the insulation test (both read only; every input is optional) -->
-		<div v-if="showSetup && loaded && shown.geometry && !edit" class="pc-g2w mt-3">
+		<div v-if="showSetup && loaded && shown.geometry && !edit" class="pc-g2wide mt-3">
 			<v-card outlined class="pa-3"><bed-zone-power :rows="rows" :inputs="powerInputs" @change="setPower" /></v-card>
 			<v-card outlined class="pa-3"><bed-zone-insulation :rows="rows" :inputs="powerInputs" :runs="runs" @runs="setRuns" /></v-card>
 		</div>

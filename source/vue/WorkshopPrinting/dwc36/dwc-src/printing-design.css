@@ -295,3 +295,7 @@
 .pc-field-row > * { min-width: 0; }
 .pc-field-row > .wf-field { justify-content: flex-end; }
 .pc-actions-end > .wf-field { justify-content: flex-end; }
+
+/* two wide cards (the power estimate and the insulation test) side by side only from 1200 px of content: the table of five columns needs the width */
+.pc-g2wide { display: grid; gap: 12px; align-items: start; grid-template-columns: minmax(0, 1fr); }
+@container pg (min-width: 1201px) { .pc-g2wide { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

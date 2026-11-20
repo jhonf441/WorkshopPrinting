@@ -1797,6 +1797,7 @@
 		"after_help": "Qué es: el cierre. Para qué: no dejar la boquilla caliente sin uso (el plastico se degrada y gotea). Si falta: el calentador sigue encendido hasta que alguien lo apague. Cómo: Enfriar si no imprimes ya; si el hilo sale irregular, purga en Extrusor (técnico)."
 	},
 	"bedZones": {
+		"power_cols_note": "Energía = lo que cuesta calentar la placa; Mantener = potencia para sostener la temperatura; Calentar = potencia para llegar en el tiempo elegido.",
 		"power_table_label": "Resultados por zona: placa, energía, potencia para mantener y para calentar",
 		"power_col_mass_title": "Masa de la placa de la zona",
 		"power_col_energy_title": "Energía para calentar",

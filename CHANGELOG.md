@@ -1,5 +1,9 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.34.8 -- 2026-11-20
+
+- Bed power card is full width with a shadowed scroll as backup, a note for the short headers and one card per zone on narrow widths
+
 ## 2.34.7 -- 2026-11-20
 
 - Bed power table scrolls inside its card instead of being cut, power and insulation cards stack by content width
@@ -38,6 +42,7 @@
 
 ## Unreleased
 
+- Round 2.34.8, power estimate of the bed: the power and insulation cards take the whole width and sit side by side only from 1200 px of content (the five columns of the table fit without scrolling), the table keeps its scrolling region as a back-up with a shadow at the edge that has more, a note under it explains the short headers (Energy, Hold, Heat) for touch and keyboard, and under 640 px of content each zone is a card with label and value instead of a scrolling table
 - Round 2.34.7, power estimate of the bed: the results table scrolls sideways inside its own focusable region (nothing is cut), with short headers (Plate, Energy, Hold, Heat) whose full names are the title, numbers and "Zone 1 3082 cm2" on one line; the power and insulation cards sit side by side only from 880 px of content and stack below it
 - Rows of labelled fields share one baseline: the power estimate of the bed (the fourth field had a two-line label and its box sat lower), the layout editor, the zone settings and the nozzle change use one row class (grid of equal cells, each box at the bottom of its cell); a test fails when a row of two or more fields is a bare flex or grid
 - Round 2.34.6, the rest: the border-box rule is under the page and its own dialogs only (it hung from the family class, which the other plugins share); the fields of a zone of the extruder (heater, sensor, monitors) are a fluid grid of 180 px cells instead of columns of fixed width, so none overlaps or is cut at any width; the target of each zone in the PID table of all zones is a real outlined field of 120 px with the unit, a suggested value and the cap as a small line below

@@ -1797,6 +1797,7 @@
 		"after_help": "What it is: the wrap-up. What for: not leaving the nozzle hot for nothing (the plastic degrades and oozes). Without it: the heater stays on until someone turns it off. How: Cool down if you are not printing now; if the line comes out uneven, purge in Extruder (technician)."
 	},
 	"bedZones": {
+		"power_cols_note": "Energy = what it takes to heat the plate; Hold = power to keep the temperature; Heat = power to get there in the time you chose.",
 		"power_table_label": "Results by zone: plate, energy, power to hold and to heat",
 		"power_col_mass_title": "Mass of the plate of the zone",
 		"power_col_energy_title": "Energy to heat",
