@@ -166,7 +166,6 @@ export default {
 </script>
 
 <style scoped>
-.bzi-btn.v-btn { height: 44px; min-height: 44px; }
-.bzi-toggle.v-btn-toggle { height: 44px; align-items: stretch; }
+.bzi-toggle.v-btn-toggle { height: var(--wf-size-s, 32px); align-items: stretch; }
 .bzi-num { font-family: var(--tp-font-mono, monospace); font-size: 12px; white-space: nowrap; }
 </style>

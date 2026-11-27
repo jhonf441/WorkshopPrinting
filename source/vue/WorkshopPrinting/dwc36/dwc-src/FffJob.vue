@@ -12,8 +12,8 @@
 		</pc-empty>
 		<fff-job-status v-if="!noJob" :is-fff="isFff" class="mb-3" @goto="$emit('goto', $event)" />
 		<job-control :is-fff="isFff" class="mb-3" />
-		<v-card outlined class="pa-3">
-			<h4 class="pc-card-title mb-2">{{ t('fff.layers_title') }}</h4>
+		<div class="wf-group wf-group-divided">
+			<h4 class="wf-group-title">{{ t('fff.layers_title') }}</h4>
 			<div class="pc-actions">
 				<!-- the same select as Files and Prepare job: ONE list of files for the whole page -->
 				<wf-field id="fff-file" :label="t('fff.file')" class="fff-file">
@@ -36,7 +36,7 @@
 				<v-btn v-else-if="followable" x-small text @click="follow()">{{ t('fff.follow_print') }}</v-btn>
 			</div>
 			<fff-3d-view ref="view" class="mt-3" @pick="emptyPick" :prev="prev" :path="prevPath" :layer-sel="shown.sel" :layer-mode="shown.mode" />
-		</v-card>
+		</div>
 	</pc-section>
 </template>
 
@@ -205,10 +205,6 @@ export default {
 </script>
 
 <style scoped>
-.fj-btn.v-btn {
-	height: 44px;
-	min-height: 44px;
-}
 .fff-file {
 	flex: 1 1 240px;
 	min-width: 200px;

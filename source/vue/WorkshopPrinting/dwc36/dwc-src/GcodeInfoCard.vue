@@ -149,7 +149,6 @@ export default {
 .gl-card-prev { flex: 1 1 100%; min-width: 0; max-width: 320px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
 .gl-card-mini { position: relative; width: 100%; aspect-ratio: 4 / 3; max-height: 240px; min-height: 0; overflow: hidden; box-sizing: border-box; border-radius: 6px; }
 @supports not (aspect-ratio: 1) { .gl-card-mini { height: 180px; } }
-.gl-card-open.v-btn { min-height: 44px; }
 .gl-card { min-width: 0; max-width: 100%; box-sizing: border-box; }
 /* in a narrow content the preview goes under the info, whole width, and never past the card */
 @container pg (max-width: 640px) { .gl-card-prev { flex-basis: 100%; max-width: 100%; } }

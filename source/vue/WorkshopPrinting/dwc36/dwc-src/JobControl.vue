@@ -7,18 +7,12 @@
 		<!-- ONE reason for every button of both cards that this person cannot press (an operator's) -->
 		<lock-reason :min="needOperate" class="mb-3" :subject="$t('plugins.WorkshopPrinting.subjects.job_control')" />
 
-		<div class="pc-g2w">
-		<v-card outlined class="pa-3">
+		<div>
+		<div class="wf-group">
 			<div class="pc-actions">
 				<v-icon small>mdi-play-pause</v-icon>
-				<h4 class="pc-card-title">{{ t('jobControl.card_control') }}</h4>
-				<v-chip small outlined class="pc-role-tag">{{ $t('plugins.WorkshopPrinting.prepare.role_operator') }}</v-chip>
-				<help-tip :title="t('jobControl.title')">
-					<p class="mb-1">{{ t('jobControl.help_what') }}</p>
-					<p class="mb-1">{{ t('jobControl.help_why') }}</p>
-					<p class="mb-1">{{ t('jobControl.help_missing') }}</p>
-					<p class="mb-0">{{ t('jobControl.help_how') }}</p>
-				</help-tip>
+				<h4 class="wf-group-title mb-0">{{ t('jobControl.card_control') }}</h4>
+				<wf-role-tag role="operator" />
 			</div>
 			<div class="wf-field-msg is-hint mt-1">{{ t('jobControl.job_help') }}</div>
 			<!-- pause / resume / cancel: cancel ends the job for good, so it takes two taps (DESIGN.md 5: danger = red outline, armed = filled) -->
@@ -35,16 +29,15 @@
 				<pc-result v-if="msgCard === 'control'" :text="msg || ''" :kind="msgKind" />
 			</div>
 			<div v-if="jobReason" class="wf-note is-info mb-0 mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ jobReason }}</span></div>
-		</v-card>
+		</div>
 
 		<!-- The three corrections (Z, speed, flow) belong to a print in progress: their steps and Apply are off with no job (correct), and what
 		     a job left behind is a warning (leftoverText); Reset and 100 % are always there to put it back (job-control.js) -->
-		<v-card outlined class="pa-3">
+		<div class="wf-group">
 			<div class="pc-actions">
 				<v-icon small>mdi-tune-variant</v-icon>
-				<h4 class="pc-card-title">{{ t('jobControl.card_live') }}</h4>
-				<v-chip small outlined class="pc-role-tag">{{ $t('plugins.WorkshopPrinting.prepare.role_operator') }}</v-chip>
-				<help-tip :title="t('jobControl.card_live')" :what="t('jobControl.live_what')" :why="t('jobControl.live_why')" :if-missing="t('jobControl.live_missing')" :how="t('jobControl.live_how')" />
+				<h4 class="wf-group-title mb-0">{{ t('jobControl.card_live') }}</h4>
+				<wf-role-tag role="operator" />
 			</div>
 			<div v-if="leftoverText" class="wf-note is-warn mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ leftoverText }}</span></div>
 			<div v-if="correctReason" class="wf-note is-info mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ correctReason }}</span></div>
@@ -87,16 +80,19 @@
 			</div>
 			<div v-if="!factors.flows.length" class="text-caption pc-muted mt-1">{{ t('jobControl.no_extruder') }}</div>
 			<div v-if="msgCard === 'live'" class="mt-2"><pc-result :text="msg || ''" :kind="msgKind" /></div>
-		</v-card>
 		</div>
+		</div>
+		<!-- ONE folded help at the foot for both groups (family HelpFold; no "?" popover) -->
+		<help-fold class="mt-3" :items="helpItems" />
 	</div>
 </template>
 
 <script>
 'use strict'
 
-import HelpTip from './HelpTip.vue' // vue/_shared36
+import HelpFold from './HelpFold.vue' // vue/_shared36
 import LockReason from './LockReason.vue' // vue/_shared36
+import WfRoleTag from './WfRoleTag.vue' // vue/_shared36: the role the card asks for (only with the access control on)
 import { mapActions } from 'vuex'
 import { BABY_LIMIT, BABY_STEPS, FLOW_LIMITS, SPEED_LIMITS, babyResetCode, babyStepCode, babyStepNow, babyStepText, correctionsOpen, factorsNow, flowCode, jobRunning, leftoverCorrections, speedCode } from './job-control.js'
 import { jobButtons, jobCode } from './job-rules.js' // the buttons by state and their codes: one rule for every page (vue/_shared)
@@ -109,7 +105,7 @@ import { tapArmMixin } from './tap-arm-mixin.js' // the double tap of the page (
 import PcResult from './PcResult.vue' // the result next to the action
 
 export default {
-	components: { HelpTip, LockReason, PcResult },
+	components: { HelpFold, LockReason, PcResult, WfRoleTag },
 	mixins: [roleMixin, tapArmMixin],
 	sessionData: ['armed', 'msg', 'msgKind'], // what the person who left did or was refused stays nowhere (ESTANDAR 3)
 	sessionErrors: ['msg', 'msgKind'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
@@ -125,6 +121,12 @@ export default {
 	},
 	computed: {
 		// pausing, cancelling, a Z step or a factor: an operator's, like heating a zone (NEED, print-sections.js)
+		helpItems() {
+			return [
+				{ title: this.t('jobControl.card_control'), what: this.t('jobControl.help_what'), why: this.t('jobControl.help_why'), ifMissing: this.t('jobControl.help_missing'), how: this.t('jobControl.help_how') },
+				{ title: this.t('jobControl.card_live'), what: this.t('jobControl.live_what'), why: this.t('jobControl.live_why'), ifMissing: this.t('jobControl.live_missing'), how: this.t('jobControl.live_how') }
+			];
+		},
 		canOperate() {
 			return this.atLeast(NEED.operate);
 		},

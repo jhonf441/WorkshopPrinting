@@ -1,74 +1,71 @@
 <template>
-	<!-- the head of the section carries the one line of state ("Heating: 1 of 4 still to reach its target") and the sentence that says what the page is for -->
+	<!-- ONE card (family redesign 2026-11-23): the head carries the one line of state ("Heating: 1 of 4 still to reach its target") and "Turn off all heaters"; inside, groups with a title
+	     and a divider (no gray sub-cards); the sentence of what the section is for lives in its one help at the foot -->
 	<pc-section icon="mdi-thermometer" :title="$t('plugins.WorkshopPrinting.common.status')" :lead="$t('plugins.WorkshopPrinting.printing.status_lead')">
-		<template v-slot:right><span class="wf-state" :class="summary.kind" role="status">{{ summaryText }}</span></template>
-		<!-- cold extrusion allowed (level 4, 2026-10-11): fixed notice
-		     at the very top while it lasts, with the button to block it again -->
-		<v-alert v-if="coldAllowed" type="error" prominent class="mb-3">
-			<div class="font-weight-medium">{{ $t('plugins.WorkshopPrinting.printing.cold_extrusion_allowed') }}</div>
-			<div class="text-body-2">
-				{{ $t('plugins.WorkshopPrinting.printing.the_extruder_pushes_even_with_the') }}
+		<template v-slot:right>
+			<span class="wf-state" :class="summary.kind" role="status">{{ summaryText }}</span>
+			<!-- turning every heater off is the first thing to reach for when something goes wrong: at the head of the card, a red outline (safe, level 1: one tap) -->
+			<v-btn v-if="isFff" small outlined color="error" class="st-off wf-hit" :aria-label="$t('plugins.WorkshopPrinting.printing.turn_off_all_heaters')" :title="$t('plugins.WorkshopPrinting.printing.turn_off_all_heaters')" :disabled="!canOperate" @click="cool()">
+				<v-icon small left>mdi-snowflake</v-icon>{{ $t('plugins.WorkshopPrinting.printing.turn_off_all_short') }}
+			</v-btn>
+		</template>
+		<pc-result v-if="msgCard === 'heat'" class="st-result" :text="msg || ''" :kind="msgKind" />
+		<!-- cold extrusion allowed (level 4, 2026-10-11): the outlined notice of the family (wf-notice) inside the card, at the very top while it lasts, with the button to block it again -->
+		<div v-if="coldAllowed" class="wf-notice wf-notice--error" role="alert">
+			<v-icon class="wf-notice-icon" aria-hidden="true">mdi-alert-octagon-outline</v-icon>
+			<div class="wf-notice-body">
+				<div class="wf-notice-text"><b>{{ $t('plugins.WorkshopPrinting.printing.cold_extrusion_allowed') }}</b> {{ $t('plugins.WorkshopPrinting.printing.the_extruder_pushes_even_with_the') }}</div>
 			</div>
-			<v-btn small class="mt-2" outlined :loading="coldSending" :disabled="!canOperate" @click="blockCold()">
+			<v-btn small outlined class="wf-notice-action" :loading="coldSending" :disabled="!canOperate" @click="blockCold()">
 				<v-icon small left>mdi-lock</v-icon>{{ $t('plugins.WorkshopPrinting.printing.lock_cold_extrusion') }}
 			</v-btn>
-		</v-alert>
-		<!-- the heaters: ONE line of state (what is still to reach its target), the rows, and the way to turn them all off right under the list -->
-		<v-card outlined class="pa-3">
-			<div class="pc-actions">
-				<h4 class="pc-card-title">{{ $t('plugins.WorkshopPrinting.printing.heaters_title') }}</h4>
-			</div>
-			<div v-if="!heaters.length" class="text-body-2 grey--text mt-2">
+		</div>
+		<!-- the heaters: rows of 48 (name | now | target | bar with the cap | state), no box around them -->
+		<div class="wf-group">
+			<h4 class="wf-group-title">{{ $t('plugins.WorkshopPrinting.printing.heaters_title') }}</h4>
+			<div v-if="!heaters.length" class="text-body-2 pc-muted">
 				{{ $t('plugins.WorkshopPrinting.printing.there_are_no_heaters_configured_now') }}
 			</div>
-			<div v-else class="pc-heaters mt-2">
+			<div v-else class="pc-heaters">
 				<pc-heater-row v-for="h in heaters" :key="h.id" :h="h" :state-text="textState(h)" :kind="kindState(h)" :can-operate="canOperate" @clear-fault="deleteFault" />
 			</div>
-			<!-- turning every heater off is the first thing to reach for when something goes wrong: right under the list it turns off (safe, level 1: one tap) -->
-			<div v-if="isFff" class="pc-actions mt-3">
-				<v-btn small outlined class="st-btn" :disabled="!canOperate" @click="cool()">
-					<v-icon small left>mdi-snowflake</v-icon>{{ $t('plugins.WorkshopPrinting.printing.turn_off_all_heaters') }}
-				</v-btn>
-				<pc-result v-if="msgCard === 'heat'" :text="msg || ''" :kind="msgKind" />
-			</div>
-		</v-card>
-		<!-- temperature history (2026-10-11): sampled from the model every 2 s; it starts when this page opens -->
-		<v-card v-if="heaters.length" outlined class="pa-3 mt-3">
+		</div>
+		<!-- temperature history (2026-10-11): sampled from the model every 2 s; it starts when this page opens (said in the help of the section) -->
+		<div v-if="heaters.length" class="wf-group">
 			<chart-state :series="seriesChart" :samples="samples" />
-			<div class="wf-field-msg is-hint mt-1">{{ $t('plugins.WorkshopPrinting.stateChart.starts_on_open') }}</div>
-		</v-card>
-		<div class="pc-g2 mt-3">
-			<v-card v-if="fans.length" outlined class="pa-3">
-				<h4 class="pc-card-title mb-2">{{ $t('plugins.WorkshopPrinting.common.fans') }}</h4>
+		</div>
+		<div class="pc-g2 wf-group-divided">
+			<div v-if="fans.length">
+				<h4 class="wf-group-title">{{ $t('plugins.WorkshopPrinting.common.fans') }}</h4>
 				<dl class="pc-facts">
 					<div v-for="f in fans" :key="f.id"><dt>{{ f.name }}</dt><dd>{{ Math.round(f.value * 100) }} %<span v-if="f.thermostatic" class="pc-faint"> {{ $t('plugins.WorkshopPrinting.printing.automatic') }}</span></dd></div>
 				</dl>
-			</v-card>
+			</div>
 			<!-- Cold extrusion (2026-10-11, request: "allow cold extrusions, but
 			     make it go through the safety protocol"). Allowing it is level 4
 			     (DESIGN.md 5): notice with a checkbox + active risk while it lasts.
 			     The state is read from the model: with M302 P1 RRF reports
 			     heat.coldExtrudeTemperature = 0 (Heat.cpp). -->
-			<v-card v-if="isFff" outlined class="pa-3" :class="{ 'edge-fault': coldAllowed }">
-				<div class="pc-actions">
-					<h4 class="pc-card-title">{{ $t('plugins.WorkshopPrinting.printing.cold_extrusion') }}</h4>
+			<div v-if="isFff">
+				<div class="pc-group-head">
+					<h4 class="wf-group-title">{{ $t('plugins.WorkshopPrinting.printing.cold_extrusion') }}</h4>
 					<span class="wf-state" :class="coldAllowed ? 'err' : coldAllowed === false ? 'ok' : 'info'">
 						{{ coldAllowed ? $t('plugins.WorkshopPrinting.printing.allowed') : coldAllowed === false ? $t('plugins.WorkshopPrinting.printing.locked') : $t('plugins.WorkshopPrinting.printing.no_data') }}
 					</span>
 				</div>
-				<div class="text-body-2 mt-2">
+				<div class="text-body-2">
 					<template v-if="coldAllowed">
 						{{ $t('plugins.WorkshopPrinting.printing.the_extruder_pushes_and_retracts_at') }}
 					</template>
 					<template v-else>
 						{{ $t('plugins.WorkshopPrinting.printing.locked_the_extruder_doesn_t_push') }} <b>{{ fmt(minExtCold) }} °C</b>
-						{{ $t('plugins.WorkshopPrinting.printing.nor_retract_below') }} <b>{{ fmt(minRetCold) }} °C</b>{{ $t('plugins.WorkshopPrinting.printing.it_is_the_normal_protection_it') }}
+						{{ $t('plugins.WorkshopPrinting.printing.nor_retract_below') }} <b>{{ fmt(minRetCold) }} °C</b>.
 					</template>
 				</div>
-				<div class="text-caption grey--text mt-1">
+				<div class="text-caption pc-muted mt-1">
 					{{ $t('plugins.WorkshopPrinting.printing.relocks_on_restart') }} {{ textModeCold }}
 				</div>
-				<div class="pc-actions mt-3">
+				<div class="pc-actions mt-2">
 					<v-btn v-if="coldAllowed" small color="primary" :loading="coldSending" :disabled="!canOperate" @click="blockCold()">
 						<v-icon small left>mdi-lock</v-icon>{{ $t('plugins.WorkshopPrinting.printing.lock_cold_extrusion') }}
 					</v-btn>
@@ -79,14 +76,15 @@
 					<div v-else-if="coldAllowed == null" class="wf-note is-info mb-0 mt-0" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ $t('plugins.WorkshopPrinting.printing.no_data_from_the_board_yet') }}</span></div>
 					<pc-result v-if="msgCard === 'cold'" :text="msg || ''" :kind="msgKind" />
 				</div>
-			</v-card>
+			</div>
 		</div>
 		<!-- ONE reason for the whole tab (clear fault, turn off, cold extrusion), below the controls -->
 		<lock-reason :min="stateNeed" class="mt-3" :subject="$t('plugins.WorkshopPrinting.subjects.printer_state')" />
-		<!-- How it is configured (2026-10-11), folded: what the board's model says for each heater; "Read from the board" also asks for the output, the sensor, the model and the cap as RRF answers them -->
-		<details v-if="heaters.length" class="pc-step mt-3">
-			<summary class="pc-step-sum"><v-icon small class="mr-1" aria-hidden="true">mdi-cog-outline</v-icon><span class="pc-step-title">{{ $t('plugins.WorkshopPrinting.printing.how_it_is_configured') }}</span></summary>
-			<div class="pc-step-body">
+		<!-- How it is configured (2026-10-11), folded in a flat row (no box): what the board's model says for each heater; "Read from the board" also asks for the output, the sensor,
+		     the model and the cap as RRF answers them -->
+		<details v-if="heaters.length" class="pc-disclose">
+			<summary><v-icon small aria-hidden="true">mdi-cog-outline</v-icon><span>{{ $t('plugins.WorkshopPrinting.printing.how_it_is_configured') }}</span></summary>
+			<div class="pc-disclose-body">
 				<div class="d-flex align-center flex-wrap mb-2" style="gap:16px">
 					<span class="text-body-2">{{ $t('plugins.WorkshopPrinting.printing.heated_bed_line', { state: bedText }) }}</span>
 					<span class="text-body-2">{{ $t('plugins.WorkshopPrinting.printing.heated_chamber_line', { state: chamberText }) }}</span>
@@ -127,6 +125,13 @@
 				</div>
 			</div>
 		</details>
+		<!-- what used to be loose lines in the card (the note of the chart, why cold extrusion is locked) is read in the one help of the section -->
+		<template v-slot:guide>
+			<ul class="pc-help-list">
+				<li>{{ $t('plugins.WorkshopPrinting.stateChart.starts_on_open') }}</li>
+				<li v-if="isFff">{{ $t('plugins.WorkshopPrinting.printing.cold_protection_why') }}</li>
+			</ul>
+		</template>
 	</pc-section>
 </template>
 
@@ -368,12 +373,11 @@ export default {
 </script>
 
 <style scoped>
-.st-btn.v-btn {
-	height: 44px;
-	min-height: 44px;
-}
-.edge-fault {
-	border-color: #e53935 !important;
+/* the buttons follow the scale of the family (design/family.css: 32 px to see, 40 to touch): no height of their own here */
+.st-result {
+	display: block;
+	margin: -4px 0 8px;
+	text-align: right;
 }
 .table-config td:first-child {
 	white-space: nowrap;

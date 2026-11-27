@@ -3,14 +3,6 @@
 	     cards and states as the rest of the page: hotend heater, extruder (flow), layer fan, hotend fan. A pellet tool never sees it
 	     (print-sections.js hiddenIds). Heating is a double tap (DESIGN.md 5 level 2), cooling and fans one tap (level 1). Operator's (NEED.operate). -->
 	<div class="tool-part">
-		<div class="pc-actions">
-			<h4 class="pc-card-title">{{ $t('plugins.WorkshopPrinting.printing.filament_panel') }}</h4>
-			<help-tip :title="$t('plugins.WorkshopPrinting.printing.filament_panel')">
-				<p class="mb-1">{{ t('fpanel.help_what') }}</p>
-				<p class="mb-1">{{ t('fpanel.help_fans') }}</p>
-				<p class="mb-0">{{ t('fpanel.help_where') }}</p>
-			</help-tip>
-		</div>
 		<lock-reason :min="needOperate" class="mt-2" :subject="$t('plugins.WorkshopPrinting.subjects.filament')" />
 		<div v-if="!isFff" class="wf-note mt-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ t('fpanel.only_fff') }}</span></div>
 		<div v-else-if="!tool" class="text-body-2 pc-muted mt-3">{{ t('fpanel.no_tool') }}</div>
@@ -19,7 +11,7 @@
 			<v-row dense class="mt-1">
 				<!-- 1. hotend heater -->
 				<v-col cols="12" md="6">
-					<v-card outlined class="pa-3 fp-card">
+					<div class="pc-sub fp-card">
 						<div class="pc-actions">
 							<v-icon small>mdi-printer-3d-nozzle-heat</v-icon>
 							<span class="pc-card-title">{{ t('fpanel.heater') }}</span>
@@ -30,7 +22,7 @@
 							<div class="text-body-2">{{ $t('plugins.WorkshopPrinting.common.target') }} <b>{{ heater.target > 0 ? Math.round(heater.target) + ' °C' : t('fpanel.off') }}</b>
 								<span class="pc-muted ml-2">{{ t('fpanel.limit', { max: heater.max }) }}</span></div>
 							<div class="pc-actions mt-3">
-								<input v-model.number="temp" type="number" step="5" min="0" :max="heater.max" class="field" :disabled="!canOperate" /> °C
+								<div class="wf-field"><label class="wf-field-label" for="fp-temp">{{ t('fpanel.temp_field') }}</label><span><input id="fp-temp" v-model.number="temp" type="number" step="5" min="0" :max="heater.max" class="field" :disabled="!canOperate" /> °C</span></div>
 								<v-btn small :color="armed === 'heat' ? 'amber darken-3' : 'primary'" :disabled="!canOperate || !!heatWhy || sending" @click="arm('heat', heatUp)">
 									<v-icon small left>mdi-fire</v-icon>{{ armed === 'heat' ? t('fpanel.heat_again', { temp }) : t('fpanel.heat') }}
 								</v-btn>
@@ -39,11 +31,11 @@
 							<div v-if="heatWhy" class="wf-note is-info mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ whyText(heatWhy) }}</span></div>
 						</template>
 						<div v-else class="text-caption pc-muted mt-2">{{ t('fpanel.no_heater') }}</div>
-					</v-card>
+					</div>
 				</v-col>
 				<!-- 2. extruder: flow here; loading and unloading is the Load material section -->
 				<v-col cols="12" md="6">
-					<v-card outlined class="pa-3 fp-card">
+					<div class="pc-sub fp-card">
 						<div class="pc-actions">
 							<v-icon small>mdi-screw-lag</v-icon>
 							<span class="pc-card-title">{{ t('fpanel.extruder') }}</span>
@@ -52,15 +44,15 @@
 						<div class="pc-read">{{ flowNow }} %</div>
 						<div class="text-body-2 pc-muted">{{ t('fpanel.flow_now') }}</div>
 						<div class="pc-actions mt-3">
-							<input v-model.number="flow" type="number" step="5" min="10" max="300" class="field" :disabled="!canOperate" /> %
+							<input v-model.number="flow" :aria-label="t('fpanel.flow_now')" type="number" step="5" min="10" max="300" class="field" :disabled="!canOperate" /> %
 							<v-btn small outlined :disabled="!canOperate || !flowOk || sending" @click="applyFlow()"><v-icon small left>mdi-check</v-icon>{{ t('fpanel.flow_apply') }}</v-btn>
 						</div>
 						<div class="text-caption pc-muted mt-2">{{ t('fpanel.flow_note') }}</div>
-					</v-card>
+					</div>
 				</v-col>
 				<!-- 3. layer fan: set by hand, one tap -->
 				<v-col cols="12" md="6">
-					<v-card outlined class="pa-3 fp-card">
+					<div class="pc-sub fp-card">
 						<div class="pc-actions">
 							<v-icon small>mdi-fan</v-icon>
 							<span class="pc-card-title">{{ t('fpanel.layer_fan') }}</span>
@@ -76,11 +68,11 @@
 								<v-btn x-small outlined :disabled="!canOperate || sending" @click="quick(f, 100)">100 %</v-btn>
 							</div>
 						</div>
-					</v-card>
+					</div>
 				</v-col>
 				<!-- 4. hotend fan: the board runs it (thermostatic); only shown, with a warning when it is off and the hotend is hot -->
 				<v-col cols="12" md="6">
-					<v-card outlined class="pa-3 fp-card">
+					<div class="pc-sub fp-card">
 						<div class="pc-actions">
 							<v-icon small>mdi-fan-chevron-down</v-icon>
 							<span class="pc-card-title">{{ t('fpanel.hotend_fan') }}</span>
@@ -91,12 +83,14 @@
 							<div v-if="warn(f)" class="wf-note is-warn mt-1" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ t('fpanel.hotend_fan_warn') }}</span></div>
 						</div>
 						<div v-if="groups.hotend.length" class="text-caption pc-muted mt-2">{{ t('fpanel.hotend_fan_note') }}</div>
-					</v-card>
+					</div>
 				</v-col>
 			</v-row>
 			<div v-if="groups.others.length" class="text-caption pc-muted mt-2">{{ t('fpanel.other_fans', { list: groups.others.map(f => f.name + ' ' + Math.round(f.value * 100) + ' %').join(', ') }) }}</div>
 			<pc-result :text="msg || ''" :kind="msgKind" class="mt-3 d-block" />
 		</template>
+		<!-- ONE help at the foot of the section -->
+		<help-fold :title="$t('plugins.WorkshopPrinting.printing.filament_panel')" :what="t('fpanel.help_what')" :why="t('fpanel.help_fans')" :how="t('fpanel.help_where')" />
 	</div>
 </template>
 
@@ -104,7 +98,7 @@
 import PcResult from './PcResult.vue' // the result next to the action
 'use strict'
 
-import HelpTip from './HelpTip.vue' // vue/_shared36
+import HelpFold from './HelpFold.vue' // vue/_shared36: the one help of the family
 import LockReason from './LockReason.vue' // vue/_shared36
 import { mapActions } from 'vuex'
 import { isError } from './util.js'
@@ -123,7 +117,7 @@ export default {
 	mixins: [roleMixin, tapArmMixin],
 	sessionData: ['armed', 'msg', 'msgKind'], // what the person who left did or was refused stays nowhere (ESTANDAR 3)
 	sessionErrors: ['msg', 'msgKind'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
-	components: { PcResult, HelpTip, LockReason },
+	components: { PcResult, HelpFold, LockReason },
 	props: {
 		isFff: { type: Boolean, default: false },
 		tool: { type: Object, default: null },

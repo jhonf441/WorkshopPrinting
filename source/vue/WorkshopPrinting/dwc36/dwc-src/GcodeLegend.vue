@@ -1,9 +1,9 @@
 <template>
 	<div class="gl-legend" role="group" :aria-label="tx('legend')">
-		<button v-for="e in entries" :key="e.type" type="button" class="gl-leg" :class="{ 'is-off': !e.on }" :aria-pressed="e.on ? 'true' : 'false'" @click="$emit('toggle', e.type)">
+		<button v-for="e in entries" :key="e.type" type="button" class="gl-leg wf-hit" :class="{ 'is-off': !e.on }" :aria-pressed="e.on ? 'true' : 'false'" @click="$emit('toggle', e.type)">
 			<i class="gl-dot" :style="{ background: e.color }" />{{ e.key ? tx(e.key) : e.type }}
 		</button>
-		<button v-if="withTravel" type="button" class="gl-leg" :class="{ 'is-off': !travel }" :aria-pressed="travel ? 'true' : 'false'" @click="$emit('travel', !travel)">
+		<button v-if="withTravel" type="button" class="gl-leg wf-hit" :class="{ 'is-off': !travel }" :aria-pressed="travel ? 'true' : 'false'" @click="$emit('travel', !travel)">
 			<i class="gl-dot gl-dot-travel" />{{ tx('travel') }}
 		</button>
 		<help-tip v-bind="help('legend')" />
@@ -37,7 +37,7 @@ export default {
 
 <style scoped>
 .gl-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
-.gl-leg { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px; border-radius: 22px; border: 1px solid rgba(128, 128, 128, 0.4); background: transparent; color: inherit; font-size: 12px; cursor: pointer; }
+.gl-leg { display: inline-flex; align-items: center; gap: 6px; min-height: var(--wf-size-s, 32px); padding: 0 10px; border-radius: 16px; border: 1px solid rgba(128, 128, 128, 0.4); background: transparent; color: inherit; font-size: 12px; cursor: pointer; }
 .gl-leg.is-off { opacity: 0.45; text-decoration: line-through; }
 .gl-dot { width: 12px; height: 12px; border-radius: 3px; flex: none; }
 .gl-dot-travel { background: #8a8a8a; height: 2px; }

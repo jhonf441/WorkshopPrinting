@@ -1,0 +1,10 @@
+{
+ "version": 1,
+ "plugin": "WorkshopPrinting",
+ "macros": [
+  {
+   "file": "work/bedzones-set.g",
+   "audience": "internal"
+  }
+ ]
+}

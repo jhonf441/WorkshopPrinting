@@ -7,12 +7,6 @@
 	<div class="tool-part mt-4">
 		<div class="pc-actions">
 			<h4 class="pc-card-title">{{ $t('plugins.WorkshopPrinting.printing.filament_load') }}</h4>
-			<help-tip :title="$t('plugins.WorkshopPrinting.printing.filament_load')">
-				<p class="mb-1">{{ t('filament.help_what') }}</p>
-				<p class="mb-1">{{ t('filament.help_why') }}</p>
-				<p class="mb-1">{{ t('filament.help_missing') }}</p>
-				<p class="mb-0">{{ t('filament.help_how') }}</p>
-			</help-tip>
 		</div>
 		<div v-if="!isFff" class="wf-note mt-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ t('filament.only_fff') }}</span></div>
 		<!-- ONE reason for every button and field of the card that this person cannot use (an operator's) -->
@@ -64,6 +58,8 @@
 		<h4 class="mt-4">{{ t('filament.step_after') }}</h4>
 		<div class="text-caption pc-muted">{{ t('filament.after_help') }}</div>
 		<pc-result :text="msg || ''" :kind="msgKind" class="mt-3 d-block" />
+		<!-- ONE help at the foot of the section -->
+		<help-fold :title="$t('plugins.WorkshopPrinting.printing.filament_load')" :what="t('filament.help_what')" :why="t('filament.help_why')" :if-missing="t('filament.help_missing')" :how="t('filament.help_how')" />
 	</div>
 </template>
 
@@ -71,7 +67,7 @@
 import PcResult from './PcResult.vue' // the result next to the action
 'use strict'
 
-import HelpTip from './HelpTip.vue' // vue/_shared36
+import HelpFold from './HelpFold.vue' // vue/_shared36: the one help of the family
 import LockReason from './LockReason.vue' // vue/_shared36
 import { mapActions } from 'vuex'
 import { CFG_FILE, MATERIALS_DEF, readJson, listItemsFolder, isError } from './util.js'
@@ -89,7 +85,7 @@ export default {
 	mixins: [roleMixin, tapArmMixin],
 	sessionData: ['armed', 'msg', 'msgKind'], // what the person who left did or was refused stays nowhere (ESTANDAR 3)
 	sessionErrors: ['msg', 'msgKind'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
-	components: { PcResult, HelpTip, LockReason },
+	components: { PcResult, HelpFold, LockReason },
 	props: {
 		isFff: { type: Boolean, default: false },
 		tool: { type: Object, default: null },

@@ -9,7 +9,7 @@ import { round1, overlaps, outside, EPS } from './bed-zones-layout.js'
 
 export const SNAP_MM = 5 // the grid zones snap to
 export const MIN_ZONE_MM = 5 // a zone is never made smaller than this
-export const TOUCH_PX = 44 // the minimum touch target of a handle or a zone
+export const TOUCH_PX = 40 // the minimum touch target of a handle or a zone (the touch area of the family, --wf-hit: owner 2026-11-23)
 
 // Snaps a value to the grid (0 / null = free, rounded to 0.1 mm)
 export function snap(v, step) {

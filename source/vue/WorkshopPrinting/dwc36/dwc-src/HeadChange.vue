@@ -1,10 +1,11 @@
 <template>
 	<pc-section icon="mdi-swap-horizontal" :title="$t('plugins.WorkshopPrinting.printing.head_change')" role="technician">
-		<help-guide :title="$t('plugins.WorkshopPrinting.common.how_it_works')">
+		<!-- the guide is read in the ONE help of the section, at its foot -->
+		<template v-slot:guide>
 			<p>
 			{{ $t('plugins.WorkshopPrinting.headChange.wizard_to_change_the_head_steps') }}
 			</p>
-		</help-guide>
+		</template>
 
 		<!-- ONE notice at the top: the steps really move the machine and turn things off -->
 		<div class="wf-note is-warn mt-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ $t('plugins.WorkshopPrinting.headChange.moves_for_real_note') }}</span></div>
@@ -63,7 +64,6 @@ import PcSection from './PcSection.vue' // the card with the header of the secti
 import PcResult from './PcResult.vue' // the result of an action, one line
 import { tapArmMixin } from './tap-arm-mixin.js' // the double tap of the page (4 s)
 import { resultMixin } from './action-result.js' // msg / msgKind / say()
-import HelpGuide from './HelpGuide.vue' // vue/_shared36
 
 'use strict'
 
@@ -81,7 +81,7 @@ const cold = 50; // °C: below it the nozzle can be removed
 
 export default {
 	mixins: [tapArmMixin, resultMixin],
-	components: { HelpGuide, PcSection, PcResult },
+	components: { PcSection, PcResult },
 	props: {
 		mode: { type: String, default: '' },
 		state: { type: String, default: '' },

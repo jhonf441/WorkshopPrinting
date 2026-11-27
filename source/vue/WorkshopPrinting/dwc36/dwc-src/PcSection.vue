@@ -1,33 +1,31 @@
 <template>
 	<div v-if="bare"><slot /></div>
 	<section v-else class="pc-section">
-		<div v-if="title" class="wf-section-head">
-			<v-icon class="pc-ico" small>{{ icon }}</v-icon>
-			<h3>{{ title }}</h3>
-			<p v-if="lead" class="wf-lead">{{ lead }}</p>
-			<slot name="help" />
-			<div v-if="$slots.right || role" class="pc-head-right"><slot name="right" /><v-chip v-if="role" small outlined class="pc-role-tag">{{ $t('plugins.WorkshopPrinting.prepare.role_' + role) }}</v-chip></div>
-		</div>
+		<!-- the head of the card (family redesign 2026-11-23, CardHead of vue/_shared36): icon 20 in the color of the section + title 16/600 on a 4 % tint and, on the right, the
+		     state, the age of the data and the one action of the card. No sentence under the title: what the section is for goes into its one help at the foot -->
+		<card-head v-if="title" :icon="icon" :title="title" class="pc-head">
+			<span v-if="$slots.right" class="pc-head-right"><slot name="right" /></span>
+			<wf-role-tag v-if="role" :role="role" />
+		</card-head>
 		<slot />
-		<!-- the "?" of the rows of this section (PcHelp) are drawn here, once, folded -->
-		<details v-if="helps.length" class="pc-fold mt-3">
-			<summary class="pc-fold-sum">{{ $t('plugins.WorkshopPrinting.common.section_help') }}</summary>
-			<div v-for="(h, i) in helps" :key="i" class="pc-sub mt-2">
-				<h4>{{ h.title }}</h4>
-				<dl class="pc-help4"><template v-for="r in rows(h)"><dt :key="'t' + r.k">{{ r.label }}</dt><dd :key="'d' + r.k">{{ r.text }}</dd></template></dl>
-			</div>
-		</details>
+		<!-- ONE help per section, at its foot (family's fold "What it is and how to use it", HelpFold): the sentence that used to sit under the title (lead), the section's own
+		     guide (slot "guide") and the "?" of its rows (PcHelp) -->
+		<help-fold v-if="lead || helps.length || $slots.guide" class="pc-section-help" :what="lead" :items="helps"><slot name="guide" /></help-fold>
 	</section>
 </template>
 
 <script>
-// A section of the 3D printing page: the head of the section (gray icon, title, lead; family .wf-section-head) and what the section draws in the slot.
-// The slot `right` holds the state (a small outlined chip) or the role of the section, pushed to the right of the head. `role` = a small outlined chip of who the section is for.
-// The card around it is the one of the family (.st-body) and its top line takes the color of the section from Print.vue.
-// It also collects the "?" of its rows (PcHelp) and draws their four parts once, folded, under the section: no loose question marks.
-import { ts } from './shared-t.js' // vue/_shared36
+// A section of the 3D printing page: the head of the card (icon, title; family CardHead / .wf-card-head) and what the section draws in the slot.
+// The slot `right` holds the state (a dot + the word), the age of the data and the one action of the card, pushed to the right of the head. `role` = a small outlined chip of who
+// the section is for. The card around it is the one of the family (.st-body) and its top line takes the color of the section from Print.vue.
+// It draws ONE help at its foot, closed: the `lead` (what the section is for: it no longer sits under the title), the slot `guide` (the steps of the section) and the four parts of
+// every "?" of its rows (PcHelp), so a section never shows two helps or a loose question mark.
+import CardHead from './CardHead.vue' // vue/_shared36: the head of a card of the family
+import HelpFold from './HelpFold.vue' // vue/_shared36
+import WfRoleTag from './WfRoleTag.vue' // vue/_shared36: the role the section asks for (only with the access control on)
 
 export default {
+	components: { CardHead, HelpFold, WfRoleTag },
 	inject: { outerHelp: { from: 'pcHelp', default: null } },
 	provide() {
 		// a bare section (mounted inside another one) passes the collector of the one around it
@@ -42,11 +40,6 @@ export default {
 	},
 	data() {
 		return { helps: [] };
-	},
-	methods: {
-		rows(h) {
-			return [['what', 'what', h.what], ['why', 'why', h.why], ['miss', 'missing', h.ifMissing], ['how', 'how', h.how]].filter(r => r[2]).map(r => ({ k: r[0], label: ts('help_tip_' + r[1]), text: r[2] }));
-		}
 	}
 };
 </script>

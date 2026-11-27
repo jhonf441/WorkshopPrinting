@@ -1,7 +1,7 @@
 <template>
 	<!-- The confirmation of an action that HEATS: the zones, the temperatures and the order, read from the plan the service made (bedcal.plan). Nothing has been sent to the machine
 	     yet; the start button works only with the "I will stay" box ticked, and Cancel sends nothing. -->
-	<v-dialog :value="true" persistent max-width="560" content-class="impresion-dialog" @keydown.esc="$emit('cancel')">
+	<v-dialog :value="true" persistent max-width="560" content-class="workshop-theme impresion-dialog" @keydown.esc="$emit('cancel')">
 		<v-card role="alertdialog" aria-labelledby="bcc-title">
 			<v-card-title id="bcc-title" class="pc-card-title">{{ t(kind === 'tune' ? 'confirm_tune_title' : 'confirm_preheat_title') }}</v-card-title>
 			<v-card-text>

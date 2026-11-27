@@ -39,7 +39,7 @@
 							<div v-if="p.summary" class="text-caption pc-muted">{{ p.summary }}</div>
 						</div>
 						<v-chip x-small outlined :color="colorChip(p)">{{ textChip(p) }}</v-chip>
-						<v-icon small>{{ openId === p.id ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+						<v-icon small aria-hidden="true">{{ openId === p.id ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
 					</div>
 
 					<div v-if="openId === p.id" class="step-body">
@@ -50,7 +50,7 @@
 						<template v-if="p.id === 'sensors'">
 							<div v-if="!heaters.length" class="text-body-2 pc-muted mt-2">{{ $t('plugins.WorkshopPrinting.commissioning.there_are_no_heaters_configured_they') }}</div>
 							<div v-for="h in heaters" :key="h.id" class="row text-body-2">
-								<v-icon small :color="sensorOk(h) ? 'success' : 'error'">{{ sensorOk(h) ? 'mdi-check-circle' : 'mdi-alert-circle' }}</v-icon>
+								<v-icon small role="img" :aria-label="$t('plugins.WorkshopPrinting.commissioning.' + (sensorOk(h) ? 'sensor_ok_label' : 'sensor_bad_label'))" :color="sensorOk(h) ? 'success' : 'error'">{{ sensorOk(h) ? 'mdi-check-circle' : 'mdi-alert-circle' }}</v-icon>
 								<span class="name">{{ h.name }}</span>
 								<b>{{ h.sensorBad ? $t('plugins.WorkshopPrinting.commissioning.no_reading') : Math.round(h.current) + ' °C' }}</b>
 								<pc-more v-if="!sensorOk(h)" class="pt-reading" :text-class="'text-caption wf-state err'" :text="h.explanation || (h.current > 50 ? $t('plugins.WorkshopPrinting.commissioning.it_is_hot_wait_for_it') : $t('plugins.WorkshopPrinting.commissioning.abnormal_resting_reading_5_to_50'))" />
@@ -463,8 +463,8 @@ export default {
 	display: flex;
 	align-items: center;
 	gap: 10px;
-	min-height: 56px;
-	padding: 6px 12px;
+	min-height: var(--wf-row, 48px);
+	padding: 4px 12px;
 	cursor: pointer;
 }
 .step-title {

@@ -37,6 +37,7 @@
 		<div class="pc-actions mt-4">
 			<v-btn small color="primary" :loading="saving" :disabled="!dirty" @click="save()">{{ $t('plugins.WorkshopPrinting.common.save') }}</v-btn>
 			<v-btn small outlined :disabled="saving || !dirty" @click="reset()">{{ $t('plugins.WorkshopPrinting.bedZones.cancel') }}</v-btn>
+			<wf-unsaved-mark :show="hasUnsaved" />
 		</div>
 	</div>
 </template>
@@ -48,6 +49,8 @@
 // configuration with the revision it was read at (op bedzones.set): the service validates again and refuses a stale revision. Save is the one filled
 // button; Cancel puts the form back as saved.
 import { api } from './workshop-api.js'
+import WfUnsavedMark from './WfUnsavedMark.vue' // vue/_shared36
+import { unsavedMixin } from './unsaved-mixin.js' // vue/_shared36: the guard of the unsaved changes (the dialog is mounted by the page)
 import { draftOf, configOf, sameConfig, zoneLimit, MAX_ZONES } from './bed-zones.js'
 import WfField from './WfField.vue' // vue/_shared36
 import PcHelp from './PcHelp.vue' // the "?" of a row, drawn folded by the section
@@ -62,7 +65,8 @@ const LIMITS = [
 const HELPED = ['enabled', 'offset', 'layout', 'max_temp', 'max_offset', 'tolerance', 'timeout_s']
 
 export default {
-	components: { WfField, PcHelp, ErrorNotice },
+	mixins: [unsavedMixin],
+	components: { WfUnsavedMark, WfField, PcHelp, ErrorNotice },
 	props: {
 		config: { type: Object, required: true },
 		rev: { type: String, required: true }
@@ -95,6 +99,22 @@ export default {
 		}
 	},
 	methods: {
+		// the unsaved changes guard (unsaved-mixin.js): what is being edited against what is saved
+		unsavedPair() {
+			return [this.dirty, false]
+		},
+		async saveBeforeLeaving() {
+			if (!this.dirty) return true
+			await this.save()
+			await this.$nextTick()
+			return !this.failure && !this.serverErrors.length && !Object.keys(this.errors).length
+		},
+		discardUnsaved() {
+			this.reset()
+		},
+		unsavedLabel() {
+			return 'bed zones settings'
+		},
 		help(k) {
 			if (HELPED.indexOf(k) < 0) return {}
 			const t = s => this.$t('plugins.WorkshopPrinting.bedZones.help.' + k + '_' + s)

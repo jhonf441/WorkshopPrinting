@@ -1,3 +1,4 @@
+<!-- lock-reason-in-parent: the ONE reason of this group is drawn by StateSection.vue, so the control below is disabled without repeating it -->
 <template>
 	<div class="pc-heater" :class="{ 'is-fault': fault }">
 		<span class="pc-heater-name"><v-icon small aria-hidden="true">{{ h.icon }}</v-icon>{{ h.name }}</span>

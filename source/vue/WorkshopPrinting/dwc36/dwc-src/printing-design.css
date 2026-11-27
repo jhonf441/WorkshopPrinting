@@ -6,7 +6,7 @@
 
 /* ---- zones ---- */
 .pc-zones { display: flex; flex-direction: column; gap: 10px; }
-.pc-zone { display: grid; grid-template-columns: 24px 32px minmax(0, 1fr) minmax(0, 1.6fr) auto; gap: 14px; align-items: center; padding: 10px 12px; border: 1px solid var(--wf-line); border-radius: 8px; background: var(--wf-soft); }
+.pc-zone { display: grid; grid-template-columns: 24px 32px minmax(0, 1fr) minmax(0, 1.6fr) auto; gap: 14px; align-items: center; padding: 8px 12px; border: 1px solid var(--wf-line); border-radius: 8px; }
 .pc-zone.drop-here { border-top: 3px solid var(--wf-warn); }
 .pc-zone.dragging { opacity: 0.45; }
 .pc-grip { cursor: grab; display: grid; place-items: center; opacity: 0.7; }
@@ -36,11 +36,11 @@
 
 /* ---- tiles, specs and picks ---- */
 .pc-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
-.pc-tile { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--wf-line); border-radius: 8px; background: var(--wf-soft); min-width: 0; }
+.pc-tile { display: flex; flex-direction: column; gap: 8px; padding: 8px 12px; border: 1px solid var(--wf-line); border-radius: 8px; min-width: 0; }
 .pc-tile-t { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .pc-tile-m { font-size: 12px; opacity: 0.8; }
 .pc-specs { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
-.pc-specs > div { padding: 10px 12px; border: 1px solid var(--wf-line); border-radius: 8px; background: var(--wf-soft); }
+.pc-specs > div { padding: 8px 12px; border: 1px solid var(--wf-line); border-radius: 8px; }
 .pc-specs .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7; }
 .pc-specs .v { font-size: 16px; font-weight: 600; }
 .pc-pick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 420px; }
@@ -78,6 +78,18 @@
    is a sibling of .st-body and turns into a row by itself, so a viewport query would be wrong. Thresholds: <= 640 one column, 641-880 two, above three ---- */
 .impresion-page .st-body { container: pg / inline-size; }
 
+/* Profiles: the list and the editor are two columns only while the content is wide; at 760 px or less (a phone) the list is a select and the editor goes BELOW it, full width.
+   Here and not in the scoped styles of the components, so the rule reaches the page the same way as the other @container pg rules. The bar of actions keeps 8 px between buttons */
+.pf-grid { display: grid; grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); gap: 24px; align-items: start; }
+.pf-bar { gap: 8px 8px; }
+.pf-bar > .pf-btn { margin: 0; }
+.pl-select { display: none; }
+@container pg (max-width: 760px) {
+	.impresion-page .st-body .pf-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+	.impresion-page .st-body .pl-select { display: block; }
+	.impresion-page .st-body .pl-list { display: none; }
+}
+
 .pc-g2, .pc-g3, .pc-split { display: grid; gap: 12px; align-items: start; }
 .pc-g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .pc-g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -88,16 +100,16 @@
 @container pg (max-width: 640px) { .pc-g2, .pc-g3, .pc-split { grid-template-columns: minmax(0, 1fr); } }
 @container pg (min-width: 641px) and (max-width: 880px) { .pc-g3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
-/* a block inside the card of the section: gray background, no line (the fourth level is a separator, .pc-zcard) */
-.pc-sub { padding: 12px; border-radius: 8px; background: var(--wf-soft); min-width: 0; }
-.pc-sub h4, .pc-split h4 { font-size: 14px; font-weight: 600; margin: 0 0 8px; }
+/* a block inside the card of the section: a GROUP of the family (redesign 2026-11-23, .wf-group): a title 13/600 and a divider above, no gray fill, no box */
+.pc-sub { min-width: 0; padding-top: 12px; border-top: 1px solid var(--wf-line); }
+.pc-sub h4, .pc-split h4 { font-size: 13px; font-weight: 600; margin: 0 0 8px; }
 .pc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .pc-actions-end { align-items: flex-end; }
 .pc-muted { opacity: 0.7; }
 .pc-why { display: flex; gap: 6px; align-items: flex-start; margin-top: 6px; font-size: 12px; opacity: 0.8; }
 
 /* a row of a list: 56 px, a line between rows, the selected one with a 3 px stripe of the color of the section */
-.pc-row { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 12px; border-bottom: 1px solid var(--wf-line); min-width: 0; }
+.pc-row { display: flex; align-items: center; gap: 12px; min-height: var(--wf-row, 48px); padding: 4px 12px; border-bottom: 1px solid var(--wf-line); min-width: 0; }
 .pc-row:last-child { border-bottom: 0; }
 .pc-row.is-on { background: var(--wf-soft); box-shadow: inset 3px 0 0 var(--wf-sec-now); }
 
@@ -140,8 +152,6 @@
 /* the thin strip of the shell under the header: which tool the sections show */
 .pc-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; font-size: 13px; }
 
-/* a button of text alone is not raised to 44 px by the family: a coarse pointer gets it here */
-@media (pointer: coarse) { .impresion-page .v-btn--text:not(.v-btn--icon) { min-height: 44px; } }
 
 /* the state / role of a section, to the right of its head (PcSection slot right) */
 .pc-head-right { margin-left: auto; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
@@ -155,9 +165,9 @@
 
 /* the heaters of Status as compact rows: name, now, target, a thin bar with the cap, the state (dot + word); numbers mono 14. Nothing here is a big reading. */
 .pc-heaters { display: flex; flex-direction: column; }
-.pc-heater { display: grid; grid-template-columns: minmax(120px, 1.2fr) minmax(70px, 100px) minmax(90px, 120px) minmax(120px, 2fr) minmax(90px, auto); gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--wf-line); }
+.pc-heater { display: grid; grid-template-columns: minmax(120px, 1.2fr) minmax(70px, 100px) minmax(90px, 120px) minmax(120px, 2fr) minmax(90px, auto); gap: 12px; align-items: center; min-height: var(--wf-row, 48px); padding: 4px 0; border-bottom: 1px solid var(--wf-line); }
 .pc-heater:last-child { border-bottom: 0; }
-.pc-heater-name { display: flex; align-items: center; gap: 8px; font-weight: 600; min-width: 0; }
+.pc-heater-name { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; min-width: 0; }
 .pc-heater-num { font-family: var(--tp-font-mono, monospace); font-size: 14px; font-variant-numeric: tabular-nums; }
 .pc-heater-tgt { opacity: 0.8; }
 .pc-heater-bar-w { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -180,7 +190,7 @@
 
 /* one card per zone under the map of the live bed */
 .bz-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
-.bz-card { display: flex; flex-direction: column; gap: 2px; min-height: 56px; padding: 8px 10px; text-align: left; font: inherit; color: inherit; background: var(--wf-surface, transparent); border: 1px solid var(--wf-line); border-radius: 8px; cursor: pointer; }
+.bz-card { display: flex; flex-direction: column; gap: 2px; min-height: var(--wf-row, 48px); padding: 8px 10px; text-align: left; font: inherit; color: inherit; background: var(--wf-surface, transparent); border: 1px solid var(--wf-line); border-radius: 8px; cursor: pointer; }
 .bz-card.is-sel { border-color: var(--wf-sec-now, var(--wf-accent)); box-shadow: inset 3px 0 0 var(--wf-sec-now, var(--wf-accent)); }
 .bz-card.is-off { opacity: 0.7; }
 .bz-card-name { font-size: 12px; opacity: 0.8; }
@@ -188,14 +198,22 @@
 .bz-card small { font-size: 12px; opacity: 0.8; }
 
 /* the table of every zone of the live bed, folded under the panel of the chosen zone */
-.bz-fold > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 600; }
+.bz-fold > summary { cursor: pointer; min-height: var(--wf-hit, 40px); display: flex; align-items: center; font-weight: 600; }
 
 /* Zones of the extruder: the six parts are folding sub-cards (no tabs); the title of each is its summary, so the inner head keeps only its lead */
 .pt-zone-step .wf-section-head > h3, .pt-zone-step .wf-section-head > .pc-ico { display: none; }
 .pt-zone-step .pc-step-body { padding-left: 14px; }
 
-/* the slider next to the number of speed and flow (job): 44 px to grab with a finger, the Apply button still sends */
-.pc-range { flex: 1 1 140px; min-width: 100px; max-width: 260px; min-height: 44px; accent-color: var(--wf-accent); }
+/* the slider next to the number of speed and flow (job): 40 px to grab with a finger (--wf-hit), the Apply button still sends */
+/* Vuetify draws a v-slider inside .v-input__slot (the thumb in .v-slider__thumb-container): the 40 px area is the slot, not the input */
+.impresion-page .v-input.v-input__slider .v-input__slot, .impresion-page .v-input--slider .v-input__slot { min-height: var(--wf-hit, 40px); }
+/* 32 px buttons with the 40 px area of the family (.wf-hit adds the ::after) */
+.st-off.v-btn, .pc-change.v-btn { min-height: var(--wf-size-s, 32px); height: var(--wf-size-s, 32px); }
+.pc-range { flex: 1 1 140px; min-width: 100px; max-width: 260px; box-sizing: border-box; height: var(--wf-hit, 40px); min-height: var(--wf-hit, 40px); block-size: var(--wf-hit, 40px); padding: 0; margin: 0; align-self: center; accent-color: var(--wf-accent); }
+
+/* the link that shows the G-code of a bed step: a 32 px text button with a 40 px area to touch (invisible ::after, no neighbour covered) */
+.bcg > summary { position: relative; display: inline-flex; align-items: center; min-height: var(--wf-size-s, 32px); padding: 0 8px; border-radius: 6px; color: var(--wf-accent); font-weight: 600; cursor: pointer; }
+.bcg > summary::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: var(--wf-hit, 40px); transform: translateY(-50%); }
 
 /* the sticky bars (Prepare job, Profiles) never hide the field that has the focus: the page keeps room under what it scrolls to */
 :root:has(.impresion-page) { scroll-padding-bottom: 96px; }
@@ -207,11 +225,11 @@
 
 /* the compact card of the Tool: zones as dots with their temperature, and a folded block for the drawing and the panels of the parts */
 .pc-zlist { display: flex; flex-direction: column; }
-.pc-zbtn { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px 6px; text-align: left; font: inherit; color: inherit; background: transparent; border: 0; border-bottom: 1px solid var(--wf-line); cursor: pointer; }
+.pc-zbtn { display: flex; align-items: center; gap: 8px; min-height: var(--wf-hit, 40px); padding: 4px 6px; text-align: left; font: inherit; color: inherit; background: transparent; border: 0; border-bottom: 1px solid var(--wf-line); cursor: pointer; }
 .pc-zbtn:last-child { border-bottom: 0; }
 .pc-zdot { flex: none; width: 10px; height: 10px; border-radius: 50%; }
 .pc-num-mono { font-family: var(--tp-font-mono, monospace); font-size: 14px; }
-.pc-fold > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 600; }
+.pc-fold > summary { cursor: pointer; min-height: var(--wf-hit, 40px); display: flex; align-items: center; font-weight: 600; }
 
 /* the live bed: cards and the panel of the chosen zone side by side from 880 px of container; the card bar is the thin bar of the heater rows */
 .bz-top { display: grid; gap: 12px; align-items: start; grid-template-columns: minmax(0, 1fr); }
@@ -225,14 +243,14 @@
 .pc-help4 dd { margin: 0; font-size: 13px; }
 
 /* a heater in fault: one short line, the sentence of the sensor and Clear fault behind See more */
-.pc-heater-more > summary { cursor: pointer; display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; font-size: 12px; font-weight: 600; text-decoration: underline; }
+.pc-heater-more > summary { position: relative; cursor: pointer; display: inline-flex; align-items: center; min-height: var(--wf-size-s, 32px); padding: 0 4px; font-size: 12px; font-weight: 600; text-decoration: underline; }
 .pc-heater-more-body { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding-bottom: 8px; }
 .pc-heater-fault { align-items: center; }
 
 /* Files as the mockup: the state tabs on top, ONE toolbar row across the whole page (search, sort, type, folder; it stacks below 640 px of content), then the list on the left and the
    preview on the right in the same grid (the list and its section take no box of their own); with no file chosen the preview is a short box, not the height of the page */
 .gl-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; border-bottom: 1px solid var(--wf-line); }
-.gl-tab { display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-bottom: 3px solid transparent; font-weight: 600; opacity: 0.6; }
+.gl-tab { display: flex; align-items: center; min-height: var(--wf-size-s, 32px); padding: 0 14px; border-bottom: 3px solid transparent; font-weight: 600; opacity: 0.6; }
 .gl-tab.on { opacity: 1; border-bottom-color: var(--wf-sec-now, var(--wf-accent)); }
 .gl-page .gl-grid { grid-template-rows: auto minmax(0, 1fr); row-gap: 10px; }
 .gl-page .gl-files, .gl-page .gl-files > .gl-list { display: contents; }
@@ -246,8 +264,7 @@
 .gl-page .is-narrow .gl-view, .gl-page .is-narrow .gl-details, .gl-page.is-narrow .gl-view, .gl-page.is-narrow .gl-details { grid-column: 1; }
 .gl-page.is-narrow .gl-view.is-alone { grid-column: 1; }
 
-/* the buttons and the path of the Prepare job steps (children of PrepareJob: a scoped rule of the parent never reached them, they measured 32 px instead of 44) */
-.impresion-page .pj-btn.v-btn { height: 44px; min-height: 44px; }
+/* the path of the Prepare job steps breaks anywhere; their buttons follow the scale of the family (32, the main one 36) */
 .impresion-page .pj-path { overflow-wrap: anywhere; }
 /* a field next to a button: it takes the room it is given (up to 280 px) and never pushes the button over its edge, whatever the select inside holds */
 .pc-field-fit { flex: 0 1 280px; min-width: 0; }
@@ -272,11 +289,11 @@
 .pc-chips > .v-chip { margin: 0; }
 
 /* a folded block looks foldable: a soft box, a chevron that turns when it opens, normal text, a pointer (not a big title) */
-.pc-fold > summary { list-style: none; gap: 8px; padding: 0 12px; border: 1px solid var(--wf-line); border-radius: 8px; background: var(--wf-soft); font-weight: 500; }
+.pc-fold > summary { list-style: none; gap: 8px; padding: 0 4px; border-top: 1px solid var(--wf-line); font-weight: 500; }
 .pc-fold > summary::-webkit-details-marker { display: none; }
 .pc-fold > summary::before { content: ""; flex: none; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 0.15s; }
 .pc-fold[open] > summary::before { transform: rotate(45deg); }
-.pc-fold[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+
 
 /* the fields of a zone (heater, sensor, monitor): a grid that fits as many 180 px cells as the content holds, never fixed widths, never a cell wider than its column, never a scroll sideways */
 .pc-fgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px 16px; min-width: 0; }
@@ -287,7 +304,7 @@
 .pz-target { vertical-align: top; padding-top: 6px; }
 .pz-field { width: 120px; max-width: 100%; }
 .pz-limit { margin-top: 2px; min-height: 18px; }
-.pz-target .v-input__slot { min-height: 44px; }
+.pz-target .v-input__slot { min-height: var(--wf-size-m, 36px); }
 
 /* ONE row of labelled fields for the whole plugin: a grid of cells of at least 150 px; a label of one or two lines never moves its box (the cells are as tall as the tallest and each field sits
    at the bottom, so every box shares one baseline); the next row lines up with the columns of the first. A flex row of fields uses pc-actions-end (bottoms aligned) instead. */
@@ -299,3 +316,21 @@
 /* two wide cards (the power estimate and the insulation test) side by side only from 1200 px of content: the table of five columns needs the width */
 .pc-g2wide { display: grid; gap: 12px; align-items: start; grid-template-columns: minmax(0, 1fr); }
 @container pg (min-width: 1201px) { .pc-g2wide { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---- redesign 2026-11-23 (FAMILIA-REDISENO tanda 2): the head of a section card wraps on a narrow card instead of cutting its title; a flat fold row
+   (no box) for what a section keeps folded; the free lines of the one help of a section ---- */
+.pc-head { flex-wrap: wrap; }
+.pc-head .wf-card-head-title { flex: 1 1 120px; }
+.pc-head .wf-card-head-right { flex-wrap: wrap; margin-left: auto; }
+.pc-section-help { margin-top: 12px; }
+.pc-group-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.pc-group-head > .wf-group-title { margin: 0; }
+.pc-help-list { margin: 4px 0 0; padding-left: 18px; }
+.pc-help-list > li + li { margin-top: 4px; }
+.pc-disclose { margin-top: 12px; border-top: 1px solid var(--wf-line); }
+.pc-disclose > summary { list-style: none; display: flex; align-items: center; gap: 8px; min-height: var(--wf-hit, 40px); padding: 0 4px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.pc-disclose > summary::-webkit-details-marker { display: none; }
+.pc-disclose > summary::after { content: ""; margin-left: auto; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); transition: transform 0.15s; }
+.pc-disclose[open] > summary::after { transform: rotate(-135deg); }
+.pc-disclose-body { padding: 4px 4px 8px; }
+@media (prefers-reduced-motion: reduce) { .pc-disclose > summary::after { transition: none; } }

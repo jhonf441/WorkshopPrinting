@@ -51,7 +51,7 @@
 
 			<div v-if="warns.length" class="wf-note is-warn mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span class="glv-wrap">{{ warns[0] }}</span></div>
 			<details v-if="warns.length > 1" class="glv-more-warns mt-1">
-				<summary class="glv-more-sum">{{ txc('more_warns', warns.length - 1, { n: warns.length - 1 }) }}</summary>
+				<summary class="glv-more-sum wf-hit">{{ txc('more_warns', warns.length - 1, { n: warns.length - 1 }) }}</summary>
 				<div v-for="(w, i) in warns.slice(1)" :key="i" class="wf-note is-warn mt-1" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span class="glv-wrap">{{ w }}</span></div>
 			</details>
 
@@ -316,7 +316,6 @@ export default {
 
 <style scoped>
 .glv { min-width: 0; max-width: 100%; }
-.glv-btn.v-btn:not(.v-btn--icon) { height: 44px; min-height: 44px; }
 .glv-lead { font-size: 13px; opacity: 0.85; }
 .glv-h { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 14px; font-weight: 600; }
 .glv-ch { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; opacity: 0.85; }
@@ -334,7 +333,7 @@ export default {
 .glv-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .glv-chip-bed { border-color: var(--wf-warn) !important; }
 .glv-chip-extruder { border-color: var(--wf-info) !important; }
-.glv-more-sum { cursor: pointer; display: inline-flex; align-items: center; min-height: 44px; font-size: 12px; font-weight: 600; text-decoration: underline; }
+.glv-more-sum { cursor: pointer; display: inline-flex; align-items: center; min-height: var(--wf-size-s, 32px); font-size: 12px; font-weight: 600; text-decoration: underline; }
 .glv-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .glv-card { min-width: 0; padding: 10px; border: 1px solid var(--wf-line); border-radius: 8px; }
 .glv-head { overflow-wrap: anywhere; }

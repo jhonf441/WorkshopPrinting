@@ -7,12 +7,10 @@
 			<div class="text-caption pc-muted">{{ tx('basics_lead') }}</div>
 			<div class="pc-actions pc-actions-end mt-2">
 				<wf-field :id="uid + '-name'" :label="tx('f_name')">
-					<template #help><help-tip v-bind="help('f_name')" /></template>
 					<input :id="uid + '-name'" v-model.trim="profile.name" class="pe-input" style="width:180px" :disabled="!canEdit" @input="touch()" />
 				</wf-field>
 				<wf-field :id="uid + '-kind'" :label="tx('kind')">
-					<template #help><help-tip v-bind="help('kind')" /></template>
-					<v-btn-toggle :value="kind" mandatory dense color="primary" @change="setKind">
+					<v-btn-toggle :value="kind" mandatory dense color="primary" class="elevation-0" @change="setKind">
 						<v-btn small value="pellet" :disabled="!canEdit">{{ tx('kind_pellet') }}</v-btn>
 						<v-btn small value="filament" :disabled="!canEdit">{{ tx('kind_filament') }}</v-btn>
 					</v-btn-toggle>
@@ -20,23 +18,18 @@
 			</div>
 			<div class="pc-actions pc-actions-end mt-3">
 				<wf-field :id="uid + '-nozzle'" :label="tx('nozzle_c')">
-					<template #help><help-tip v-bind="help('f_nozzle')" /></template>
 					<input :id="uid + '-nozzle'" v-model.number="profile.nozzle" type="number" class="pe-input" :class="{ bad: over(profile.nozzle, nozzle) }" :disabled="!canEdit" @input="touch()" />
 				</wf-field>
 				<wf-field :id="uid + '-bed'" :label="tx('bed_c')">
-					<template #help><help-tip v-bind="help('f_bed')" /></template>
 					<input :id="uid + '-bed'" v-model.number="profile.bed" type="number" class="pe-input" :class="{ bad: over(profile.bed, bed) }" :disabled="!canEdit" @input="touch()" />
 				</wf-field>
 				<wf-field v-if="camera" :id="uid + '-camera'" :label="tx('chamber_c')">
-					<template #help><help-tip v-bind="help('f_camera')" /></template>
 					<input :id="uid + '-camera'" v-model.number="profile.camera" type="number" class="pe-input" :class="{ bad: over(profile.camera, camera) }" :disabled="!canEdit" @input="touch()" />
 				</wf-field>
 				<wf-field :id="uid + '-fan'" :label="tx('fan')">
-					<template #help><help-tip v-bind="help('f_fan')" /></template>
 					<input :id="uid + '-fan'" v-model.number="profile.fan" type="number" min="0" max="100" class="pe-input" :disabled="!canEdit" @input="touch()" />
 				</wf-field>
 				<wf-field :id="uid + '-density'" :label="tx('density_g_cm')">
-					<template #help><help-tip v-bind="help('f_density')" /></template>
 					<input :id="uid + '-density'" v-model.number="profile.density" type="number" step="0.01" class="pe-input" :disabled="!canEdit" @input="touch()" />
 				</wf-field>
 			</div>
@@ -51,24 +44,24 @@
 			<div class="text-caption pc-muted">{{ tx('zones_lead') }}</div>
 
 			<div class="mt-3">
-				<div class="d-flex align-center" style="gap:6px"><v-icon small aria-hidden="true">mdi-printer-3d-nozzle-outline</v-icon><span class="pc-card-title">{{ tx('zones_extruder') }}</span><help-tip v-bind="help('zones_extruder')" /></div>
+				<div class="d-flex align-center" style="gap:6px"><v-icon small aria-hidden="true">mdi-printer-3d-nozzle-outline</v-icon><span class="pc-card-title">{{ tx('zones_extruder') }}</span></div>
 				<div v-if="!nozzleZones.length" class="text-caption pc-muted">{{ tx('zones_extruder_none') }}</div>
 				<div v-else class="pc-actions mt-1">
 					<label v-for="(h, i) in nozzleZones" :key="'e' + h.id" class="pe-zone">
-						<span class="text-caption">{{ tx('zone_label', { n: i + 1, h: h.id }) }}</span>
-						<input :value="ownExtruder(i) ? profile.zones.extruder[i] : ''" :placeholder="String(extruderShown[i])" type="number" class="pe-input" :class="{ bad: over(extruderShown[i], h) }" :disabled="!canEdit" @change="setExtruder(i, $event.target.value)" />
+						<span :id="uid + '-ez' + h.id" class="text-caption">{{ tx('zone_label', { n: i + 1, h: h.id }) }}</span>
+						<input :id="uid + '-ei' + h.id" :aria-labelledby="uid + '-ez' + h.id" :value="ownExtruder(i) ? profile.zones.extruder[i] : ''" :placeholder="String(extruderShown[i])" type="number" class="pe-input" :class="{ bad: over(extruderShown[i], h) }" :disabled="!canEdit" @change="setExtruder(i, $event.target.value)" />
 						<span class="text-caption pc-muted">{{ ownExtruder(i) ? tx('zone_own') : tx('zone_staged') }}</span>
 					</label>
 				</div>
 			</div>
 
 			<div class="mt-3">
-				<div class="d-flex align-center" style="gap:6px"><v-icon small aria-hidden="true">mdi-radiator</v-icon><span class="pc-card-title">{{ tx('zones_bed') }}</span><help-tip v-bind="help('zones_bed')" /></div>
+				<div class="d-flex align-center" style="gap:6px"><v-icon small aria-hidden="true">mdi-radiator</v-icon><span class="pc-card-title">{{ tx('zones_bed') }}</span></div>
 				<div v-if="!bedHeaters.length" class="text-caption pc-muted">{{ tx('zones_bed_none') }}</div>
 				<div v-else class="pc-actions mt-1">
 					<label v-for="(z, i) in bedShown" :key="'b' + z.id" class="pe-zone">
-						<span class="text-caption">{{ tx('zone_label', { n: i + 1, h: z.id }) }}</span>
-						<input :value="z.own ? profile.zones.bed[z.id] : ''" :placeholder="String(z.t)" type="number" class="pe-input" :class="{ bad: over(z.t, bedHeaters[i]) }" :disabled="!canEdit" @change="setBed(z.id, $event.target.value)" />
+						<span :id="uid + '-bz' + z.id" class="text-caption">{{ tx('zone_label', { n: i + 1, h: z.id }) }}</span>
+						<input :id="uid + '-bi' + z.id" :aria-labelledby="uid + '-bz' + z.id" :value="z.own ? profile.zones.bed[z.id] : ''" :placeholder="String(z.t)" type="number" class="pe-input" :class="{ bad: over(z.t, bedHeaters[i]) }" :disabled="!canEdit" @change="setBed(z.id, $event.target.value)" />
 						<span class="text-caption pc-muted">{{ z.own ? tx('zone_own') : tx('zone_follows_bed') }}</span>
 					</label>
 				</div>
@@ -88,7 +81,6 @@
 
 // The editor of ONE profile, in three flat sections (nothing is hidden two levels deep): Basics, Temperatures by zone and Changes during the print (an optional section
 // with an on/off switch, MaterialLayers.vue). It edits the profile it is given in place and says `changed` (the page keeps the draft and saves it).
-import HelpTip from './HelpTip.vue' // vue/_shared36
 import WfField from './WfField.vue' // vue/_shared36
 import MaterialLayers from './MaterialLayers.vue'
 import { kindOf, extruderTemps, hasOwnExtruder, bedTemps, setZone } from './material-profile.js'
@@ -96,7 +88,7 @@ import { kindOf, extruderTemps, hasOwnExtruder, bedTemps, setZone } from './mate
 let seq = 0
 
 export default {
-	components: { HelpTip, WfField, MaterialLayers },
+	components: { WfField, MaterialLayers },
 	props: {
 		profile: { type: Object, required: true },
 		canEdit: { type: Boolean, default: false },
@@ -127,9 +119,6 @@ export default {
 	methods: {
 		tx(key, params) {
 			return this.$t('plugins.WorkshopPrinting.profiles.' + key, params || {})
-		},
-		help(k) {
-			return { title: this.tx('help_' + k + '_title'), what: this.tx('help_' + k + '_what'), why: this.tx('help_' + k + '_why'), ifMissing: this.tx('help_' + k + '_miss'), how: this.tx('help_' + k + '_how') }
 		},
 		touch() {
 			this.$emit('changed')
@@ -170,7 +159,7 @@ export default {
 .pe-sec { padding: 14px 0; border-top: 1px solid var(--wf-line, rgba(128, 128, 128, 0.3)); }
 .pe-sec:first-child { border-top: 0; padding-top: 0; }
 .pe-h { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 500; margin-bottom: 2px; }
-.pe-input { width: 76px; min-height: 40px; padding: 4px 8px; border: 1px solid rgba(128, 128, 128, 0.45); border-radius: 4px; color: inherit; background: transparent; font-variant-numeric: tabular-nums; }
+.pe-input { width: 76px; min-height: var(--wf-field-h, 40px); padding: 4px 8px; border: 1px solid rgba(128, 128, 128, 0.45); border-radius: 4px; color: inherit; background: transparent; font-variant-numeric: tabular-nums; }
 .pe-input.bad { border-color: var(--wf-err); }
 .pe-zone { display: flex; flex-direction: column; gap: 2px; }
 </style>

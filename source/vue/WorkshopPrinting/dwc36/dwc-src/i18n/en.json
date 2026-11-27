@@ -66,7 +66,6 @@
 		"nozzle_no_reading_check": "The nozzle sensor reads nothing (unplugged?): I checked by hand that it is cold"
 	},
 	"common": {
-		"section_help": "Help of this section",
 		"how_it_works": "How it works",
 		"tap_again": "Tap again",
 		"zone_1_nozzle": "Zone 1 (nozzle)",
@@ -410,6 +409,8 @@
 		"belongs_to": "Belongs to",
 		"how_it_is_configured": "How it is configured",
 		"turn_off_all_heaters": "Turn off all heaters",
+		"turn_off_all_short": "Turn all off",
+		"cold_protection_why": "Cold extrusion locked: it is the normal protection; it avoids grinding the material or straining the motor with unmelted plastic.",
 		"automatic": " (automatic)",
 		"clear_fault_m562": "Clear fault (M562)",
 		"fix_the_sensor_first": "Fix the sensor first",
@@ -509,6 +510,7 @@
 		"tool": "Tool"
 	},
 	"fpanel": {
+		"temp_field": "Target temperature (°C)",
 		"help_what": "The panel of a filament tool: the hotend heater, the extruder, the layer fan and the hotend fan, in one view.",
 		"help_fans": "The layer fan blows on the part and you set it. The hotend fan cools the heat break and the board runs it by temperature: here it is only shown.",
 		"help_where": "Loading and unloading material is in Load material. The limits, the PID and the extruder type are changed in Configure.",
@@ -1422,6 +1424,8 @@
 		"abnormal_resting_reading_5_to_50": "Abnormal resting reading (5 to 50 °C).",
 		"it_is_hot_wait_for_it": "It is hot: wait for it to cool down to check the resting reading.",
 		"no_reading": "no reading",
+		"sensor_ok_label": "Sensor is fine",
+		"sensor_bad_label": "Sensor has a problem",
 		"there_are_no_heaters_configured_they": "There are no heaters configured (they are created when switching to FFF mode).",
 		"commissioning_complete_the_machine_is_ready": "Commissioning complete: the machine is ready to print. If you change a head, a heater or a cable, repeat the steps that involve it.",
 		"next": "Next:",
@@ -1719,7 +1723,7 @@
 		"no_job": "No file job is running.",
 		"live_job": "A live job has its controls in the Jog bar.",
 		"live_job_no_jog": "This is a live job: it is not controlled from here.",
-		"needs_operator": "It needs the operator role.",
+		"needs_operator": "Requires the Operator role.",
 		"sent": "Sent {code}.",
 		"could_not": "Could not: {error}",
 		"baby_title": "Live Z height (baby-stepping)",
@@ -2435,12 +2439,12 @@
 		"help_models_save_what": "Writes the M307 of each zone heater into the configuration, line by line, with a backup first.",
 		"help_models_save_why": "Unsaved, a restart goes back to the old model even if the board uses the new one now.",
 		"help_models_save_miss": "Nothing is saved until you press Save; before that you see the exact lines.",
-		"help_models_save_how": "Needs the technician role. The machine restarts to read the file.",
+		"help_models_save_how": "Requires the Technician role. The machine restarts to read the file.",
 		"help_caps_title": "Save the caps",
 		"help_caps_what": "Writes the M143 of each zone heater into the configuration, with a backup first.",
 		"help_caps_why": "The cap is the firmware protection: it cuts out if the heater goes above it.",
 		"help_caps_miss": "Without a cap the firmware does not cut out on temperature.",
-		"help_caps_how": "Between 30 and 150 °C. A cap that goes up is warned. Needs the technician role.",
+		"help_caps_how": "Between 30 and 150 °C. A cap that goes up is warned. Requires the Technician role.",
 		"help_offsets_title": "Thermal map and offsets",
 		"help_offsets_what": "One thermometer reading per zone, all at the same target, and the offset that evens out the surface.",
 		"help_offsets_why": "The sensor reads under the plate; the surface can be colder at an edge. The offset compensates it.",
@@ -2768,7 +2772,6 @@
 		"help_list_miss": "Without profiles there is nothing to pick in Prepare job and nothing to preheat.",
 		"help_list_how": "Tap a profile to edit it. New creates one, Duplicate copies the chosen one (with its changes during the print) and Delete removes it after you confirm. Nothing is stored until you press Save.",
 		"discard_all": "Discard changes",
-		"unsaved": "Unsaved changes",
 		"saved": "Profiles saved.",
 		"help_save_title": "Save the profiles",
 		"help_save_what": "Stores the whole list: new, duplicated, edited and deleted profiles.",
@@ -2867,7 +2870,6 @@
 		"role_read": "Read only: you see and use the profile"
 	},
 	"prepare": {
-		"help_steps": "Help for the steps",
 		"how_lead": "Preparing a job takes four steps, in this order:",
 		"how_1": "Choose the G-code file from the library.",
 		"how_2": "Choose the profile: the material the job will be printed with.",
@@ -2994,7 +2996,7 @@
 		"strip_changes_off": "With changes, not applied",
 		"strip_changes_unknown": "Not known: the service does not answer",
 		"strip_changes_other": "Others are applied",
-		"strip_role_viewer": "Viewer: read only",
+		"strip_role_viewer": "Visitor: read only",
 		"strip_role_operator": "Operator: you review and preheat",
 		"strip_role_technician": "Technician: you can do it all",
 		"res_file_done": "Ready: {name}",
@@ -3015,8 +3017,6 @@
 		"ready_apply_help": "The service applies them to this file while it prints. They are lost if the service restarts.",
 		"ready_none_title": "Changes by layer",
 		"ready_none_help": "This profile has none: there is nothing to apply.",
-		"ready_choose_first": "Choose a file and a profile to preheat and apply.",
-		"role_operator": "Operator",
-		"role_technician": "Technician"
+		"ready_choose_first": "Choose a file and a profile to preheat and apply."
 	}
 }

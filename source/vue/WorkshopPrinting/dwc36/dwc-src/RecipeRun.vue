@@ -288,6 +288,5 @@ export default {
 </script>
 
 <style scoped>
-.rr-btn.v-btn { height: 44px; min-height: 44px; }
 .rr-live { border-left: 3px solid var(--wf-line, rgba(128, 128, 128, 0.4)); padding-left: 10px; }
 </style>

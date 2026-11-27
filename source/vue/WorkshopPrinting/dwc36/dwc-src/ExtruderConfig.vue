@@ -118,6 +118,8 @@
 
 <script>
 import i18n from '../../i18n'
+import { resumeLeave, dropLeave } from './unsaved-guard.js' // vue/_shared36
+import { unsavedMixin } from './unsaved-mixin.js' // vue/_shared36: the guard of the unsaved changes (the dialog is mounted by the page)
 import { kinds, labelKind, SENSOR_TEXT, actions, conditions } from './extruder-config-text.js' // texts of the forms
 import { computeUses, boardsOf, explanationKind } from './extruder-config-pins.js' // pure: connector uses, boards, explanations
 import ExtruderPinList from './ExtruderPinList.vue'
@@ -146,7 +148,7 @@ import { serviceText, serviceDefaultKey } from './service-text.js'
 const MAX_MONITORS = 3; // P0 (the cap of the zone) + P1 + P2 (RRF: "assuming 3 per heater")
 
 export default {
-	mixins: [roleMixin],
+	mixins: [unsavedMixin, roleMixin],
 	components: { HelpGuide, LockReason, ErrorNotice, ExtruderPinList, ExtruderSensorFields },
 	props: {
 		tool: { type: Object, default: null }
@@ -238,6 +240,22 @@ export default {
 		this.read();
 	},
 	methods: {
+		// the unsaved changes guard (unsaved-mixin.js): what is being edited against what is saved
+		unsavedPair() {
+			return [this.changes.length > 0, false]
+		},
+		async saveBeforeLeaving() {
+			if (!this.changes.length) return true
+			// save() asks its own confirmation of risk: the guard dialog steps aside until it ends
+			this.save().then(() => { if (this.changes.length) dropLeave(); else resumeLeave() })
+			return 'later'
+		},
+		discardUnsaved() {
+			this.read()
+		},
+		unsavedLabel() {
+			return 'extruder zones'
+		},
 		...mapActions('machine', ['sendCode']),
 			// exact = false: "io3.in" and "io3.out" count as "io3"
 			computeUses(exact) {

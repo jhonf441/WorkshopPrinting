@@ -213,6 +213,7 @@
 // and alerts of every zone, the temperature chart and (technician) the settings. The temperatures are read from the object model DWC keeps; the service
 // (dsf/bed_zones*.py, ops bedzones.*) does the heating and the M140 / M190 split: this page only asks.
 import { api } from './workshop-api.js'
+import { unsavedMixin } from './unsaved-mixin.js' // vue/_shared36: the guard of the unsaved changes (the dialog is mounted by the page)
 import { roleMixin } from './role-mixin.js' // vue/_shared36
 import { tapArmMixin } from './tap-arm-mixin.js' // the double tap of the page (4 s)
 import PcEmpty from './PcEmpty.vue'
@@ -252,7 +253,7 @@ function oldBrowserData() {
 }
 
 export default {
-	mixins: [roleMixin, tapArmMixin],
+	mixins: [unsavedMixin, roleMixin, tapArmMixin],
 	// what the person who left read, did or was refused stays nowhere (role-mixin.js)
 	sessionData: ['armed', 'msg', 'msgKind', 'edit', 'editErrors'],
 	sessionErrors: ['failure', 'msg', 'msgKind'],
@@ -371,6 +372,21 @@ export default {
 		clearTimeout(this.armedTimer)
 	},
 	methods: {
+		// the unsaved changes guard (unsaved-mixin.js): what is being edited against what is saved
+		unsavedPair() {
+			return [this.editDirty, false]
+		},
+		async saveBeforeLeaving() {
+			if (!this.edit) return true
+			await this.saveEdit()
+			return !this.edit
+		},
+		discardUnsaved() {
+			this.stopEditing()
+		},
+		unsavedLabel() {
+			return 'zone geometry'
+		},
 		fmt: fmtTemp,
 		// the share of the cap a zone has reached, for the bar of its card
 		cardPct(r) {
@@ -570,8 +586,7 @@ export default {
 .bz-num { font-family: var(--tp-font-mono, monospace); font-size: 12px; white-space: nowrap; }
 .bz-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
 .bz-zone-field { max-width: 96px; }
-.bz-pick { width: 44px; padding-right: 0 !important; }
-.bz-edit-btn.v-btn { min-height: 44px; }
+.bz-pick { width: var(--wf-hit, 40px); padding-right: 0 !important; }
 .bz-edit-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 719px) {
 	.bz-edit-body { grid-template-columns: minmax(0, 1fr); }

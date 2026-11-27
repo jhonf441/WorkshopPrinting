@@ -316,10 +316,9 @@ export default {
 
 <style scoped>
 .bze-group { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--wf-line, rgba(128, 128, 128, 0.3)); border-radius: 6px; }
-.bze-tool.v-btn.v-btn--icon { width: 44px; height: 44px; }
+.bze-tool.v-btn.v-btn--icon { width: var(--wf-size-s, 32px); height: var(--wf-size-s, 32px); }
 /* one height for every button of the panel, so the rows line up whatever the kind (icon, outlined, toggle) */
-.bze-act.v-btn, .bze-wide.v-btn, .bze-arrange .v-btn { height: 44px; min-height: 44px; }
-.bze-toggle.v-btn-toggle { height: 44px; align-items: stretch; }
+.bze-toggle.v-btn-toggle { height: var(--wf-size-s, 32px); align-items: stretch; }
 .bze-group { align-items: center; }
 .bze-num { font-family: var(--tp-font-mono, monospace); font-size: 12px; white-space: nowrap; }
 .bze-summary { max-width: 460px; }

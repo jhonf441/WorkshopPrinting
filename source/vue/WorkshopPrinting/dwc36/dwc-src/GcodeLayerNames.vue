@@ -7,8 +7,8 @@
 			<help-tip v-bind="helpKind('layers')" />
 		</div>
 		<div class="gl-names-list">
-			<button type="button" class="gl-name-chip" :class="{ 'is-on': picked === null }" :aria-pressed="picked === null ? 'true' : 'false'" @click="pick(null)">{{ tx('kinds.layers_all') }}</button>
-			<button v-for="l in list" :key="l.index" type="button" class="gl-name-chip" :class="{ 'is-on': picked === l.index }" :aria-pressed="picked === l.index ? 'true' : 'false'" @click="pick(l.index)">{{ l.name }}</button>
+			<button type="button" class="gl-name-chip wf-hit" :class="{ 'is-on': picked === null }" :aria-pressed="picked === null ? 'true' : 'false'" @click="pick(null)">{{ tx('kinds.layers_all') }}</button>
+			<button v-for="l in list" :key="l.index" type="button" class="gl-name-chip wf-hit" :class="{ 'is-on': picked === l.index }" :aria-pressed="picked === l.index ? 'true' : 'false'" @click="pick(l.index)">{{ l.name }}</button>
 		</div>
 	</div>
 </template>
@@ -58,8 +58,8 @@ export default {
 .gl-names { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 4px 6px; }
 .gl-names-step { display: flex; align-items: center; gap: 4px; }
 .gl-names-cur { min-width: 56px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
-.gl-btn.v-btn { width: 44px; height: 44px; }
+.gl-btn.v-btn { width: var(--wf-size-s, 32px); height: var(--wf-size-s, 32px); }
 .gl-names-list { display: flex; flex-wrap: wrap; gap: 4px; max-height: 160px; overflow-y: auto; }
-.gl-name-chip { min-height: 44px; min-width: 44px; padding: 0 10px; border-radius: 22px; border: 1px solid rgba(128, 128, 128, 0.4); background: transparent; color: inherit; font-size: 13px; cursor: pointer; }
+.gl-name-chip { min-height: var(--wf-size-s, 32px); min-width: var(--wf-size-s, 32px); padding: 0 10px; border-radius: 16px; border: 1px solid rgba(128, 128, 128, 0.4); background: transparent; color: inherit; font-size: 13px; cursor: pointer; }
 .gl-name-chip.is-on { background: rgba(25, 118, 210, 0.2); border-color: rgba(25, 118, 210, 0.7); }
 </style>

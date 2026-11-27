@@ -1,13 +1,36 @@
 <template>
 	<pc-section icon="mdi-flask-outline" :title="$t('plugins.WorkshopPrinting.printing.profiles')">
-		<help-guide :title="$t('plugins.WorkshopPrinting.common.how_it_works')">
+		<!-- the guide of the section is read in its ONE help, at the foot (PcSection slot guide) -->
+		<template v-slot:guide>
 			<p>{{ tx('page_lead') }}</p>
 			<ol class="mb-0">
 				<li>{{ tx('guide_1') }}</li>
 				<li>{{ tx('guide_2') }}</li>
 				<li>{{ tx('guide_3') }}</li>
 			</ol>
-		</help-guide>
+			<!-- the list, Save and Use in the job: no "?" at the rows, their parts are read here, in the ONE fold -->
+			<!-- the fields of the editor, the zones, the preheat and the changes: their parts are read here too (no "?" at the rows) -->
+			<div v-for="k in ['f_name', 'kind', 'f_nozzle', 'f_bed', 'f_camera', 'f_fan', 'f_density', 'zones_extruder', 'zones_bed', 'preheat']" :key="k" class="mt-2">
+				<strong>{{ tx('help_' + k + '_title') }}</strong>
+				<div>{{ tx('help_' + k + '_what') }} {{ tx('help_' + k + '_why') }}</div>
+				<div>{{ tx('help_' + k + '_miss') }} {{ tx('help_' + k + '_how') }}</div>
+			</div>
+			<div class="mt-2">
+				<strong>{{ tx('changes_title') }}</strong>
+				<div>{{ tx('changes_help_what') }} {{ tx('changes_help_why') }}</div>
+				<div>{{ tx('changes_help_miss') }} {{ tx('changes_help_how') }}</div>
+			</div>
+			<div class="mt-2">
+				<strong>{{ $t('plugins.WorkshopPrinting.pellet.layer_recipes_help_axis_title') }}</strong>
+				<div>{{ $t('plugins.WorkshopPrinting.pellet.layer_recipes_help_axis_what') }} {{ $t('plugins.WorkshopPrinting.pellet.layer_recipes_help_axis_why') }}</div>
+				<div>{{ $t('plugins.WorkshopPrinting.pellet.layer_recipes_help_axis_miss') }} {{ $t('plugins.WorkshopPrinting.pellet.layer_recipes_help_axis_how') }}</div>
+			</div>
+
+				<strong>{{ tx('help_' + k + '_title') }}</strong>
+				<div>{{ tx('help_' + k + '_what') }} {{ tx('help_' + k + '_why') }}</div>
+				<div>{{ tx('help_' + k + '_miss') }} {{ tx('help_' + k + '_how') }}</div>
+			</div>
+		</template>
 		<div v-if="!loaded" class="text-caption pc-muted mt-3">{{ $t('plugins.WorkshopPrinting.common.reading') }}</div>
 		<template v-else>
 			<div class="pf-grid mt-3">
@@ -35,17 +58,15 @@
 			<!-- the bar stays at the bottom of the visible page (sticky, like Prepare job): Save, Duplicate, Delete and Use are in reach without scrolling the long editor -->
 			<div class="pc-sticky-act">
 				<!-- the bar under the profile, as in the mockup: Save, Duplicate, Delete, Use in the job. New / Duplicate / Delete change the list, nothing is stored until Save -->
-				<div class="pc-actions mt-3">
-					<v-btn v-if="canEdit" small color="primary" class="pf-btn" :disabled="!changed || !!nameIssues.length" :loading="saving" @click="save()"><v-icon small left>mdi-content-save-outline</v-icon>{{ $t('plugins.WorkshopPrinting.common.save') }}</v-btn>
+				<div class="pc-actions pf-bar mt-3">
+					<v-btn v-if="canEdit" small depressed color="primary" class="pf-btn" :disabled="!changed || !!nameIssues.length" :loading="saving" @click="save()"><v-icon small left>mdi-content-save-outline</v-icon>{{ $t('plugins.WorkshopPrinting.common.save') }}</v-btn>
 					<v-btn small outlined class="pf-btn" :disabled="!canEdit || sel < 0" @click="duplicate()"><v-icon small left>mdi-content-copy</v-icon>{{ tx('duplicate') }}</v-btn>
 					<v-btn small outlined class="pf-btn" :disabled="!canEdit || sel < 0" @click="askDelete()"><v-icon small left>mdi-delete-outline</v-icon>{{ tx('delete') }}</v-btn>
 					<v-btn v-if="canEdit" small outlined class="pf-btn" :disabled="!changed" @click="discard()">{{ tx('discard_all') }}</v-btn>
 					<v-btn v-if="canEdit" small text class="pf-btn" @click="restore()">{{ tx('factory_values') }}</v-btn>
-					<v-chip v-if="changed" small outlined color="warning">{{ tx('unsaved') }}</v-chip>
-					<help-tip v-bind="help('save')" />
+					<wf-unsaved-mark :show="changed" />
 					<span v-if="current" class="d-flex align-center">
 					<v-btn small outlined class="pf-btn" :disabled="!canUse" :aria-describedby="canUse ? undefined : uid + '-use'" @click="useInJob()"><v-icon small left>mdi-clipboard-arrow-right-outline</v-icon>{{ tx('use_in_job') }}</v-btn>
-					<help-tip v-bind="help('use')" />
 					</span>
 				</div>
 				<div v-if="current && !canUse" :id="uid + '-use'" class="wf-field-msg is-hint mt-1">{{ tx('use_save_first') }}</div>
@@ -83,10 +104,10 @@
 // The list is a draft: New / Duplicate / Delete / edits change it and nothing is stored until Save. The logic of the list is pure (profile-list.js, material-profile.js).
 // "Use in the job" writes the saved profile into the job draft of the page (job-draft.js) and asks the shell to open Prepare job.
 import i18n from '../../i18n'
+import WfUnsavedMark from './WfUnsavedMark.vue' // vue/_shared36
+import { unsavedMixin } from './unsaved-mixin.js' // vue/_shared36: the guard of the unsaved changes (the dialog is mounted by the page)
 import PcResult from './PcResult.vue' // the result of an action, one line
 import PcSection from './PcSection.vue' // the card with the header of the section (printing-design.css)
-import HelpGuide from './HelpGuide.vue' // vue/_shared36
-import HelpTip from './HelpTip.vue' // vue/_shared36
 import LockReason from './LockReason.vue' // vue/_shared36
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared36
 import { roleMixin } from './role-mixin.js' // what the role may do (vue/_shared36)
@@ -107,10 +128,10 @@ let seq = 0
 const fresh = list => JSON.parse(JSON.stringify(list)).map(m => Object.assign(m, { _from: m.name }))
 
 export default {
-	mixins: [roleMixin],
+	mixins: [unsavedMixin, roleMixin],
 	sessionData: ['msg', 'msgKind', 'failure'],
 	sessionErrors: ['msg', 'msgKind', 'failure'],
-	components: { PcResult, PcSection, HelpGuide, HelpTip, LockReason, ErrorNotice, ProfileList, ProfileEditor, ProfilePreheat },
+	components: { WfUnsavedMark, PcResult, PcSection, LockReason, ErrorNotice, ProfileList, ProfileEditor, ProfilePreheat },
 	props: {
 		isFff: { type: Boolean, default: false },
 		heaters: { type: Array, default: () => [] },
@@ -170,6 +191,22 @@ export default {
 		this.readConfig()
 	},
 	methods: {
+		// the unsaved changes guard (unsaved-mixin.js): what is being edited against what is saved
+		unsavedPair() {
+			// a draft flag: true = something changed since the last Save
+			return [this.changed, false]
+		},
+		async saveBeforeLeaving() {
+			if (!this.changed) return true
+			await this.save()
+			return !this.changed
+		},
+		discardUnsaved() {
+			this.discard()
+		},
+		unsavedLabel() {
+			return 'profiles'
+		},
 		// printing.json (the one copy of the page): when it cannot be read the list stays empty, the error is shown with Retry and nothing can be saved over the file
 		async readConfig() {
 			this.cfg = await printingConfig.load(true)
@@ -328,11 +365,6 @@ export default {
 </script>
 
 <style scoped>
-.pf-btn.v-btn { height: 44px; min-height: 44px; }
-.pf-grid { display: grid; grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); gap: 24px; align-items: start; }
 .pf-main { min-width: 0; }
 .pf-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 32px 12px; text-align: center; border: 1px dashed var(--wf-line, rgba(128, 128, 128, 0.4)); border-radius: 6px; }
-@container pg (max-width: 760px) {
-	.pf-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-}
 </style>

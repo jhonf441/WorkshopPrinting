@@ -20,8 +20,8 @@
 			<h4 class="mt-3">{{ $t('plugins.WorkshopPrinting.pellet.newfan_follows') }}</h4>
 			<v-checkbox v-for="z in zones" :key="z.id" v-model="form.heaters" :value="z.id" dense hide-details class="mt-0" :label="'H' + z.id + ' · ' + z.name" />
 			<div class="pc-actions mt-2">
-				{{ $t('plugins.WorkshopPrinting.pellet.fan_on_from') }} <input v-model.number="form.low" type="number" min="0" max="300" class="field" /> °C
-				{{ $t('plugins.WorkshopPrinting.pellet.fan_full_from') }} <input v-model.number="form.high" type="number" min="0" max="300" class="field" /> °C
+				{{ $t('plugins.WorkshopPrinting.pellet.fan_on_from') }} <input v-model.number="form.low" type="number" min="0" max="300" class="field" :aria-label="$t('plugins.WorkshopPrinting.pellet.fan_on_from') + ' (°C)'" /> °C
+				{{ $t('plugins.WorkshopPrinting.pellet.fan_full_from') }} <input v-model.number="form.high" type="number" min="0" max="300" class="field" :aria-label="$t('plugins.WorkshopPrinting.pellet.fan_full_from') + ' (°C)'" /> °C
 			</div>
 		</template>
 		<div class="pc-actions mt-3">

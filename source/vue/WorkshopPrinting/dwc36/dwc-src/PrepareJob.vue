@@ -1,14 +1,5 @@
 <template>
 	<div class="pj">
-		<help-guide :title="$t('plugins.WorkshopPrinting.common.how_it_works')">
-			<p>{{ tx('how_lead') }}</p>
-			<ol class="mb-0">
-				<li>{{ tx('how_1') }}</li>
-				<li>{{ tx('how_2') }}</li>
-				<li>{{ tx('how_3') }}</li>
-				<li>{{ tx('how_4') }}</li>
-			</ol>
-		</help-guide>
 		<!-- a machine with users and nobody signed in: the session cover of the family, alone (no empty steps under it); the chip of the header is the one Sign in button -->
 		<session-notice v-if="noSession" variant="cover" kind="session" class="mt-3" />
 		<error-notice v-else-if="shownFailure" :error="shownFailure" :action="tx('acting')" retry class="mt-2" @retry="load()" />
@@ -38,14 +29,16 @@
 				<prepare-step-ready :uid="uid" :file-name="fileName" :file="file" :stop="flow.stop" :ready="flow.ready" :hint="flow.steps[3].hint" :picked="picked" :name="name" :has-layers="hasLayers" :recipe="recipe" :draft-applied="draftApplied" :before-apply="beforeApply" :is-fff="isFff" :heaters="heaters" :tools="tools" :current-tool="currentTool" :bed-config="bedConfig" :state="state" :path-parts="pathParts" :job-parts="jobParts" :changes-text="changesText" :copied="copied" :can-edit="canEdit" @status="runStatus = $event" @stale="statusStale = $event" @removed="onRemoved()" @goto="$emit('goto', $event)" @copy-path="copyPath()" @open-jobs="openJobs()" />
 			</prepare-step>
 		</div>
-		<!-- the four-part help of each step, folded: one place for it instead of a "?" in every step -->
-		<details class="pc-fold mt-3">
-			<summary class="pc-fold-sum">{{ tx('help_steps') }}</summary>
-			<div v-for="h in helpRows" :key="h.id" class="pc-sub mt-2">
-				<h4>{{ h.title }}</h4>
-				<dl class="pc-help4"><dt>{{ lbl('what') }}</dt><dd>{{ h.what }}</dd><dt>{{ lbl('why') }}</dt><dd>{{ h.why }}</dd><dt>{{ lbl('missing') }}</dt><dd>{{ h.ifMissing }}</dd><dt>{{ lbl('how') }}</dt><dd>{{ h.how }}</dd></dl>
-			</div>
-		</details>
+		<!-- ONE help for the section, at its foot: the four steps in order and the four-part help of each step (no second fold at the top, no "?" in every step) -->
+		<help-fold class="mt-3" :items="helpRows">
+			<p class="mt-2 mb-1">{{ tx('how_lead') }}</p>
+			<ol class="mb-0">
+				<li>{{ tx('how_1') }}</li>
+				<li>{{ tx('how_2') }}</li>
+				<li>{{ tx('how_3') }}</li>
+				<li>{{ tx('how_4') }}</li>
+			</ol>
+		</help-fold>
 		</div>
 	</div>
 </template>
@@ -64,12 +57,11 @@
 // so what was chosen there arrives here already chosen. The draft is what the person WANTS; what the machine HAS is always read from the object model and the service.
 import { api } from './workshop-api.js'
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared36
-import HelpGuide from './HelpGuide.vue' // vue/_shared36
+import HelpFold from './HelpFold.vue' // vue/_shared36
 import LockReason from './LockReason.vue' // vue/_shared36
 import SessionNotice from './SessionNotice.vue' // vue/_shared36
 import { signedOut } from './workshop-auth.js' // vue/_shared36
 import PrepareSummary from './PrepareSummary.vue' // the strip of four data
-import { ts } from './shared-t.js' // vue/_shared36
 import PrepareStep from './PrepareStep.vue' // one folded / open step
 import PrepareStepFile from './PrepareStepFile.vue'
 import PrepareStepProfile from './PrepareStepProfile.vue'
@@ -101,7 +93,7 @@ export default {
 	// what the person who left had read stays nowhere: the comparison and the changes of the profile are read again with the new session (onSessionChange)
 	sessionData: ['preview', 'shown', 'previewError', 'recipe'],
 	sessionErrors: ['failure', 'previewError'],
-	components: { ErrorNotice, HelpGuide, LockReason, SessionNotice, PrepareSummary, PrepareStep, PrepareStepFile, PrepareStepProfile, PrepareStepReview, PrepareStepReady },
+	components: { ErrorNotice, HelpFold, LockReason, SessionNotice, PrepareSummary, PrepareStep, PrepareStepFile, PrepareStepProfile, PrepareStepReview, PrepareStepReady },
 	props: {
 		isFff: { type: Boolean, default: false },
 		heaters: { type: Array, default: () => [] },
@@ -308,10 +300,6 @@ export default {
 		if (this.offConfig) this.offConfig()
 	},
 	methods: {
-		// the label of one of the four parts (the same words as the "?")
-		lbl(k) {
-			return ts('help_tip_' + k);
-		},
 		// the person opened or folded a step
 		onToggle(id, value) {
 			this.$set(this.open, id, !!value)

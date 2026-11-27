@@ -236,6 +236,13 @@ export default {
 }
 select.field.wide {
 	width: 230px;
+	padding-right: 32px;
+	text-overflow: ellipsis;
+	/* the reset of Vuetify takes the arrow of a native select away: a down triangle in the text color, at the right edge (the same as the JS pages) */
+	background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+	background-position: calc(100% - 17px) 50%, calc(100% - 12px) 50%;
+	background-size: 5px 5px, 5px 5px;
+	background-repeat: no-repeat;
 }
 /* the list of a native select is drawn by the browser: it must not inherit the light text of the dark theme (white on white) */
 select.field option {

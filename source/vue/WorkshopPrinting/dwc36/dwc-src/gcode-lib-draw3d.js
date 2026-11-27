@@ -144,7 +144,7 @@ export function drawReference(ctx, scene, bed) {
 	const o = P(x0, y0, 0)
 	const axes = [['x', P(x0 + len, y0, 0)], ['y', P(x0, y0 + len, 0)], ['z', P(x0, y0, len)]]
 	ctx.lineWidth = 2
-	ctx.font = '11px sans-serif'
+	ctx.font = '12px sans-serif'
 	axes.forEach(([id, e]) => {
 		ctx.strokeStyle = AXIS_COLORS[id]
 		ctx.fillStyle = AXIS_COLORS[id]

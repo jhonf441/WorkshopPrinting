@@ -37,7 +37,7 @@
 <script>
 'use strict'
 
-// The select of the G-code library: the ONLY way to choose the job's file is from the library list (decision of the owner, 2026-11-11): there is no
+// The select of the G-code library: the ONLY way to choose the job's file is from the library list (project decision, 2026-11-11): there is no
 // free text and no typed path, typing only filters the list. A searchable dropdown (v-autocomplete) of the files the library lists, newest first (the job's current file first). Each item is
 // light (name and one line of numbers, no thumbnail). Typing sends a debounced `query` to the service, so the dropdown never holds the whole library (200 rows at
 // most). The small button beside it opens the dialog (folders, thumbnails, info card) for navigating subfolders. It emits `input` with the path (v-model) and `info`
@@ -195,13 +195,11 @@ export default {
 <style scoped>
 .gl-pick-line { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .gl-pick-field { flex: 1 1 0; min-width: 0; max-width: 100%; }
-.gl-pick-browse.v-btn { flex: none; width: 44px; height: 44px; }
+.gl-pick-browse.v-btn { flex: none; width: var(--wf-size-s, 32px); height: var(--wf-size-s, 32px); }
 .gl-pi-muted { opacity: 0.6; }
 .gl-pi-sub { font-size: 12px; }
 .gl-pick-only { font-size: 12px; margin-top: 2px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
-.gl-pick-widen.v-btn { min-height: 44px; }
 .gl-pick-sub { font-size: 12px; opacity: 0.75; margin-top: 2px; }
 .gl-pick-body { height: 60vh; padding: 0 !important; }
 .gl-pick-info { padding: 6px 16px; }
-.gl-act.v-btn { min-height: 44px; }
 </style>

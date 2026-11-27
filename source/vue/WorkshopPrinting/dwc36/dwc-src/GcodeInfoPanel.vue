@@ -91,5 +91,5 @@ export default {
 .gl-note { font-size: 12px; margin: 0 0 8px; padding: 6px 8px; border-radius: 6px; background: rgba(255, 152, 0, 0.14); }
 .gl-sub { font-size: 12px; opacity: 0.7; margin: 10px 0 4px; }
 .gl-header { margin-top: 12px; }
-.gl-header summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
+.gl-header summary { min-height: var(--wf-hit, 40px); display: flex; align-items: center; cursor: pointer; }
 </style>

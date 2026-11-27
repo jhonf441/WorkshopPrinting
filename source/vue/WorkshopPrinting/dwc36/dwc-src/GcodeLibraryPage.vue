@@ -218,8 +218,7 @@ export default {
 .is-narrow .gl-view.is-alone { grid-column: auto; }
 .gl-hint { padding: 20px 14px; opacity: 0.8; }
 .gl-panes { width: 100%; }
-.gl-pane-btn.v-btn { flex: 1 1 0; min-height: 44px; }
-.gl-act.v-btn { min-height: 44px; }
+.gl-pane-btn.v-btn { flex: 1 1 0; }
 .gl-sel-name { min-width: 0; overflow-wrap: anywhere; }
 .gl-sel-why { flex-basis: 100%; }
 </style>

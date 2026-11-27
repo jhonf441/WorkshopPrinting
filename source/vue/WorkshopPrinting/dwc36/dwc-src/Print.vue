@@ -17,7 +17,7 @@
 				</v-btn-toggle>
 			</div>
 			<div class="st-layout">
-				<side-tabs v-model="section" :items="tabItems" />
+				<side-tabs :value="section" :items="tabItems" @input="changeSection" />
 				<div class="st-body" :style="{ '--wf-sec': secColor }">
 				<locked-cover v-if="lockedNow" :needed="lockedNow" :items="tabItems" :value="section" />
 				<v-tabs-items v-else v-model="section" class="transparent">
@@ -55,7 +55,7 @@
 					     panel (heater, extruder flow, layer fan, hotend fan) with the load / unload under it. A viewer sees it read only (each part says why it is off) ===== -->
 					<v-tab-item value="tool">
 						<pc-section icon="mdi-printer-3d-nozzle" :title="$t('plugins.WorkshopPrinting.printing.tool')" :lead="$t('plugins.WorkshopPrinting.printing.tool_lead_' + toolKind)">
-							<template v-slot:right><v-chip small outlined>{{ toolName }}</v-chip><v-chip small outlined>{{ $t('plugins.WorkshopPrinting.extruder.kind_' + toolKind) }}</v-chip><v-btn v-if="tabItems.some(i => i.id === 'extruder')" x-small text @click="goSection('extruder')">{{ $t('plugins.WorkshopPrinting.printing.change_extruder_type') }}</v-btn></template>
+							<template v-slot:right><v-chip small outlined>{{ toolName }}</v-chip><v-chip small outlined>{{ $t('plugins.WorkshopPrinting.extruder.kind_' + toolKind) }}</v-chip><v-btn v-if="tabItems.some(i => i.id === 'extruder')" small text class="pc-change wf-hit" @click="goSection('extruder')">{{ $t('plugins.WorkshopPrinting.printing.change_extruder_type') }}</v-btn></template>
 							<pellet v-if="toolKind === 'pellet'" :is-fff="isFff" :current-tool="tool" :heaters="heaters" :tools="tools" :fans="fans" @goto="goTo" />
 							<template v-else>
 								<filament-panel :is-fff="isFff" :tool="tool" :heaters="heaters" :fans="fans" :state="state" @goto="goTo" />
@@ -105,6 +105,8 @@
 				</v-tabs-items>
 				</div>
 				</div>
+		<!-- "You have unsaved changes": the one dialog of the page (vue/_shared36, the guard of the service page); the editors register themselves -->
+		<wf-unsaved-dialog />
 	</v-container>
 </template>
 
@@ -155,6 +157,8 @@ import { ts as tShared } from './shared-t.js' // vue/_shared36
 import { currentMode } from './current-mode.js' // the one rule of the real mode: state.machineMode, then global.selectedMode (vue/_shared36)
 import ModeNotice from './ModeNotice.vue' // vue/_shared36: the thin note outside FFF
 import LockedCover from './LockedCover.vue' // the cover of a section the role cannot open (vue/_shared36)
+import WfUnsavedDialog from './WfUnsavedDialog.vue' // vue/_shared36: keep editing / save and leave / discard
+import { confirmLeave, routeGuard } from './unsaved-guard.js' // vue/_shared36: one door out of every editor
 import FilamentPanel from './FilamentPanel.vue'
 import { kindOfTool, loadExtruderKinds } from './extruder-kind.js' // pellets or filament of each tool: the pellet sections only show for a pellet tool
 
@@ -162,7 +166,11 @@ export default {
 	mixins: [roleMixin, printModesMixin],
 	// what the person who left had chosen stays nowhere: the tool picked for the view goes back to the one of the machine (each section clears its own, role-mixin.js)
 	sessionData: ['viewTool'],
-	components: { SessionNotice, ModeNotice, PageHeader, SideTabs, LockedCover, HeadChange: HeadChange, Profiles, Extrusor: extruder, Pid, Pellet, PelletSetup, PrintingStartup: StartupPrint, StartupPanel: StartupPanel, StateSection, BedZones, BedCalibration, PrepareJob, GcodeLibraryPage, FffJob, FilamentLoad, FilamentPanel, PcSection },
+	// leaving the page (DWC's menu, Back) with something unsaved asks first; a change inside the page is changeSection / goSection
+	beforeRouteLeave(to, from, next) {
+		routeGuard(to, from, next);
+	},
+	components: { WfUnsavedDialog, SessionNotice, ModeNotice, PageHeader, SideTabs, LockedCover, HeadChange: HeadChange, Profiles, Extrusor: extruder, Pid, Pellet, PelletSetup, PrintingStartup: StartupPrint, StartupPanel: StartupPanel, StateSection, BedZones, BedCalibration, PrepareJob, GcodeLibraryPage, FffJob, FilamentLoad, FilamentPanel, PcSection },
 	data() {
 		let section = restoreSection(null);
 		try {
@@ -396,14 +404,20 @@ export default {
 			const s = sectionToShow(this.section, this.isFff, op => this.canDo(op), hiddenIds(this.hideHead, this.toolKind));
 			if (s !== this.section) this.section = s;
 		},
+		// a touch on the bar of sections: an editor with changes asks first (keep editing / save and leave / discard); the bar keeps showing the open one until the answer
+		changeSection(id) {
+			if (id === this.section) return;
+			confirmLeave(() => { this.section = id; });
+		},
 		goSection(id) {
 			// the head change has no entry in the bar of a one-mode machine (hideHead) but its page still opens: the banner and the "first switch to FFF"
 			// button of the tests send people there, so a hidden entry must not turn them back
 			if (id === 'head' && this.hideHead && this.canConfig) {
-				this.section = 'head';
+				confirmLeave(() => { this.section = 'head'; });
 				return;
 			}
-			this.section = sectionToShow(id, this.isFff, op => this.canDo(op), hiddenIds(this.hideHead, this.toolKind));
+			const to = sectionToShow(id, this.isFff, op => this.canDo(op), hiddenIds(this.hideHead, this.toolKind));
+			if (to !== this.section) confirmLeave(() => { this.section = to; });
 		},
 		// a shortcut of the pellet panel: another section and, in PID, the heater to tune
 		goTo(g) {

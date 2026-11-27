@@ -4,14 +4,14 @@
 			<!-- two blocks, each with the role it asks: Preheat (operator) and Apply (technician, only when the profile has changes during the print) -->
 			<div v-if="ready" class="pc-g2">
 				<div class="pc-sub">
-					<h4>{{ tx('ready_preheat_title') }} <v-chip x-small outlined class="pc-role-tag ml-1">{{ tx('role_operator') }}</v-chip></h4>
+					<h4>{{ tx('ready_preheat_title') }} <wf-role-tag role="operator" class="ml-1" /></h4>
 					<p class="wf-field-msg is-hint mb-2">{{ tx('ready_preheat_help', { name: name }) }}</p>
 					<!-- ONE filled button per block: Preheat when the profile has no changes (Apply is not there), else Apply -->
 					<profile-preheat :profile="picked" :is-fff="isFff" :heaters="heaters" :tools="tools" :current-tool="currentTool" :bed-config="bedConfig" :state="state" :outlined="hasLayers" />
 				</div>
 				<div class="pc-sub">
 					<template v-if="hasLayers">
-						<h4>{{ tx('ready_apply_title') }} <v-chip x-small outlined class="pc-role-tag ml-1">{{ tx('role_technician') }}</v-chip></h4>
+						<h4>{{ tx('ready_apply_title') }} <wf-role-tag role="technician" class="ml-1" /></h4>
 						<p class="wf-field-msg is-hint mb-2">{{ tx('ready_apply_help') }}</p>
 						<!-- Apply exists only with changes during the print: it gets them ready for this file (two taps, live state, Remove) -->
 						<recipe-run :name="name" :recipe="recipe" :dirty="false" :file-override="file" :reason-id="uid + '-role'" :was-applied="draftApplied" :before-apply="beforeApply" @status="$emit('status', $event)" @stale="$emit('stale', $event)" @removed="$emit('removed')" />
@@ -52,11 +52,12 @@
 import ProfilePreheat from './ProfilePreheat.vue'
 import RecipeRun from './RecipeRun.vue'
 import PcEmpty from './PcEmpty.vue'
+import WfRoleTag from './WfRoleTag.vue' // vue/_shared36: the role the block asks for (only with the access control on)
 import { prepareTextMixin } from './prepare-text-mixin.js'
 
 export default {
 	mixins: [prepareTextMixin],
-	components: { ProfilePreheat, RecipeRun, PcEmpty },
+	components: { ProfilePreheat, RecipeRun, PcEmpty, WfRoleTag },
 	props: {
 		uid: { type: String, required: true },
 		fileName: { type: String, default: '' },

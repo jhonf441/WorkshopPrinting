@@ -1,5 +1,38 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.37.0 -- 2026-11-24
+
+- family scale: buttons 32 (main 36), touch area 40, rows 48; card head of the family; the heaters of Status as rows of 48
+- one help per section at its foot (Tool, Profiles, Prepare job); blocks inside a card are flat groups (title and divider), no gray sub-cards
+
+## 2.36.2 -- 2026-11-23
+
+- optional files are never requested when absent
+
+## 2.36.1 -- 2026-11-22
+
+- select arrows, one focus ring per field, shared family stylesheet split
+
+## 2.36.0 -- 2026-11-22
+
+- One common page bar and 44 px fields
+
+## 2.35.3 -- 2026-11-22
+
+- Rebuild with shared update: start-up card split into modules, neutral Spanish texts, service texts resynced, unused .wf-index rule dropped
+
+## 2.35.2 -- 2026-11-22
+
+- Tuteo in texts (no voseo in es.json).
+
+## 2.35.1 -- 2026-11-22
+
+- Visual review round: single hover and focus for inputs and controls (family styles), 44 px switch and checkbox rows, range picker field 44 px.
+
+## 2.35.0 -- 2026-11-22
+
+- Style unification: compact header with a 44 px health chip, shared unsaved-changes guard in 7 editors (section change and route leave ask first), revealed results, one 'Requires the X role' wording, 44 px chips and fields, bed legend 12 px, nothing under 12 px.
+
 ## 2.34.8 -- 2026-11-20
 
 - Bed power card is full width with a shadowed scroll as backup, a note for the short headers and one card per zone on narrow widths
@@ -128,7 +161,7 @@
 
 ## 2.32.6 -- 2026-11-11
 
-- Owner report 2026-11-11: shutdown without session, kiosk PIN pad, hive confirm color, wheel release and Z keys, version in every page bar
+- User report 2026-11-11: shutdown without session, kiosk PIN pad, hive confirm color, wheel release and Z keys, version in every page bar
 
 ## 2.32.5 -- 2026-11-11
 

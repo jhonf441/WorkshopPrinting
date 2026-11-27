@@ -4,7 +4,7 @@
 			<v-chip x-small outlined :color="has ? 'primary' : undefined">{{ has ? tx('changes_on') : tx('changes_off') }}</v-chip>
 			<!-- the summary in one line: how many rules, or that the G-code rules (nothing to edit until the switch below is on) -->
 			<span class="text-body-2" role="status">{{ has ? tx('changes_rules', { n: rulesNow }) : tx('changes_none') }}</span>
-			<help-tip v-bind="help()" />
+			
 		</div>
 		<div class="text-caption pc-muted mt-1">{{ tx('changes_lead') }}</div>
 
@@ -21,7 +21,6 @@
 			<div v-if="draft" class="mt-2">
 				<div class="pc-actions pc-actions-end">
 					<wf-field :id="uid + '-axis'" :label="tx('changes_axis')">
-						<template #help><help-tip v-bind="axisHelp()" /></template>
 						<v-select :id="uid + '-axis'" :value="axis" :items="axisItems" dense outlined hide-details style="max-width:200px" :disabled="!canWrite" :aria-label="tx('changes_axis')" @change="setAxis" />
 					</wf-field>
 					<v-switch v-for="k in tracks" :key="k" :input-value="!!draft.tracks[k]" dense hide-details class="mt-0 pt-0" :label="tx('changes_use_' + k)" :disabled="!canWrite || (!!draft.tracks[k] && onlyTrack) || (!draft.tracks[k] && !zonesOf(k).length)" @change="toggleTrack(k, !!$event)" />
@@ -37,6 +36,7 @@
 				<div class="pc-actions mt-3">
 					<v-btn small color="primary" class="ml-btn" :loading="busy === 'save'" :disabled="!canWrite || !!errors.length || !dirty" @click="save()"><v-icon small left>mdi-content-save-outline</v-icon>{{ tx('changes_save') }}</v-btn>
 					<v-btn small outlined class="ml-btn" :disabled="!dirty" @click="discard()">{{ tx('changes_discard') }}</v-btn>
+					<wf-unsaved-mark :show="hasUnsaved" />
 				</div>
 				<div v-if="!canWrite || (!!errors.length || !dirty)" class="text-caption pc-muted mt-1">{{ saveReason }}</div>
 				<div class="text-caption pc-muted mt-1">{{ tx('changes_save_note') }}</div>
@@ -52,9 +52,10 @@
 // SAME NAME as the material (the link is the name; ops layerrecipes.get / set / remove). Off by default: with the switch off the material has no recipe at all.
 // It reuses the track editor (RecipeTrack.vue) and the pure side of the recipes (layer-recipes.js). Nothing here heats or arms anything.
 import { api } from './workshop-api.js'
+import WfUnsavedMark from './WfUnsavedMark.vue' // vue/_shared36
+import { unsavedMixin } from './unsaved-mixin.js' // vue/_shared36: the guard of the unsaved changes (the dialog is mounted by the page)
 import { roleMixin } from './role-mixin.js' // vue/_shared36
 import PcResult from './PcResult.vue' // the result of an action, one line
-import HelpTip from './HelpTip.vue' // vue/_shared36
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared36
 import LockReason from './LockReason.vue' // vue/_shared36
 import WfField from './WfField.vue' // vue/_shared36
@@ -65,10 +66,10 @@ import { rulesCount, TRACKS, MATERIAL_MAX, emptyTrack, emptyRecipe, recipeDraft,
 let seq = 0
 
 export default {
-	mixins: [roleMixin],
+	mixins: [unsavedMixin, roleMixin],
 	sessionData: ['msg', 'msgKind'],
 	sessionErrors: ['failure', 'msg', 'msgKind'],
-	components: { PcResult, HelpTip, ErrorNotice, LockReason, WfField, RecipeTrack },
+	components: { WfUnsavedMark, PcResult, ErrorNotice, LockReason, WfField, RecipeTrack },
 	props: {
 		linkName: { type: String, default: '' }, // the name the material has in the SAVED list ('' = a material that is not saved yet)
 		currentName: { type: String, default: '' }, // the name in the form (differs from linkName while it is being renamed)
@@ -159,17 +160,26 @@ export default {
 		clearTimeout(this.offTimer)
 	},
 	methods: {
+		// the unsaved changes guard (unsaved-mixin.js): what is being edited against what is saved
+		unsavedPair() {
+			return [this.dirty, false]
+		},
+		async saveBeforeLeaving() {
+			if (!this.dirty) return true
+			await this.save()
+			return !this.dirty
+		},
+		discardUnsaved() {
+			this.discard()
+		},
+		unsavedLabel() {
+			return 'layer changes'
+		},
 		tx(key, params) {
 			return this.$t('plugins.WorkshopPrinting.profiles.' + key, params || {})
 		},
 		px(key, params) {
 			return this.$t('plugins.WorkshopPrinting.pellet.' + key, params || {})
-		},
-		help() {
-			return { title: this.tx('changes_title'), what: this.tx('changes_help_what'), why: this.tx('changes_help_why'), ifMissing: this.tx('changes_help_miss'), how: this.tx('changes_help_how') }
-		},
-		axisHelp() {
-			return { title: this.px('layer_recipes_help_axis_title'), what: this.px('layer_recipes_help_axis_what'), why: this.px('layer_recipes_help_axis_why'), ifMissing: this.px('layer_recipes_help_axis_miss'), how: this.px('layer_recipes_help_axis_how') }
 		},
 		onSessionChange() {
 			this.load()
@@ -324,5 +334,4 @@ export default {
 </script>
 
 <style scoped>
-.ml-btn.v-btn { height: 44px; min-height: 44px; }
 </style>

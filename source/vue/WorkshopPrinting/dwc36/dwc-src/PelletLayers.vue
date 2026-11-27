@@ -148,6 +148,7 @@
 			<div class="pc-actions mt-3">
 				<v-btn small color="primary" :loading="busy === 'save'" :disabled="!canEdit || !!errors.length || !nameOk" @click="save()"><v-icon small left>mdi-content-save-outline</v-icon>{{ tx('pellet_layers_save') }}</v-btn>
 				<v-btn small outlined :color="armed === 'remove' ? 'amber darken-3' : undefined" :loading="busy === 'remove'" :disabled="!canEdit || !isSaved" @click="touch('remove', remove)"><v-icon small left>mdi-delete-outline</v-icon>{{ armed === 'remove' ? tx('pellet_layers_tap_again_remove') : tx('pellet_layers_remove') }}</v-btn>
+				<wf-unsaved-mark :show="hasUnsaved" />
 			</div>
 			<div class="text-caption pc-muted mt-1">{{ tx('pellet_layers_save_note') }}</div>
 		</div>
@@ -158,6 +159,8 @@
 'use strict'
 
 import { api } from './workshop-api.js'
+import WfUnsavedMark from './WfUnsavedMark.vue' // vue/_shared36
+import { unsavedMixin } from './unsaved-mixin.js' // vue/_shared36: the guard of the unsaved changes (the dialog is mounted by the page)
 import { roleMixin } from './role-mixin.js' // vue/_shared36
 import { tapArmMixin } from './tap-arm-mixin.js' // the double tap of the page (4 s)
 import PcResult from './PcResult.vue' // the result of an action, one line
@@ -175,11 +178,11 @@ import {
 const HELP = ['profile', 'mode', 'axis', 'max_temp', 'max_step', 'max_spread', 'points', 'preview', 'file']
 
 export default {
-	mixins: [roleMixin, tapArmMixin],
+	mixins: [unsavedMixin, roleMixin, tapArmMixin],
 	// what the person who left read, did or was refused stays nowhere (role-mixin.js)
 	sessionData: ['armed', 'msg', 'msgKind'],
 	sessionErrors: ['failure', 'msg', 'msgKind'],
-	components: { PcResult, HelpGuide, HelpTip, ErrorNotice, LockReason, WfField, GcodePicker },
+	components: { WfUnsavedMark, PcResult, HelpGuide, HelpTip, ErrorNotice, LockReason, WfField, GcodePicker },
 	props: {
 		tool: { type: Object, default: null } // the current tool of the page (its heaters are the zones of the profile)
 	},
@@ -302,6 +305,21 @@ export default {
 		clearInterval(this.timer)
 	},
 	methods: {
+		// the unsaved changes guard (unsaved-mixin.js): what is being edited against what is saved
+		unsavedPair() {
+			return [this.dirty, false]
+		},
+		async saveBeforeLeaving() {
+			if (!this.dirty) return true
+			await this.save()
+			return !this.dirty
+		},
+		discardUnsaved() {
+			if (this.saved) this.draft = draftOf(this.saved)
+		},
+		unsavedLabel() {
+			return 'pellet layers'
+		},
 		// the file field is the select of the G-code library
 		onFilePick(path) {
 			this.file = path || ''
@@ -475,8 +493,7 @@ export default {
 
 <style scoped>
 /* one height for every button of the card (the rows of buttons and fields line up), and the fields of a row share one baseline */
-.pl-card .v-btn:not(.v-btn--icon) { height: 44px; min-height: 44px; }
-.pl-card .v-btn--icon { width: 44px; height: 44px; }
+.pl-card .v-btn--icon { width: var(--wf-size-s, 32px); height: var(--wf-size-s, 32px); }
 .pl-card .d-flex.align-end > .v-btn { margin-bottom: 0; }
 .pl-live { border-left: 3px solid var(--wf-line, rgba(128, 128, 128, 0.4)); padding-left: 10px; }
 .pl-scroll { overflow-x: auto; max-width: 100%; }

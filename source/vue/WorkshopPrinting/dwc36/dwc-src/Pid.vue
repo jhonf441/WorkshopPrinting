@@ -1,10 +1,10 @@
 <template>
 	<pc-section icon="mdi-chart-bell-curve" :title="$t('plugins.WorkshopPrinting.common.pid')" role="technician" :bare="zonesOnly">
-		<help-guide v-if="!zonesOnly" :title="$t('plugins.WorkshopPrinting.common.how_it_works')">
+		<template v-if="!zonesOnly" v-slot:guide>
 			<p>
 			{{ $t('plugins.WorkshopPrinting.pid.intro') }} <b>{{ $t('plugins.WorkshopPrinting.pid.do_not_leave') }}</b>
 			</p>
-		</help-guide>
+		</template>
 		<div v-if="!isFff" class="wf-note mt-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ $t('plugins.WorkshopPrinting.pid.the_nozzle_and_the_bed_only') }}</span></div>
 		<template v-else>
 			<template v-if="!zonesOnly">
@@ -72,7 +72,6 @@ import PcHelp from './PcHelp.vue' // the "?" of a row, drawn folded by the secti
 import PcSection from './PcSection.vue' // the card with the header of the section (printing-design.css)
 import PcResult from './PcResult.vue' // the result of an action, one line
 import { tapArmMixin } from './tap-arm-mixin.js' // the double tap of the page (4 s)
-import HelpGuide from './HelpGuide.vue' // vue/_shared36
 
 'use strict'
 
@@ -98,7 +97,7 @@ export default {
 	mixins: [roleMixin, tapArmMixin],
 	sessionData: ['trace', 'msg', 'msgKind', 'failure', 'refusal', 'armed'], // what the person who left read, did or was refused stays nowhere (ESTANDAR 3)
 	sessionErrors: ['msg', 'msgKind', 'failure', 'refusal'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
-	components: { SessionNotice, HelpGuide, PidDetail: PidDetail, PidTuneChart, PidZonesPanel, ErrorNotice, PcSection, PcResult, PcHelp },
+	components: { SessionNotice, PidDetail: PidDetail, PidTuneChart, PidZonesPanel, ErrorNotice, PcSection, PcResult, PcHelp },
 	props: {
 		isFff: { type: Boolean, default: false },
 		zonesOnly: { type: Boolean, default: false }, // only the all-zones tuning (mounted inside the pellet setup)

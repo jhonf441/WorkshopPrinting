@@ -180,7 +180,6 @@ export default {
 
 <style scoped>
 .rt { border-left: 3px solid var(--wf-line, rgba(128, 128, 128, 0.4)); padding-left: 12px; }
-.rt-btn.v-btn { height: 44px; min-height: 44px; }
 .rt-scroll { overflow-x: auto; max-width: 100%; }
 .rt-table { border-collapse: collapse; min-width: 100%; }
 .rt-table th { text-align: left; font-weight: 500; font-size: 12px; padding: 2px 6px; white-space: nowrap; }

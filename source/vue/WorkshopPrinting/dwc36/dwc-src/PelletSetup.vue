@@ -41,7 +41,7 @@
 								<div class="pc-bar"><i :style="{ width: barPct(z.current, z) + '%' }" /><b v-if="z.target > 0" :style="{ left: barPct(z.target, z) + '%' }" /></div>
 								<div class="pc-lim">
 									<span>{{ $t('plugins.WorkshopPrinting.pellet.col_limit') }} {{ z.max }} &deg;C</span>
-									<span v-if="k > 0">{{ $t('plugins.WorkshopPrinting.pellet.col_step') }} <input v-model.number="step[z.id]" type="number" step="5" class="field" :disabled="!canConfig" @change="changed = true" /> &deg;C</span>
+									<span v-if="k > 0">{{ $t('plugins.WorkshopPrinting.pellet.col_step') }} <input v-model.number="step[z.id]" :aria-label="$t('plugins.WorkshopPrinting.pellet.col_step')" type="number" step="5" class="field" :disabled="!canConfig" @change="changed = true" /> &deg;C</span>
 									<span class="pc-state"><span class="pc-dot" :style="{ background: color(z) }" />{{ label(z) }}</span>
 								</div>
 							</div>
@@ -54,7 +54,9 @@
 					</div>
 					<div class="pc-actions mt-2">
 						<v-btn x-small outlined :disabled="!canConfig" :title="$t('plugins.WorkshopPrinting.pellet.add_zone_tip')" @click="addZone()"><v-icon x-small left>mdi-plus</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.add_zone') }}</v-btn>
+						<span v-if="farNote" class="wf-state warn" role="status">{{ farNote }}</span>
 						<v-btn x-small :color="changed ? 'primary' : ''" :disabled="!changed || !canConfig" :loading="saving" @click="saveStep()">{{ $t('plugins.WorkshopPrinting.pellet.save_steps') }}</v-btn>
+						<wf-unsaved-mark :show="hasUnsaved" />
 						<span class="text-caption pc-muted">{{ $t('plugins.WorkshopPrinting.pellet.preheat_materials_uses_it') }}</span>
 					</div>
 					<div class="wf-sub">
@@ -156,7 +158,7 @@
 				</details>
 
 				<!-- dragging or moving a zone changes which heater is the nozzle: it is explained and confirmed first -->
-				<v-dialog :value="!!ask" max-width="560" persistent content-class="impresion-dialog">
+				<v-dialog :value="!!ask" max-width="560" persistent content-class="workshop-theme impresion-dialog">
 					<v-card v-if="ask" class="mt-3">
 						<v-card-title class="pc-card-title"><v-icon left color="warning">mdi-alert</v-icon>{{ $t('plugins.WorkshopPrinting.pellet.reorder_title') }}</v-card-title>
 						<v-card-text class="text-body-2">
@@ -184,6 +186,9 @@
 
 <script>
 import i18n from '../../i18n'
+import WfUnsavedMark from './WfUnsavedMark.vue' // vue/_shared36
+import { wfRevealMixin } from './wf-reveal.js' // vue/_shared36: the reveal of a far result
+import { unsavedMixin } from './unsaved-mixin.js' // vue/_shared36: the guard of the unsaved changes (the dialog is mounted by the page)
 
 'use strict'
 
@@ -206,10 +211,10 @@ import { layout, loadLayout, saveLayout } from './pellet-orientation.js'
 import { COLORS, zoneState, zoneLabel, moveItem, reorderM563 } from './pellet-hmi.js'
 
 export default {
-	mixins: [roleMixin],
+	mixins: [unsavedMixin, wfRevealMixin, roleMixin],
 	sessionData: ['msg', 'msgKind', 'failure', 'ask', 'newFan'], // what the person who left did or was refused stays nowhere (ESTANDAR 3)
 	sessionErrors: ['msg', 'msgKind', 'failure'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
-	components: { PcResult, PcSection, LockReason, ExtruderConfig, PelletFeed, PelletFanAdd, PelletMotor, NozzleChange, ErrorNotice, Pid },
+	components: { WfUnsavedMark, PcResult, PcSection, LockReason, ExtruderConfig, PelletFeed, PelletFanAdd, PelletMotor, NozzleChange, ErrorNotice, Pid },
 	props: {
 		isFff: { type: Boolean, default: false },
 		currentTool: { type: Object, default: null },
@@ -293,6 +298,23 @@ export default {
 		loadLayout();
 	},
 	methods: {
+		// the unsaved changes guard (unsaved-mixin.js): what is being edited against what is saved
+		unsavedPair() {
+			return [this.changed, false]
+		},
+		async saveBeforeLeaving() {
+			if (!this.changed) return true
+			await this.saveStep()
+			return !this.changed
+		},
+		async discardUnsaved() {
+			const cfg = (await readJson(CFG_FILE, {})) || {}
+			this.step = Object.assign({}, cfg.step || {})
+			this.changed = false
+		},
+		unsavedLabel() {
+			return 'pellet steps'
+		},
 		// one sub-card open at a time (the zones one also mounts its PID table only while it is open)
 		onToggle(id, e) {
 			if (e.target.open) this.section = id;
@@ -334,7 +356,8 @@ export default {
 		showConfig(text) {
 			this.msgKind = 'info';
 			this.msg = text;
-			this.$nextTick(() => { const c = this.$refs.cfg; if (c && c.$el && c.$el.scrollIntoView) c.$el.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+			// the form is below the buttons: bring it under DWC's fixed bar ONLY when it is out of view, mark it, and say so next to the button when nothing could scroll to it
+			this.$nextTick(() => { const c = this.$refs.cfg; if (c && c.$el) this.showResult(c.$el, { said: text }); });
 		},
 		addZone() {
 			const c = this.$refs.cfg;

@@ -76,12 +76,12 @@ export default {
 </script>
 
 <style scoped>
-.gl-slider { width: 44px; flex: 1 1 auto; align-self: stretch; min-height: 180px; padding: 22px 0; box-sizing: border-box; display: flex; justify-content: center; touch-action: none; user-select: none; }
+.gl-slider { width: var(--wf-hit, 40px); flex: 1 1 auto; align-self: stretch; min-height: 180px; padding: 22px 0; box-sizing: border-box; display: flex; justify-content: center; touch-action: none; user-select: none; }
 .gl-slider.is-off { opacity: 0.4; pointer-events: none; }
 .gl-track { position: relative; width: 6px; align-self: stretch; border-radius: 3px; background: rgba(128, 128, 128, 0.35); cursor: pointer; }
 .gl-track::before { content: ''; position: absolute; left: -19px; right: -19px; top: 0; bottom: 0; }
 .gl-fill { position: absolute; left: 0; right: 0; border-radius: 3px; background: var(--wf-sec, #1e88e5); }
-.gl-handle { position: absolute; left: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; display: flex; align-items: center; justify-content: center; cursor: grab; outline: none; }
+.gl-handle { position: absolute; left: 50%; width: var(--wf-hit, 40px); height: var(--wf-hit, 40px); margin: -20px 0 0 -20px; display: flex; align-items: center; justify-content: center; cursor: grab; outline: none; }
 .gl-knob { width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 3px solid var(--wf-sec, #1e88e5); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }
 .gl-handle:focus .gl-knob { box-shadow: 0 0 0 4px rgba(30, 136, 229, 0.45); }
 </style>

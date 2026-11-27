@@ -325,11 +325,11 @@ export default {
 .bz-handle { cursor: nwse-resize; touch-action: none; }
 .bz-hit { fill: transparent; }
 .bz-dot { fill: var(--wf-accent, #1976d2); stroke: #fff; stroke-width: 2; }
-.bz-n { font-size: 11px; font-weight: 600; }
+.bz-n { font-size: 13px; font-weight: 600; }
 .bz-size { font-size: 11px; font-family: var(--tp-font-mono, monospace); }
 .bz-bang { font-size: 16px; font-weight: 700; }
 .bz-temp { font-size: 20px; font-weight: 600; font-family: var(--tp-font-mono, monospace); }
 .bz-target { font-size: 12px; font-family: var(--tp-font-mono, monospace); }
-.bz-legend { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 360px; font-size: 11px; opacity: 0.75; }
+.bz-legend { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 360px; font-size: 12px; opacity: 0.75; }
 .bz-bar { flex: 1; height: 8px; border-radius: 4px; border: 1px solid var(--wf-line, rgba(128, 128, 128, 0.3)); }
 </style>

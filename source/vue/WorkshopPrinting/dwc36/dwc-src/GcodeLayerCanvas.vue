@@ -403,9 +403,8 @@ export default {
 .gl-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; padding: 4px 6px; }
 .gl-view3d { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .gl-view-select { max-width: 170px; min-width: 130px; }
-.gl-view-select >>> .v-input__slot { min-height: 44px; }
-.gl-proj .v-btn.gl-btn-text { min-height: 44px; }
-.gl-btn.v-btn { width: 44px; height: 44px; }
+.gl-view-select >>> .v-input__slot { min-height: var(--wf-size-m, 36px); }
+.gl-btn.v-btn { width: var(--wf-size-s, 32px); height: var(--wf-size-s, 32px); }
 .gl-body { display: flex; flex: 1 1 auto; min-height: 0; }
 .gl-stage { position: relative; flex: 1 1 auto; min-width: 0; min-height: 200px; border-radius: 8px; overflow: hidden; background: #1b1b1f; touch-action: none; outline: none; cursor: grab; }
 .gl-stage:focus-visible { box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.5); }

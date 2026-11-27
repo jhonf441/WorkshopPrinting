@@ -8,7 +8,7 @@
 			<v-btn small class="pp-btn" :color="isArmed('preheat') ? 'amber darken-3' : 'primary'" :outlined="outlined && !isArmed('preheat')" :disabled="!isFff || !!problem || !canPreheat || !!heatReason" :title="problem || heatReason" @click="arm()">
 				<v-icon small left>mdi-fire</v-icon>{{ isArmed('preheat') ? $t('plugins.WorkshopPrinting.common.tap_again') : tx('preheat') }}
 			</v-btn>
-			<help-tip v-bind="help()" />
+			
 		</div>
 		<div v-if="why" class="text-caption pc-muted mt-1" role="status">{{ why }}</div>
 		<lock-reason v-if="!canPreheat" :min="needPreheat" class="mt-1" :subject="$t('plugins.WorkshopPrinting.subjects.preheat')" />
@@ -26,7 +26,6 @@ import i18n from '../../i18n'
 import { roleMixin } from './role-mixin.js' // vue/_shared36
 import { tapArmMixin } from './tap-arm-mixin.js' // the double tap of the page (4 s)
 import PcResult from './PcResult.vue' // the result of an action, one line
-import HelpTip from './HelpTip.vue' // vue/_shared36
 import LockReason from './LockReason.vue' // vue/_shared36
 import { isError } from './util.js'
 import { printingConfig } from './printing-config.js' // the one copy of printing.json of the page
@@ -43,7 +42,7 @@ export default {
 	mixins: [roleMixin, tapArmMixin],
 	sessionData: ['armed', 'msg', 'msgKind'],
 	sessionErrors: ['msg', 'msgKind'],
-	components: { PcResult, HelpTip, LockReason },
+	components: { PcResult, LockReason },
 	props: {
 		profile: { type: Object, default: null },
 		isFff: { type: Boolean, default: false },
@@ -128,9 +127,6 @@ export default {
 		tx(key, params) {
 			return i18n.t('plugins.WorkshopPrinting.profiles.' + key, params || {})
 		},
-		help() {
-			return { title: this.tx('help_preheat_title'), what: this.tx('help_preheat_what'), why: this.tx('help_preheat_why'), ifMissing: this.tx('help_preheat_miss'), how: this.tx('help_preheat_how') }
-		},
 		arm() {
 			this.tapArm('preheat', () => this.preheat())
 		},
@@ -174,5 +170,4 @@ export default {
 </script>
 
 <style scoped>
-.pp-btn.v-btn { height: 44px; min-height: 44px; }
 </style>

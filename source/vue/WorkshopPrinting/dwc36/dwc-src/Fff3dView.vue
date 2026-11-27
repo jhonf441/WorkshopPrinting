@@ -13,7 +13,7 @@
 			/>
 			<div v-if="unavailable" class="wf-note fff-nocanvas">{{ t('fff.no_canvas') }}</div>
 			<div v-if="!prev && !unavailable" class="d-flex justify-center mt-2">
-				<v-btn small color="primary" @click="$emit('pick')">{{ t('fff.empty_button') }}</v-btn>
+				<v-btn small outlined @click="$emit('pick')">{{ t('fff.empty_button') }}</v-btn>
 			</div>
 			<div class="d-flex align-center flex-wrap mt-1" style="gap:6px">
 				<v-btn x-small outlined @click="view('iso')">{{ t('fff.view_iso') }}</v-btn>

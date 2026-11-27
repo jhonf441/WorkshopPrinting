@@ -261,7 +261,7 @@ export default {
 .gl-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 4px 6px 0; }
 .gl-search { flex: 1 1 160px; min-width: 0; }
 .gl-sort { flex: 0 1 150px; min-width: 110px; }
-.gl-btn.v-btn { width: 44px; height: 44px; }
+.gl-btn.v-btn { width: var(--wf-size-s, 32px); height: var(--wf-size-s, 32px); }
 .gl-pending { padding: 4px 10px; font-size: 12px; opacity: 0.85; }
 .gl-empty { padding: 24px 12px; text-align: center; opacity: 0.7; }
 .gl-scroll { position: relative; flex: 1 1 auto; min-height: 120px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
