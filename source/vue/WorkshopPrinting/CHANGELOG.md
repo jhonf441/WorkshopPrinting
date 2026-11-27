@@ -1,5 +1,9 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.37.1 -- 2026-11-27
+
+- number fields are 40 px high like the other fields; the status icon of each heater in the commissioning page has a name for screen readers
+
 ## 2.37.0 -- 2026-11-24
 
 - family scale: buttons 32 (main 36), touch area 40, rows 48; card head of the family; the heaters of Status as rows of 48

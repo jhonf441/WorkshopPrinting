@@ -69,7 +69,7 @@
 						<!-- 2. calentadores: prueba real, de a uno (nivel 2: calienta, doble toque) -->
 						<template v-else-if="p.id === 'heaters'">
 							<div v-for="h in heaters" :key="h.id" class="row text-body-2">
-								<v-icon small :color="iconCal(h).color">{{ iconCal(h).icon }}</v-icon>
+								<v-icon small role="img" :aria-label="$t('plugins.WorkshopPrinting.commissioning.' + iconCal(h).label)" :color="iconCal(h).color">{{ iconCal(h).icon }}</v-icon>
 								<span class="name">{{ h.name }}</span>
 								<span v-if="test && test.id === h.id" class="text-caption">
 									<v-progress-circular indeterminate size="12" width="2" class="mr-1" />{{ test.text }}
@@ -334,9 +334,9 @@ export default {
 		},
 		iconCal(h) {
 			const r = this.resultCal(h);
-			if (this.test && this.test.id === h.id) return { icon: 'mdi-fire', color: 'amber darken-3' };
-			if (!r) return { icon: 'mdi-circle-outline', color: 'grey' };
-			return r.ok ? { icon: 'mdi-check-circle', color: 'success' } : { icon: 'mdi-alert-circle', color: 'error' };
+			if (this.test && this.test.id === h.id) return { icon: 'mdi-fire', color: 'amber darken-3', label: 'heater_test_running_label' };
+			if (!r) return { icon: 'mdi-circle-outline', color: 'grey', label: 'heater_test_none_label' };
+			return r.ok ? { icon: 'mdi-check-circle', color: 'success', label: 'heater_test_ok_label' } : { icon: 'mdi-alert-circle', color: 'error', label: 'heater_test_bad_label' };
 		},
 		// why it cannot be tested now (written, DESIGN.md 5)
 		reasonNoCal(h) {

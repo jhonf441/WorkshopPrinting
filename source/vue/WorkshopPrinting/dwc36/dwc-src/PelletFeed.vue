@@ -229,6 +229,8 @@ export default {
 .field {
 	width: 64px;
 	padding: 2px 5px;
+	min-height: var(--wf-field-h, 40px);
+	box-sizing: border-box;
 	border: 1px solid rgba(128, 128, 128, 0.45);
 	border-radius: 4px;
 	color: inherit;
