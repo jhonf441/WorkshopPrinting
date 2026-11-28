@@ -26,6 +26,8 @@ export function heaterSummary(heaters) {
 	const ok = count('ok');
 	const on = heating + cooling + ok; // the heaters that have a target
 	if (faults) return { key: 'fault', n: faults, m: list.length, kind: 'err' };
+	const tuning = list.filter(h => h.state === 'tuning').length; // a PID tuning heats and cools by itself, with no target the page can compare
+	if (tuning) return { key: 'tuning', n: tuning, m: list.length, kind: 'warn' };
 	if (heating) return { key: 'heating', n: heating, m: on, kind: 'warn' };
 	if (cooling) return { key: 'cooling', n: cooling, m: on, kind: 'info' };
 	if (ok) return { key: 'ready', n: ok, m: on, kind: 'ok' };

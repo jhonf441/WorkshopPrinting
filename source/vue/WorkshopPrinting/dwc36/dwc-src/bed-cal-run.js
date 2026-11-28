@@ -22,9 +22,10 @@ export const RUN_ERRORS = ['stop', 'machine_halted', 'reservation_lost', 'reserv
 	'job_started', 'board_stopped', 'no_model', 'not_reached', 'tune_timeout', 'too_long', 'neighbours_not_ready', 'heaters_turned_off']
 // the result of a zone (zones[].result of the run) and the state of its heater
 export const ZONE_RESULTS = ['pending', 'heating', 'reached', 'in_progress', 'ok', 'failure', 'cut', 'held']
-export const ZONE_ERRORS = ['tune_failed', 'rejected', 'not_cold', 'no_model']
+export const ZONE_ERRORS = ['tune_failed', 'rejected', 'not_cold', 'no_model', 'send_failed']
 
 export function errorKey(code) {
+	if (String(code || '').indexOf('bedcal_') === 0) return 'err_run_bedcal_refused' // the service planned again at the start and refused (the settings changed since the plan)
 	return 'err_run_' + (RUN_ERRORS.indexOf(code) >= 0 ? code : 'other')
 }
 
@@ -46,13 +47,35 @@ export function runView(status) {
 	const r = run.result || {}
 	const active = !!status.active
 	const outcome = active ? 'running' : run.state === 'done' ? 'done' : run.state === 'aborted' ? 'stopped' : 'failed'
-	const zones = (r.zones || []).map(z => ({ bed: z.bed, heater: z.heater, target: z.target, current: z.current === undefined ? null : z.current, state: z.state || null, result: z.result || 'pending', error: z.error || null, model: z.model || null, modelLine: z.model_line || null }))
+	const zones = (r.zones || []).map(z => ({ wait: z.wait || null, bed: z.bed, heater: z.heater, target: z.target, current: z.current === undefined ? null : z.current, state: z.state || null, result: z.result || 'pending', error: z.error || null, model: z.model || null, modelLine: z.model_line || null }))
 	return {
 		has: true, active, kind: KIND_OF[run.kind] || null, state: run.state, outcome, phase: r.phase || run.phase || '', step: run.step || 0, total: run.total || 0, zones,
+		startedAt: run.started || null, series: Array.isArray(r.series) ? r.series : [], temp: typeof r.temp === 'number' ? r.temp : null,
 		off: !!r.off, offProblem: Array.isArray(r.off_errors) && r.off_errors.length > 0, elapsedS: r.elapsed_s || 0, holdLeftS: typeof r.hold_left_s === 'number' ? r.hold_left_s : null,
 		errorCode: run.error && run.error.code ? run.error.code : null, user: run.user || '', canStop: active,
 		tuning: (zones.find(z => z.state === 'tuning') || null)
 	}
+}
+
+// What a zone waits for before its M303, as pieces of text (each {key, params}: bedCal.<key>) for the page to join; nameOf(bed) is the name of a zone.
+// wait = zones[].wait of the run: {neighbours: [[bed, now, goal]], zone_current, cold_limit, still_s, still_need_s, stuck_s, stuck_max_s}
+export function waitParts(wait, nameOf) {
+	if (!wait) return []
+	const r = v => (typeof v === 'number' ? String(Math.round(v)) : '--')
+	const out = []
+	if (Array.isArray(wait.neighbours) && wait.neighbours.length) {
+		out.push({ key: 'wait_neighbours', params: { list: wait.neighbours.map(n => nameOf(n[0]) + ' ' + r(n[1]) + '/' + r(n[2])).join(', ') } })
+	}
+	if (typeof wait.zone_current === 'number') out.push({ key: 'wait_zone', params: { now: r(wait.zone_current), limit: r(wait.cold_limit) } })
+	if (wait.still_need_s > 0) out.push({ key: 'wait_still', params: { s: Math.min(wait.still_s || 0, wait.still_need_s), need: wait.still_need_s } })
+	if (wait.stuck_s > 0) out.push({ key: 'wait_stuck', params: { left: Math.max(0, (wait.stuck_max_s || 0) - wait.stuck_s) } })
+	return out
+}
+
+// A record of pid.trace belongs to THIS run only when it started after the run did: the service answers with the last record it has, even one of an earlier tuning.
+export function traceOfRun(raw, view) {
+	if (!raw || !view || !view.startedAt) return null
+	return Number(raw.started_at) >= Number(view.startedAt) - 2 ? raw : null
 }
 
 // the sentence key of the phase of a run: bedCal.phase_<name>

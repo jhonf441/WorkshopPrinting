@@ -327,6 +327,8 @@ export default {
 		},
 		textState(h) {
 			if (h.sensorBad) return i18n.t('plugins.WorkshopPrinting.common.no_sensor');
+			// RRF keeps a selected tool's heater `active` even with a target of 0: that is not heating, it is off
+			if (h.state === 'active' && !(h.target > 0)) return i18n.t('plugins.WorkshopPrinting.printing.st_off');
 			return { off: i18n.t('plugins.WorkshopPrinting.printing.st_off'), active: i18n.t('plugins.WorkshopPrinting.printing.st_heating'), standby: i18n.t('plugins.WorkshopPrinting.common.standby'), fault: i18n.t('plugins.WorkshopPrinting.printing.st_fault'), tuning: i18n.t('plugins.WorkshopPrinting.printing.st_tuning') }[h.state] || h.state;
 		},
 		// the dot of the row: fault red, tuning amber, a heater with a target that is still heating amber, at its target green, the rest neutral

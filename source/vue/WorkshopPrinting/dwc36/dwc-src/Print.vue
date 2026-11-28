@@ -295,8 +295,8 @@ export default {
 				const tool = this.tools.find(t => (t.heaters || []).includes(i));
 				const zone = tool ? tool.heaters.indexOf(i) : -1;
 				let papel = 'other', nombre = i18n.t('plugins.WorkshopPrinting.printing.heater_n', { n: i }), icon = 'mdi-fire';
-				if (beds.includes(i)) { papel = 'bed'; nombre = i18n.t('plugins.WorkshopPrinting.printing.bed'); icon = 'mdi-radiator'; }
-				else if (cameras.includes(i)) { papel = 'camera'; nombre = i18n.t('plugins.WorkshopPrinting.printing.heated_chamber'); icon = 'mdi-home-thermometer-outline'; }
+				if (beds.includes(i)) { papel = 'bed'; nombre = i18n.t('plugins.WorkshopPrinting.printing.bed') + (beds.length > 1 ? ' ' + i18n.t('plugins.WorkshopPrinting.printing.zone_n_lower', { n: beds.indexOf(i) + 1 }) : ''); icon = 'mdi-radiator'; }
+				else if (cameras.includes(i)) { papel = 'camera'; nombre = i18n.t('plugins.WorkshopPrinting.printing.heated_chamber') + (cameras.length > 1 ? ' ' + i18n.t('plugins.WorkshopPrinting.printing.zone_n_lower', { n: cameras.indexOf(i) + 1 }) : ''); icon = 'mdi-home-thermometer-outline'; }
 				else if (tool) {
 					papel = 'nozzle';
 					icon = 'mdi-printer-3d-nozzle-heat';

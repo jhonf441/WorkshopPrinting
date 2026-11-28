@@ -1,5 +1,9 @@
 # WorkshopPrinting -- historial de versiones
 
+## 2.37.2 -- 2026-11-28
+
+- fix: buttons, chips and tabs no longer show a framed shadow around them (the invisible touch area was drawing Vuetify's raise shadow)
+
 ## 2.37.1 -- 2026-11-27
 
 - number fields are 40 px high like the other fields; the status icon of each heater in the commissioning page has a name for screen readers

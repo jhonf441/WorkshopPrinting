@@ -155,7 +155,7 @@ import BedCalOffsets from './BedCalOffsets.vue'
 import { emptyConfig } from './bed-zones.js'
 import { fromService } from './pid-trace.js'
 import { zoneMap, heatingOrder, tunable, offsetsFromMap, inputIssues, modelValues, capValues, startArgs, DEFAULT_TUNE_TEMP, DEFAULT_STAGGER_S, DEFAULT_HOLD_MIN } from './bed-calibration.js'
-import { initial, reduce, canAsk, planLines, runView, POLL_MS } from './bed-cal-run.js'
+import { initial, reduce, canAsk, planLines, runView, traceOfRun, POLL_MS } from './bed-cal-run.js'
 
 const HELP = ['map', 'order', 'stagger', 'hold', 'start_preheat', 'tune', 'tune_run', 'temp', 'together', 'models', 'offsets']
 const noGcode = () => ({ lines: [], error: '', loading: false })
@@ -317,7 +317,8 @@ export default {
 				const status = await api('bedcal.status', {}, { quiet: true, noLogin: true })
 				this.ui = reduce(this.ui, { type: 'status', status })
 				const view = runView(status)
-				if (view.active && view.kind === 'tune') this.readTrace(view)
+				if (view.active && view.kind === 'tune' && view.phase === 'tuning') this.readTrace(view)
+				else if (view.active) this.trace = null // before the M303 (or after it) there is no record of THIS run to draw
 				if (view.active) this.timer = setTimeout(() => this.poll(), POLL_MS)
 			} catch (e) {
 				if (this.ui.step === 'running') this.timer = setTimeout(() => this.poll(), POLL_MS) // a lost answer is not the end of the run: ask again
@@ -327,7 +328,7 @@ export default {
 		async readTrace(view) {
 			try {
 				const r = await api('pid.trace', {}, { quiet: true, noLogin: true })
-				const raw = r && r.trace
+				const raw = traceOfRun(r && r.trace, view)
 				const z = raw ? view.zones.find(x => x.heater === raw.heater) : null
 				this.trace = fromService(raw, z ? this.$t('plugins.WorkshopPrinting.bedZones.zone_n', { n: this.numbers[z.bed] || z.bed + 1 }) : '', z ? z.target : 0)
 			} catch (e) {

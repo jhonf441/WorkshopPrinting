@@ -24,17 +24,19 @@
 					<td>
 						<v-chip x-small outlined :color="resultColor(z)">{{ t('zone_' + z.result) }}</v-chip>
 						<span v-if="z.error" class="text-caption wf-state err"> {{ t(zoneErr(z.error)) }}</span>
+						<div v-if="waitText(z)" class="text-caption pc-muted bcr-wait" data-part="wait">{{ waitText(z) }}</div>
 					</td>
 				</tr>
 			</tbody>
 		</v-simple-table>
 		<pid-tune-chart v-if="trace && trace.points.length > 1" :trace="trace" class="mt-2" />
+		<bed-wait-chart v-else-if="view.series.length > 1" :series="view.series" :zones="view.zones" :temp="view.temp" :cold-limit="coldLimit" :numbers="numbers" class="mt-2" />
 		<template v-if="models.length">
 			<h4 class="mt-2">{{ t('run_models') }}</h4>
 			<div v-for="m in models" :key="'m' + m.heater" class="text-body-2"><code class="bcr-mono">{{ m.modelLine }}</code></div>
 			<div class="text-caption pc-muted">{{ t('run_models_note') }}</div>
 		</template>
-		<div v-if="view.errorCode && view.outcome === 'failed'" class="wf-note is-warn mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ t(errKey(view.errorCode)) }}</span></div>
+		<div v-if="view.errorCode && (view.outcome === 'failed' || (view.outcome === 'stopped' && view.errorCode !== 'stop'))" class="wf-note is-warn mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ t(errKey(view.errorCode)) }}</span></div>
 		<div v-else-if="view.outcome === 'stopped'" class="wf-note mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ t('run_stopped_note') }}</span></div>
 		<div v-if="!view.active && view.offProblem" class="wf-note is-warn mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ t('run_off_problem') }}</span></div>
 		<div v-else-if="!view.active && view.off" class="text-caption pc-muted mt-1"><v-icon x-small class="mr-1">mdi-power</v-icon>{{ t('run_all_off') }}</div>
@@ -46,10 +48,11 @@
 'use strict'
 
 import PidTuneChart from './PidTuneChart.vue'
-import { phaseKey, clock, errorKey, zoneErrorKey } from './bed-cal-run.js'
+import BedWaitChart from './BedWaitChart.vue'
+import { phaseKey, clock, errorKey, zoneErrorKey, waitParts } from './bed-cal-run.js'
 
 export default {
-	components: { PidTuneChart },
+	components: { PidTuneChart, BedWaitChart },
 	props: {
 		view: { type: Object, required: true }, // runView() of bedcal.status
 		stopping: { type: Boolean, default: false },
@@ -62,6 +65,11 @@ export default {
 		},
 		models() {
 			return this.view.zones.filter(z => z.modelLine)
+		},
+		// the temperature the zone being waited for must go under (drawn as a line on the chart)
+		coldLimit() {
+			const z = this.view.zones.find(x => x.wait && typeof x.wait.cold_limit === 'number')
+			return z ? z.wait.cold_limit : null
 		}
 	},
 	methods: {
@@ -72,7 +80,14 @@ export default {
 		errKey: errorKey,
 		zoneErr: zoneErrorKey,
 		zoneName(z) {
-			return this.$t('plugins.WorkshopPrinting.bedZones.zone_n', { n: this.numbers[z.bed] || z.bed + 1 })
+			return this.nameOfBed(z.bed)
+		},
+		nameOfBed(bed) {
+			return this.$t('plugins.WorkshopPrinting.bedZones.zone_n', { n: this.numbers[bed] || bed + 1 })
+		},
+		// what this zone is waiting for before its M303, in one line: "Neighbours: ... . Zone ... . Still ..."
+		waitText(z) {
+			return waitParts(z.wait, b => this.nameOfBed(b)).map(p => this.t(p.key, p.params)).join('. ')
 		},
 		resultColor(z) {
 			return z.result === 'ok' || z.result === 'reached' ? 'success' : z.result === 'failure' || z.result === 'cut' ? 'error' : z.result === 'in_progress' || z.result === 'heating' ? 'amber darken-3' : 'grey'
